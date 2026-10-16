@@ -47,6 +47,8 @@ export function Stage({ onAddFrame }: { onAddFrame: () => void }) {
   const activePageId = useStore((s) => s.activePageId)
   const select = useStore((s) => s.select)
   const panMode = useStore((s) => s.panMode)
+  /* ⌘. — the zoom toolbar goes with the rest of the chrome */
+  const uiHidden = useStore((s) => s.uiHidden)
   const [panning, setPanning] = useState(false)
   /* the selection rectangle being dragged out, in world coordinates */
   const [marquee, setMarquee] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
@@ -630,7 +632,12 @@ export function Stage({ onAddFrame }: { onAddFrame: () => void }) {
         </ContextMenuTrigger>
         <FollowFrame />
 
-        <Toolbar className="absolute bottom-[calc(8px+env(safe-area-inset-bottom))] left-1/2 z-[35] -translate-x-1/2 sm:bottom-4">
+        <Toolbar
+          className={cn(
+            'absolute bottom-[calc(8px+env(safe-area-inset-bottom))] left-1/2 z-[35] -translate-x-1/2 sm:bottom-4',
+            uiHidden && 'hidden',
+          )}
+        >
           <ToolbarButton onClick={onAddFrame}>+ Frame</ToolbarButton>
           <ToolbarDivider />
           <ToolbarButton

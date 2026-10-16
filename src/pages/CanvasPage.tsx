@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../lib/store'
+import { MOD_KEY, isHideUiShortcut } from '../lib/keys'
+import { canHideUi, hideUiHinted } from '../lib/hideUi'
 import { connect, disconnect, sendWs } from '../lib/ws'
 import {
   api,
@@ -114,6 +116,8 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
   const [showConnect, setShowConnect] = useState(false)
   const [showShare, setShowShare] = useState(false)
   const [presenting, setPresenting] = useState(false)
+  /* ⌘. acts only over the canvas view, outside PresentMode */
+  const hideUiActive = canHideUi({ view, presenting })
   /* returning from a GitHub App install: the setup redirect appends a signed
      pass — pull it off the URL and open the import modal on the repo picker */
   const [ghInstallPass, setGhInstallPass] = useState<string | null>(() => {
@@ -176,6 +180,14 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
         select(null)
         useStore.getState().setFollowing(null)
       }
+      /* ⌘. hides every panel and toolbar; ⌘. again brings them back as they
+         were. Escape deliberately leaves the UI hidden, as in Figma. */
+      if (isHideUiShortcut(e) && hideUiActive) {
+        e.preventDefault()
+        useStore.getState().toggleUiHidden()
+        if (useStore.getState().uiHidden && !hideUiHinted()) showToast(`UI hidden · ${MOD_KEY}. to show`)
+        return
+      }
       if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === 'z') {
         e.preventDefault()
         if (e.shiftKey) void redo()
@@ -200,7 +212,7 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [canvasId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [canvasId, hideUiActive]) // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ⌘V lands here as a real paste event: clipboard images upload and drop in
      as frames; otherwise a copied frame (⌘C) pastes centered. Handled on
@@ -276,6 +288,8 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
      context menu closes — it would slide in right under the open menu */
   const deferPanel = useStore((s) => !!s.ctxMenu?.deferPanel)
   const layersOpen = useStore((s) => s.layersOpen)
+  /* ⌘. — the canvas view with nothing over it; the board and PresentMode keep their chrome */
+  const uiHidden = useStore((s) => s.uiHidden) && hideUiActive
   /* the element panel takes the frame inspector's spot while a Layers row
      has it open; it follows the element selection until it is closed */
   const selectedElement = useStore((s) => s.selectedElement)
@@ -315,7 +329,11 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
           into the ••• sheet so the name and the view switch keep their room.
           Phone (< xs): two rows, the name on top, the switch and the actions
           below it, each at its natural width. */}
-      <TopBar>
+      {/* ⌘. hides the chrome (this bar, the panels, the toolbars) with
+          display:none rather than unmounting it, so what it holds — a chat
+          draft, the expanded layers, a scroll position — is exactly as it
+          was when ⌘. brings it back */}
+      <TopBar className={cn(uiHidden && 'hidden')}>
         <div className="flex min-w-0 items-center gap-1.5 max-xs:basis-full">
           <TopBarHome label="All canvases" to="/" />
           <CanvasName />
@@ -431,71 +449,76 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
         ) : (
           <>
             <Stage onAddFrame={addFrame} />
-            <div
-              className={cn(
-                'pointer-events-none absolute top-3 right-[72px] z-30 flex flex-col items-end gap-2 transition-[right] duration-150 ease-[ease] [&>*]:pointer-events-auto max-md:top-[56px] max-md:right-2 max-md:left-2',
-                /* clear of the 300px side panel at right: 12px */
-                showActivity && 'right-[324px]',
-              )}
-            >
-              {pendingProposal && mutedProposal !== pendingProposal.id && !(showActivity && panelTab === 'memory') && (
-                <div className="flex items-center rounded-[10px] border border-brand bg-surface shadow-card">
+            {/* `contents` so the overlays keep positioning against the stage box */}
+            <div className={uiHidden ? 'hidden' : 'contents'}>
+              <div
+                className={cn(
+                  'pointer-events-none absolute top-3 right-[72px] z-30 flex flex-col items-end gap-2 transition-[right] duration-150 ease-[ease] [&>*]:pointer-events-auto max-md:top-[56px] max-md:right-2 max-md:left-2',
+                  /* clear of the 300px side panel at right: 12px */
+                  showActivity && 'right-[324px]',
+                )}
+              >
+                {pendingProposal &&
+                  mutedProposal !== pendingProposal.id &&
+                  !(showActivity && panelTab === 'memory') && (
+                    <div className="flex items-center rounded-[10px] border border-brand bg-surface shadow-card">
+                      <Button
+                        variant="bare"
+                        className="py-[9px] pl-3.5 pr-1 text-[12.5px] font-bold text-accent-ink hover:bg-transparent hover:text-accent-ink"
+                        onClick={() => {
+                          useStore.getState().setPanelTab('memory')
+                          setShowActivity(true)
+                        }}
+                      >
+                        <DoopMark size={12} /> Memory suggestion — review
+                      </Button>
+                      <Button
+                        variant="bare"
+                        className="py-[9px] pl-1.5 pr-2.5 text-[11px] hover:bg-transparent"
+                        title="Hide for now"
+                        onClick={() => setMutedProposal(pendingProposal.id)}
+                      >
+                        ✕
+                      </Button>
+                    </div>
+                  )}
+                {decisionToast && (
                   <Button
-                    variant="bare"
-                    className="py-[9px] pl-3.5 pr-1 text-[12.5px] font-bold text-accent-ink hover:bg-transparent hover:text-accent-ink"
+                    variant="ghost"
+                    className="max-w-full items-center gap-2.5 whitespace-normal rounded-[12px] border-line bg-surface px-3.5 py-2.5 text-left shadow-pop transition-shadow hover:bg-surface hover:shadow-card sm:max-w-[320px] [&_svg]:text-accent-ink"
+                    title="Open Memory"
                     onClick={() => {
                       useStore.getState().setPanelTab('memory')
                       setShowActivity(true)
+                      setDecisionToast(null)
                     }}
                   >
-                    <DoopMark size={12} /> Memory suggestion — review
+                    <BrainIcon width={17} height={17} />
+                    <span>
+                      <b className="block font-display text-[13px] font-semibold tracking-[-0.01em]">Saved to Memory</b>
+                      <span className="mt-[1px] block text-[12px] leading-[1.4] text-ink-soft">{decisionToast}</span>
+                    </span>
                   </Button>
-                  <Button
-                    variant="bare"
-                    className="py-[9px] pl-1.5 pr-2.5 text-[11px] hover:bg-transparent"
-                    title="Hide for now"
-                    onClick={() => setMutedProposal(pendingProposal.id)}
-                  >
-                    ✕
-                  </Button>
-                </div>
+                )}
+              </div>
+              <WorkingNow />
+              <PromptBar canvasId={canvasId} />
+              <Onboarding canvasId={canvasId} />
+              {!isMobile && (layersOpen ? <LayersPanel onAddFrame={addFrame} /> : <LayersRailToggle />)}
+              {!isMobile && selectedFrame && panelElement && !deferPanel && (
+                <ElementPanel
+                  key={`${selectedFrame.id}|${panelElement.selector}`}
+                  frame={selectedFrame}
+                  selector={panelElement.selector}
+                  className={propertiesPanelCls}
+                />
               )}
-              {decisionToast && (
-                <Button
-                  variant="ghost"
-                  className="max-w-full items-center gap-2.5 whitespace-normal rounded-[12px] border-line bg-surface px-3.5 py-2.5 text-left shadow-pop transition-shadow hover:bg-surface hover:shadow-card sm:max-w-[320px] [&_svg]:text-accent-ink"
-                  title="Open Memory"
-                  onClick={() => {
-                    useStore.getState().setPanelTab('memory')
-                    setShowActivity(true)
-                    setDecisionToast(null)
-                  }}
-                >
-                  <BrainIcon width={17} height={17} />
-                  <span>
-                    <b className="block font-display text-[13px] font-semibold tracking-[-0.01em]">Saved to Memory</b>
-                    <span className="mt-[1px] block text-[12px] leading-[1.4] text-ink-soft">{decisionToast}</span>
-                  </span>
-                </Button>
+              {!isMobile && selectedFrame && inspectorOpen && !panelElement && !deferPanel && (
+                <Inspector frame={selectedFrame} className={propertiesPanelCls} />
               )}
+              {!isMobile && !showActivity && <SideRail onOpen={() => setShowActivity(true)} />}
+              {!isMobile && showActivity && <ActivityPanel onClose={() => setShowActivity(false)} />}
             </div>
-            <WorkingNow />
-            <PromptBar canvasId={canvasId} />
-            <Onboarding canvasId={canvasId} />
-            {!isMobile && (layersOpen ? <LayersPanel onAddFrame={addFrame} /> : <LayersRailToggle />)}
-            {!isMobile && selectedFrame && panelElement && !deferPanel && (
-              <ElementPanel
-                key={`${selectedFrame.id}|${panelElement.selector}`}
-                frame={selectedFrame}
-                selector={panelElement.selector}
-                className={propertiesPanelCls}
-              />
-            )}
-            {!isMobile && selectedFrame && inspectorOpen && !panelElement && !deferPanel && (
-              <Inspector frame={selectedFrame} className={propertiesPanelCls} />
-            )}
-            {!isMobile && !showActivity && <SideRail onOpen={() => setShowActivity(true)} />}
-            {!isMobile && showActivity && <ActivityPanel onClose={() => setShowActivity(false)} />}
           </>
         )}
       </div>
@@ -555,8 +578,11 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
               </div>
             </SheetContent>
           </Sheet>
+          {/* ⌘. closes both sheets (and their backdrops) for the moment only:
+              the open state they read from is untouched, so they are back
+              as they were when ⌘. restores the chrome */}
           <Sheet
-            open={!!selectedFrame && inspectorOpen && !deferPanel}
+            open={!!selectedFrame && inspectorOpen && !deferPanel && !uiHidden}
             onOpenChange={(open) => {
               if (!open) select(null)
             }}
@@ -570,7 +596,7 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
               {selectedFrame && <Inspector frame={selectedFrame} surface="inline" />}
             </SheetContent>
           </Sheet>
-          <Sheet open={showActivity} onOpenChange={setShowActivity}>
+          <Sheet open={showActivity && !uiHidden} onOpenChange={setShowActivity}>
             <SheetContent
               side="bottom"
               showCloseButton={false}

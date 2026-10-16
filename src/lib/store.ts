@@ -82,6 +82,10 @@ interface State {
   elementPanelOpen: boolean
   /** the Layers rail is showing (desktop); the choice sticks across visits */
   layersOpen: boolean
+  /** ⌘. — every panel and toolbar is off screen, leaving only the canvas.
+   *  A plain overlay flag: the panels' own open/closed state is untouched
+   *  underneath, so toggling back shows exactly what was open before */
+  uiHidden: boolean
   viewport: Viewport
   /** live alignment guide lines while a frame drag is snapped to a neighbour */
   snapGuides: SnapGuide[]
@@ -180,6 +184,7 @@ interface State {
   pickElement(el: { frameId: string; selector: string } | null): void
   setElementPanelOpen(v: boolean): void
   setLayersOpen(v: boolean): void
+  toggleUiHidden(): void
   setViewport(v: Viewport): void
   setSnapGuides(guides: SnapGuide[]): void
   flash(frameId: string, color: string): void
@@ -224,6 +229,7 @@ export const useStore = create<State>((set, get) => ({
   selectedElement: null,
   elementPanelOpen: false,
   layersOpen: readLayersOpen(),
+  uiHidden: false,
   viewport: { x: 0, y: 0, zoom: 1 },
   snapGuides: [],
   connected: false,
@@ -236,6 +242,10 @@ export const useStore = create<State>((set, get) => ({
   setCanvas: (canvas) =>
     set((s) => ({
       canvas,
+      /* leaving a canvas (CanvasPage unmounts or its id changes) ends ⌘.
+         hide-UI, so the next canvas never opens with its chrome gone; a
+         re-join of the same canvas keeps it */
+      uiHidden: canvas ? s.uiHidden : false,
       activePageId: canvas
         ? canvas.id === s.canvas?.id && canvasPages(canvas).some((p) => p.id === s.activePageId)
           ? s.activePageId
@@ -536,6 +546,7 @@ export const useStore = create<State>((set, get) => ({
     }
     set({ layersOpen })
   },
+  toggleUiHidden: () => set((s) => ({ uiHidden: !s.uiHidden })),
   /* every ordinary camera move (pan, zoom, fit, fly-to) is ours, so it ends a follow */
   setViewport: (viewport) => set({ viewport, following: null }),
   /* fires on every pointermove during a drag — skip the no-op transitions
