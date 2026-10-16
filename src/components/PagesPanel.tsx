@@ -156,7 +156,7 @@ export function PagesPanel({ fill = false }: { fill?: boolean }) {
                     maxLength={100}
                     disabled={busy}
                     onFocus={(e) => e.target.select()}
-                    className="w-full rounded border border-line bg-paper px-2 py-1 text-xs"
+                    className="w-full rounded border border-line bg-surface px-2 py-1 text-xs text-ink"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     onKeyDown={(e) => {

@@ -98,6 +98,14 @@ describe.skipIf(!findBrowserPath())('page list controls and keyboard history', (
     )
     await page.click('[data-page-id] > button:first-of-type', { count: 2 })
     await page.waitForSelector('input[aria-label="Page name"]')
+    /* the row being renamed is the active one (brand fill, white label); the
+       input must not inherit that white onto its light surface */
+    expect(
+      await page.$eval('input[aria-label="Page name"]', (input) => [
+        getComputedStyle(input).color === getComputedStyle(document.body).color,
+        getComputedStyle(input).color !== getComputedStyle(input.closest('[data-page-id]')!).color,
+      ]),
+    ).toEqual([true, true])
     await page.type('input[aria-label="Page name"]', 'Ideas')
     await page.keyboard.press('Enter')
     await page.waitForFunction(() => document.querySelector('[data-page-id]')?.textContent?.includes('Ideas'))
