@@ -37,6 +37,7 @@ async function accountExists(email: string): Promise<boolean> {
 }
 
 function interruptedTarget(): string | null {
+  if (location.pathname === '/oauth/consent') return location.pathname + location.search
   const params = new URLSearchParams(location.search)
   const target = safeRelativeTarget(params.get('redirect_to') || params.get('redirect_uri'))
   if (target) return target

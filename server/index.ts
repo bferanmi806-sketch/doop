@@ -624,6 +624,54 @@ app.get('/api/me', async (req, res) => {
   })
 })
 
+/* Resolve the application from the consent code itself, never a client name or
+   id supplied by the page. Only the account authorizing the code may use it. */
+async function mcpConsent(code: string, userId: string) {
+  const [request] = await db.select().from(authSchema.verification).where(eq(authSchema.verification.identifier, code))
+  if (!request || request.expiresAt <= new Date()) return null
+  let value: { userId?: string; clientId?: string; requireConsent?: boolean } | null
+  try {
+    value = JSON.parse(request.value)
+  } catch {
+    return null
+  }
+  if (!value || value.userId !== userId || value.requireConsent !== true || typeof value.clientId !== 'string')
+    return null
+  const [client] = await db
+    .select()
+    .from(authSchema.oauthApplication)
+    .where(eq(authSchema.oauthApplication.clientId, value.clientId))
+  return client && !client.disabled ? { name: client.name } : null
+}
+
+app.get('/api/mcp-consent/:code', async (req, res, next) => {
+  try {
+    res.set('Cache-Control', 'no-store')
+    const client = await mcpConsent(req.params.code!, req.user!.id)
+    if (!client)
+      return res.status(404).json({ error: 'This connection request has expired. Start again from your agent.' })
+    res.json(client)
+  } catch (error) {
+    next(error)
+  }
+})
+
+app.post('/api/mcp-consent/:code', async (req, res, next) => {
+  try {
+    res.set('Cache-Control', 'no-store')
+    if (typeof req.body?.accept !== 'boolean') return res.status(400).json({ error: 'Choose whether to connect.' })
+    if (!(await mcpConsent(req.params.code!, req.user!.id)))
+      return res.status(404).json({ error: 'This connection request has expired. Start again from your agent.' })
+    const result = await auth.api.oAuthConsent({
+      headers: fromNodeHeaders(req.headers),
+      body: { accept: req.body.accept, consent_code: req.params.code! },
+    })
+    res.json(result)
+  } catch (error) {
+    next(error)
+  }
+})
+
 /* Canvas access on the REST surface: resolve the canvas (or the frame's
    canvas) and run it through canAccessCanvas before touching anything.
    Both helpers write the error response themselves and return null. */

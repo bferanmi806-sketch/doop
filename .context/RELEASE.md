@@ -50,6 +50,28 @@ in `.github/actions/setup-desktop`:
 - Desktop app version is tracked separately from the root `package.json` and bumped by
   release-please (see above); after the release PR merges, tag as `desktop-vX.Y.Z`.
 
+## Claude Desktop extension
+
+`bun run build:claude-extension` packages `claude-extension/manifest.json`, the Doop logo,
+license and pinned `mcp-remote` runtime into `public/claude-extension/doop.mcpb`. Both `dev`
+and `build` run it automatically; Vite copies the download into the production `dist/`.
+Connect AI → Claude offers a prefilled **Add to Claude** link for public HTTPS servers.
+The shared endpoint check filters common local addresses while allowing public IPv6
+and numeric-prefixed DNS names; the connecting client checks actual reachability.
+In updated desktop shells it prepares the extension, prefills the current `/mcp` URL,
+and invokes `claude_add_extension` to open Claude's installer. Native installation
+requires a desktop release; the online link ships with the web app. Manual downloads
+remain a collapsed fallback for older shells and local browser sessions.
+OAuth requests for consent open `/oauth/consent`. The approval screen resolves the client
+from a code bound to the signed-in account; `/api/mcp-consent/:code` handles approval and
+denial through better-auth. This also supports other MCP clients that request consent.
+
+`tests/claudeExtension.test.ts` extracts the actual archive outside the repository and checks
+tools, resources, OAuth and reconnecting against a fresh Doop server. Before releasing,
+also install it in Claude Desktop on macOS and Windows. Installation, build and release
+notes live in [`claude-extension/README.md`](../claude-extension/README.md). No directory
+submission or publication is performed by the build.
+
 ## Other workflows
 
 - `.github/workflows/desktop.yml` - desktop app CI (build/check) outside of the release path.

@@ -43,6 +43,19 @@ bun run dev    # opens the shell against the local vite server (localhost:4300)
 
 `bun run dev` expects the dev server in the repo root to be running.
 
+## Add to Claude
+
+Connect AI → Claude → **Add to Claude** opens Claude Desktop's install prompt
+directly, without a save dialog or a file to locate. The page prepares the bundled
+extension with this Doop instance's `/mcp` URL; `claude_add_extension` stages it in
+Doop's cache and opens it with Claude (macOS) or the registered `.mcpb` handler
+(Windows). Claude asks the user to confirm installation, then Doop asks them to
+approve the OAuth connection. Credentials are never included in this handoff.
+
+The native capability marker `__DOOP_CLAUDE_EXTENSION__` gates this flow so older
+shells do not invoke an unknown command. Public HTTPS servers also offer a prefilled
+online connector link; local servers require a connection from the user's computer.
+
 ## Local Claude CLI
 
 Settings → Doop Agent includes **Claude Plan** in shells built with the

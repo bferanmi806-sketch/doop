@@ -5,6 +5,8 @@ import { useStore } from '../lib/store'
 import { roleByAgentName } from '../../shared/agents'
 import { posthog } from '../lib/posthog'
 import { AgentIcon } from './AgentIcon'
+import { ClaudeDesktopInstall } from './ClaudeDesktopInstall'
+import { canAddToClaudeDesktop, claudeConnectorInstallUrl } from '../lib/claudeConnection'
 import { Button } from './ui/button'
 import { CodeBlock } from './ui/code-block'
 import { Dot } from './ui/dot'
@@ -22,6 +24,7 @@ import { cn } from '@/lib/utils'
 
 type AgentId = 'claude-code' | 'claude' | 'chatgpt' | 'codex' | 'cursor' | 'mcp'
 type View = 'agents' | AgentId
+type ClaudeConnection = 'desktop' | 'web'
 
 interface AgentOption {
   id: AgentId
@@ -37,7 +40,7 @@ const AGENTS: AgentOption[] = [
     blurb: 'Connect from your terminal',
     icon: <AgentIcon name="claude" size={20} />,
   },
-  { id: 'claude', name: 'Claude', blurb: 'Connect from the Claude app', icon: <AgentIcon name="claude" size={20} /> },
+  { id: 'claude', name: 'Claude', blurb: 'Add Doop to Claude', icon: <AgentIcon name="claude" size={20} /> },
   { id: 'chatgpt', name: 'ChatGPT', blurb: 'Add an MCP connection', icon: <AgentIcon name="gpt" size={20} /> },
   { id: 'codex', name: 'Codex', blurb: 'Connect your coding agent', icon: <AgentIcon name="codex" size={20} /> },
   {
@@ -117,9 +120,15 @@ interface Step {
   title: string
   body: ReactNode
   code?: string
+  action?: ReactNode
 }
 
-function agentSteps(agent: AgentId, mcpUrl: string, prompt: string): { lede: string; steps: Step[] } {
+function agentSteps(
+  agent: AgentId,
+  mcpUrl: string,
+  prompt: string,
+  claudeConnection: ClaudeConnection,
+): { lede: string; steps: Step[] } {
   const jsonConfig = JSON.stringify({ mcpServers: { doop: { type: 'http', url: mcpUrl } } }, null, 2)
   const pointAt: Step = {
     title: 'Point it at this canvas',
@@ -155,18 +164,57 @@ function agentSteps(agent: AgentId, mcpUrl: string, prompt: string): { lede: str
         ],
       }
     case 'claude':
+      if (claudeConnection === 'desktop') {
+        return {
+          lede: 'Add Doop from the desktop app, confirm in Claude, and start designing together.',
+          steps: [
+            {
+              title: 'Add Doop to Claude Desktop',
+              body: 'Click Add to Claude in the Doop desktop app, then confirm the installation in Claude. Your Doop server address is filled in for you.',
+              action: <ClaudeDesktopInstall mcpUrl={mcpUrl} />,
+            },
+            {
+              title: 'Connect your Doop account',
+              body: 'Enable the extension in Claude. Sign in to Doop in the browser that opens and approve the connection.',
+            },
+            {
+              ...pointAt,
+              body: prompt
+                ? 'Start a new Claude chat, enable Doop in the tools menu, and send this as your first message.'
+                : 'Start a new Claude chat, enable Doop in the tools menu, and tell it which canvas to work on.',
+            },
+          ],
+        }
+      }
+      if (!claudeConnectorInstallUrl(mcpUrl)) {
+        return {
+          lede: 'Claude’s online connector needs a publicly reachable HTTPS server.',
+          steps: [
+            {
+              title: 'Use the desktop connection for this server',
+              body: 'This Doop address is local or uses HTTP. Choose Desktop app above to connect from your computer, or open Doop at its public HTTPS address.',
+            },
+          ],
+        }
+      }
       return {
-        lede: 'No terminal. You add Doop as a connector in the Claude app, then approve it in your browser.',
+        lede: 'Add Doop to your Claude account, approve the connection, and start designing. No download needed.',
         steps: [
           {
-            title: 'Add Doop as a connector',
-            body: (
-              <>
-                In Claude (desktop or web) open <strong>Settings → Connectors → Add custom connector</strong>. Name it{' '}
-                <strong>Doop</strong> and paste this as the URL.
-              </>
+            title: 'Add Doop to Claude',
+            body: 'Open Claude with Doop’s name and server address already filled in. Review the details and add the connector.',
+            action: (
+              <Button asChild variant="solid" className="mt-2.5">
+                <a
+                  href={claudeConnectorInstallUrl(mcpUrl)!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => posthog.capture('claude_connector_opened')}
+                >
+                  Add to Claude
+                </a>
+              </Button>
             ),
-            code: mcpUrl,
           },
           {
             title: 'Approve the sign-in',
@@ -295,13 +343,16 @@ function AgentSteps({
 }) {
   const option = agentById(agent)
   const mcpUrl = `${location.origin}/mcp`
+  const [claudeConnection, setClaudeConnection] = useState<ClaudeConnection>(() =>
+    canAddToClaudeDesktop() || !claudeConnectorInstallUrl(mcpUrl) ? 'desktop' : 'web',
+  )
   /* Deliberately thin: the MCP server ships its own INSTRUCTIONS on connect and the
      rest lives behind get_guide. The only thing this prompt knows that they don't is
      which canvas the human is looking at. */
   const prompt = canvasId
     ? `Work on Doop canvas ${canvasId}. Start with get_guide({ topic: "doop-instructions" }) and follow it.`
     : ''
-  const { lede, steps } = agentSteps(agent, mcpUrl, prompt)
+  const { lede, steps } = agentSteps(agent, mcpUrl, prompt, claudeConnection)
   return (
     <>
       <div className={body}>
@@ -314,6 +365,22 @@ function AgentSteps({
             <ModalLede className="mt-1">{lede}</ModalLede>
           </div>
         </div>
+
+        {agent === 'claude' && (
+          <div className="mt-5 flex gap-2" role="group" aria-label="Claude connection method">
+            {(['web', 'desktop'] as const).map((connection) => (
+              <Button
+                key={connection}
+                size="sm"
+                variant={claudeConnection === connection ? 'solid' : 'ghost'}
+                aria-pressed={claudeConnection === connection}
+                onClick={() => setClaudeConnection(connection)}
+              >
+                {connection === 'desktop' ? 'Desktop app' : 'Connect online'}
+              </Button>
+            ))}
+          </div>
+        )}
 
         <ol className="mt-6">
           {steps.map((step, i) => (
@@ -330,10 +397,22 @@ function AgentSteps({
                   {step.body}
                 </p>
                 {step.code && <CodeBlock text={step.code} className="mt-2.5" />}
+                {step.action}
               </div>
             </li>
           ))}
         </ol>
+
+        {agent === 'claude' && claudeConnection === 'web' && claudeConnectorInstallUrl(mcpUrl) && (
+          <details className="mt-4 text-xs leading-relaxed text-ink-soft">
+            <summary className="cursor-pointer">Connection help</summary>
+            <p className="mt-2">
+              If Claude asks you to sign in first, return here and click Add to Claude again. You can also use{' '}
+              <strong>Customize → Connectors → Add custom connector</strong> in Claude with this address:
+            </p>
+            <CodeBlock text={mcpUrl} className="mt-2" />
+          </details>
+        )}
 
         {agent === 'mcp' && (
           <p className="mt-4 text-xs leading-[1.5] text-ink-faint">

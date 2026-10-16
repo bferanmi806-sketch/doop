@@ -94,6 +94,20 @@ in Xcode to run it against Doop Cloud or your own HTTPS server. It uses SwiftUI 
 renders frames with the Blitz HTML/CSS engine (Rust, no WebKit), over the same REST API and WebSocket rooms. The app is in development;
 see the iOS README for validation status and remaining release requirements.
 
+## Connect Claude
+
+Choose **Connect AI → Claude → Add to Claude**. On hosted Doop, this opens Claude's
+connector form with Doop's name and server URL filled in. Confirm it, sign in to
+Doop, then start a new Claude chat and paste the canvas prompt from the dialog.
+No file download, terminal or API key needed.
+
+The updated Doop desktop app also offers **Add to Claude** for local and self-hosted
+servers: it opens Claude Desktop's extension installer directly, with your server
+URL filled in. Confirm the installation in Claude and approve the Doop sign-in.
+The online connector needs a publicly reachable HTTPS server; localhost connections
+use the desktop app. Manual extension installation remains available as a fallback.
+Build and installation details: [`claude-extension/`](claude-extension/README.md).
+
 ## Hook up Claude Code
 
 One command connects Claude Code (or any MCP client) to your canvas:

@@ -3,7 +3,12 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ navigate: vi.fn(), capture: vi.fn() }))
+const mocks = vi.hoisted(() => ({ navigate: vi.fn(), capture: vi.fn(), native: false, addToDesktop: vi.fn() }))
+vi.mock('../src/lib/claudeConnection', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../src/lib/claudeConnection')>()),
+  canAddToClaudeDesktop: () => mocks.native,
+  addToClaudeDesktop: mocks.addToDesktop,
+}))
 vi.mock('../src/App', () => ({ navigate: mocks.navigate }))
 vi.mock('../src/lib/posthog', () => ({ posthog: { capture: mocks.capture } }))
 vi.mock('../src/lib/store', () => ({
@@ -38,10 +43,15 @@ const mount = async (canvasId?: string) => {
   await act(async () => root.render(<ConnectModal canvasId={canvasId} onClose={onClose} />))
 }
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  mocks.native = false
+  vi.stubGlobal('location', new URL('http://localhost:4301'))
+})
 afterEach(() => {
   act(() => root.unmount())
   container.remove()
+  vi.unstubAllGlobals()
 })
 
 it('opens on the agent picker and walks to an agent’s own steps and back', async () => {
@@ -87,4 +97,71 @@ it('skips the canvas prompt and the arrival status when opened without a canvas'
   expect(text()).not.toContain('Work on Doop canvas')
   expect(text()).not.toContain('listening for')
   expect(text()).toContain('Open a canvas and tell the agent to work on it')
+})
+
+it('explains the local desktop path and keeps file installation as a collapsed fallback', async () => {
+  await mount('desktop-canvas')
+  await pickCard('Add Doop to Claude')
+  await click('Connect →')
+  expect(button('Desktop app')?.getAttribute('aria-pressed')).toBe('true')
+  const download = document.querySelector<HTMLAnchorElement>('a[download="doop.mcpb"]')
+  expect(download?.getAttribute('href')).toBe('/claude-extension/doop.mcpb')
+  expect(download?.closest('details')?.open).toBe(false)
+  expect(text()).toContain('Doop server URL')
+  expect(text()).toContain(`${location.origin}/mcp`)
+  expect(text()).toContain('Work on Doop canvas desktop-canvas.')
+  expect(text()).toContain('Install Extension')
+
+  await click('Connect online')
+  expect(document.querySelector('a[download]')).toBeNull()
+  expect(text()).toContain('publicly reachable HTTPS server')
+  expect(document.querySelector('a[href*="claude.ai"]')).toBeNull()
+  await click('Desktop app')
+  expect(document.querySelector('a[download="doop.mcpb"]')).not.toBeNull()
+})
+
+it('defaults to a prefilled Add to Claude link on hosted Doop, without a download', async () => {
+  vi.stubGlobal('location', new URL('https://design.example.com'))
+  await mount('hosted-canvas')
+  await pickCard('Add Doop to Claude')
+  await click('Connect →')
+  expect(button('Connect online')?.getAttribute('aria-pressed')).toBe('true')
+  const link = document.querySelector<HTMLAnchorElement>('a[href*="claude.ai"]')!
+  const url = new URL(link.href)
+  expect(link.textContent).toBe('Add to Claude')
+  expect(url.searchParams.get('modal')).toBe('add-custom-connector')
+  expect(url.searchParams.get('connectorUrl')).toBe('https://design.example.com/mcp')
+  expect(document.querySelector('a[download]')).toBeNull()
+  expect(text()).toContain('Work on Doop canvas hosted-canvas.')
+})
+
+it('opens Claude directly in a capable shell and waits for Claude’s confirmation', async () => {
+  mocks.native = true
+  let finish!: () => void
+  mocks.addToDesktop.mockImplementation(
+    () =>
+      new Promise<void>((resolve) => {
+        finish = resolve
+      }),
+  )
+  await mount('local-canvas')
+  await pickCard('Add Doop to Claude')
+  await click('Connect →')
+  await click('Add to Claude')
+  expect(button('Opening Claude…')?.disabled).toBe(true)
+  expect(mocks.addToDesktop).toHaveBeenCalledExactlyOnceWith('http://localhost:4301/mcp')
+  await act(async () => finish())
+  expect(text()).toContain('Confirm the installation in Claude')
+  expect(text()).not.toContain('is here — it worked')
+})
+
+it('shows native handoff errors and allows retry', async () => {
+  mocks.native = true
+  mocks.addToDesktop.mockRejectedValue(new Error('Install Claude Desktop first.'))
+  await mount()
+  await pickCard('Add Doop to Claude')
+  await click('Connect →')
+  await click('Add to Claude')
+  expect(document.querySelector('[role="alert"]')?.textContent).toBe('Install Claude Desktop first.')
+  expect(button('Add to Claude')?.disabled).toBe(false)
 })

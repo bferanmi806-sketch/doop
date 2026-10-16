@@ -7,6 +7,7 @@ import { CanvasPage } from './pages/CanvasPage'
 import { AuthPage } from './pages/AuthPage'
 import { DesktopHandoff } from './pages/DesktopHandoff'
 import { DesktopSignIn } from './pages/DesktopSignIn'
+import { OAuthConsent } from './pages/OAuthConsent'
 import { DESKTOP_HANDOFF_PATH, DESKTOP_SIGNIN_PATH } from './lib/desktopAuth'
 import { Admin } from './pages/Admin'
 import { Automations } from './pages/Automations'
@@ -141,6 +142,8 @@ export function App() {
     <CanvasPage canvasId={canvasId} key={canvasId} />
   ) : path === DESKTOP_HANDOFF_PATH ? (
     <DesktopHandoff />
+  ) : path === '/oauth/consent' ? (
+    <OAuthConsent email={session.user.email} />
   ) : path.startsWith('/admin') ? (
     <Admin />
   ) : path.startsWith('/settings') ? (
