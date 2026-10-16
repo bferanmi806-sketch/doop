@@ -19,6 +19,7 @@ type Session = typeof linearSessions.$inferSelect
 const terminal = ['complete', 'failed', 'canceled']
 const active = ['pending', 'preparing', 'running']
 const workInFlight = new Set<string>()
+const RUN_TIMEOUT_MS = 60 * 60_000
 const SUSPENDED = 'The Doop account behind this Linear agent is suspended, so it cannot design.'
 
 export const sessionEvent = z.object({
@@ -317,11 +318,12 @@ async function processSession(session: Session) {
         await db.update(linearSessions).set({ linked: true }).where(eq(linearSessions.id, session.id))
       }
       const card = actions.getTasks(session.canvasId).find((task) => task.id === session.taskId)
+      // The run's hour starts at dispatch: a request may queue behind the concurrency limit for longer.
       if (
         card?.failedAt ||
         card?.endedAt ||
         !store.getCanvas(session.canvasId) ||
-        Date.now() - session.createdAt > 60 * 60_000
+        Date.now() - (card?.startedAt ?? session.updatedAt) > RUN_TIMEOUT_MS
       ) {
         const success = !!card?.endedAt && !card.failedAt
         session = {

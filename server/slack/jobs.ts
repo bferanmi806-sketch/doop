@@ -357,11 +357,12 @@ async function processSession(session: Session) {
     }
     if (session.status === 'running' && session.canvasId && session.taskId) {
       const card = actions.getTasks(session.canvasId).find((task) => task.id === session.taskId)
+      // The run's hour starts at dispatch: a request may queue behind the concurrency limit for longer.
       const finished =
         !!card?.failedAt ||
         !!card?.endedAt ||
         !store.getCanvas(session.canvasId) ||
-        Date.now() - session.createdAt > RUN_TIMEOUT_MS
+        Date.now() - (card?.startedAt ?? session.updatedAt) > RUN_TIMEOUT_MS
       // The result carries the link itself, so a finished card never waits on the link update.
       if (!session.linked && !finished) {
         await updateAck(installation, session, `Doop is on it — ${openLink(session.canvasId)}`)

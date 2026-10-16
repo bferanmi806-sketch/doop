@@ -263,6 +263,21 @@ describe('delegation jobs', () => {
     expect(consumeResidentTask).toHaveBeenCalledTimes(1)
   })
 
+  it('times a run out an hour after it starts, not an hour after the delegation arrived', async () => {
+    const twoHoursAgo = Date.now() - 2 * 60 * 60_000
+    await receiveSession(event())
+    await db.update(linearSessions).set({ createdAt: twoHoursAgo }).where(eq(linearSessions.id, sessionId))
+    await tickLinear()
+    await tickLinear()
+    const row = await session()
+    expect(row.status).toBe('running')
+    const card = actions.getTasks(row.canvasId!).find((task) => task.id === row.taskId)!
+    card.startedAt = twoHoursAgo
+    await tickLinear()
+    expect((await session()).status).toBe('failed')
+    expect(card.failedAt).toBeTruthy()
+  })
+
   it('rejects mismatched workspace, app user and OAuth client', async () => {
     await receiveSession(event({ organizationId: 'other' }))
     await receiveSession(event({ appUserId: 'other' }))

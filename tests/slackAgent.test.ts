@@ -401,6 +401,21 @@ describe('design jobs', () => {
     expect(consumeResidentTask).toHaveBeenCalledTimes(1)
   })
 
+  it('times a run out an hour after it starts, not an hour after the mention arrived', async () => {
+    const twoHoursAgo = Date.now() - 2 * 60 * 60_000
+    await receiveRequest(mention())
+    await db.update(slackSessions).set({ createdAt: twoHoursAgo }).where(eq(slackSessions.id, eventId))
+    await tickSlack()
+    await tickSlack()
+    const row = await session()
+    expect(row.status).toBe('running')
+    const card = actions.getTasks(row.canvasId!).find((task) => task.id === row.taskId)!
+    card.startedAt = twoHoursAgo
+    await tickSlack()
+    expect((await session()).status).toBe('failed')
+    expect(card.failedAt).toBeTruthy()
+  })
+
   it('answers a slash command in the channel and threads under its own message', async () => {
     await receiveRequest(
       mention({ threadTs: undefined, responseUrl: 'https://hooks.slack.test/commands/T0DOOP/1/abc' }),
