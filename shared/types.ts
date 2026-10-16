@@ -17,6 +17,9 @@ export interface Frame {
   /** product-made onboarding/example content (welcome demo, seeded frames) —
    *  not the user's work; agents must never read it as the canvas's style */
   demo?: boolean
+  /** hidden from the stage (the eye in the Layers panel); the frame keeps
+   *  its row, its HTML and its exports — only the canvas stops drawing it */
+  hidden?: boolean
 }
 
 export interface CanvasMeta {

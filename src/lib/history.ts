@@ -8,8 +8,8 @@ import { posthog } from './posthog'
  *  inverse through the normal API, so every collaborator sees it live —
  *  remote actors' work is never undone from here. */
 
-type Patch = Partial<Pick<Frame, 'name' | 'pageId' | 'html' | 'x' | 'y' | 'width' | 'height'>>
-type Snapshot = Pick<Frame, 'canvasId' | 'pageId' | 'name' | 'html' | 'x' | 'y' | 'width' | 'height'>
+type Patch = Partial<Pick<Frame, 'name' | 'pageId' | 'html' | 'x' | 'y' | 'width' | 'height' | 'hidden'>>
+type Snapshot = Pick<Frame, 'canvasId' | 'pageId' | 'name' | 'html' | 'x' | 'y' | 'width' | 'height' | 'hidden'>
 
 type Entry =
   | {
@@ -64,6 +64,8 @@ function snapshot(f: Frame): Snapshot {
     y: f.y,
     width: f.width,
     height: f.height,
+    /* a hidden frame comes back hidden when its deletion is undone */
+    hidden: f.hidden,
   }
 }
 

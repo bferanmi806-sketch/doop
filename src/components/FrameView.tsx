@@ -22,7 +22,7 @@ import { cn } from '@/lib/utils'
 import { Button } from './ui/button'
 import { Textarea } from './ui/textarea'
 import { Tooltip } from './ui/tooltip'
-import { GithubIcon, SyncIcon } from './ui/icons'
+import { EyeClosedIcon, GithubIcon, SyncIcon } from './ui/icons'
 import { isSyncedFrame } from '../lib/sync'
 import { isGithubFrame, isGithubPlaceholder } from '../lib/github'
 import { AgentIcon } from './AgentIcon'
@@ -40,6 +40,7 @@ function deepLinkedThread(): string | null {
    by the `--zoom` variable the Stage publishes (capped at 2.4× when zoomed
    far out). Preserve these expressions exactly. */
 const COUNTER_SCALE = '[transform:scale(min(calc(1/var(--zoom,1)),2.4))]'
+
 /* the inverse of COUNTER_SCALE: a box this wide, once counter-scaled, spans
    exactly the frame's width on screen */
 const LABEL_WIDTH = '[width:calc(100%*max(var(--zoom,1),calc(1/2.4)))]'
@@ -47,6 +48,32 @@ const EDITOR_CHIP =
   'inline-flex items-center gap-1 rounded-full px-[7px] py-0.5 text-[10px] font-bold text-white animate-[chip-in_0.25s_ease]'
 /* the element toolbar's buttons sit on ink and stay compact */
 const EL_TOOLBAR_BTN = 'rounded-[7px] px-2 py-1 text-xs'
+
+/** A hidden frame's place on the stage: nothing, unless it is selected —
+ *  then a dashed box with its name, so a pick from the Layers panel still
+ *  shows where the frame sits. It takes no pointer events: there is nothing
+ *  to drag, and the eye in the Layers panel is the way back. */
+export function HiddenFrameView({ frame }: { frame: Frame }) {
+  const selected = useStore((s) => s.selectedIds.includes(frame.id))
+  if (!selected) return null
+  return (
+    <div
+      className="pointer-events-none absolute"
+      style={{ left: frame.x, top: frame.y, width: frame.width, height: frame.height }}
+    >
+      <div
+        className={cn(
+          'absolute -top-[26px] left-0 flex origin-bottom-left items-center gap-1.5 whitespace-nowrap text-[12px] font-semibold text-ink-faint',
+          COUNTER_SCALE,
+        )}
+      >
+        <EyeClosedIcon width={11} height={11} />
+        <span>{frame.name}</span>
+      </div>
+      <div className="absolute inset-0 rounded-[6px] border border-dashed border-ink-faint bg-paper-deep/40 outline-2 outline-offset-1 outline-dashed outline-brand" />
+    </div>
+  )
+}
 
 /* Figma-style ⌥⇧-drag duplicate cursor: a doubled pointer, hotspot on the
    front arrow's tip. `copy` is the fallback where custom cursors fail. */
@@ -228,8 +255,9 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
       /* edges pull onto neighbouring frames' edges/centers; ⌥ drags free —
          except that a ⌥⇧ duplicate-drag holds ⌥ for the whole gesture, and
          the copy should land on the guides like any other move. Frames
-         riding along in the group are not neighbours. */
-      const others = currentPageCanvas()?.frames.filter((f) => !groupIds.has(f.id)) ?? []
+         riding along in the group are not neighbours, and neither is a
+         hidden frame — there is nothing on the stage to line up with. */
+      const others = currentPageCanvas()?.frames.filter((f) => !f.hidden && !groupIds.has(f.id)) ?? []
       const free = ev.altKey && !duplicating
       const snapped = free ? { ...raw, guides: [] } : snapFrame(mode, raw, others, zoom)
       useStore.getState().setSnapGuides(snapped.guides)

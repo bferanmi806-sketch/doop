@@ -24,7 +24,8 @@ import {
   type DropTarget,
   type LayerNode,
 } from '../lib/layers'
-import { deleteLayer, dropLayer, duplicateLayer, shiftLayer } from '../lib/layerEdits'
+import { deleteLayer, dropLayer, duplicateLayer, setFrameHidden, setLayerHidden, shiftLayer } from '../lib/layerEdits'
+import { MOD_KEY } from '../lib/keys'
 import { cn } from '@/lib/utils'
 import { AgentIcon } from './AgentIcon'
 import { LayerKindIcon } from './LayerKindIcon'
@@ -45,6 +46,8 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   CollapseAllIcon,
+  EyeClosedIcon,
+  EyeIcon,
   FrameIcon,
   LayersIcon,
   PanelCollapseIcon,
@@ -77,10 +80,21 @@ function frameTree(frame: Frame): LayerNode[] {
 }
 
 /** One visible line of the tree. The list is flat so the arrow keys can walk
- *  it, and every element row knows its parent for ←. */
+ *  it, and every element row knows its parent for ← — and whether something
+ *  above it is hidden, since a hidden box takes its contents with it. */
 type VisibleRow =
   | { kind: 'frame'; key: string; frame: Frame; open: boolean; empty: boolean }
-  | { kind: 'node'; key: string; frame: Frame; node: LayerNode; depth: number; open: boolean; parentKey: string }
+  | {
+      kind: 'node'
+      key: string
+      frame: Frame
+      node: LayerNode
+      depth: number
+      open: boolean
+      parentKey: string
+      /** the frame or an ancestor element is hidden */
+      dim: boolean
+    }
 type NodeVisibleRow = Extract<VisibleRow, { kind: 'node' }>
 
 /* a press has to travel this far before it is a drag rather than a click */
@@ -118,15 +132,15 @@ function visibleRows(frames: Frame[], query: string, expanded: Set<string>): Vis
     const open = !!query || expanded.has(frame.id)
     const nodes = open ? (tree ?? frameTree(frame)) : []
     rows.push({ kind: 'frame', key: frame.id, frame, open, empty: open && nodes.length === 0 })
-    const walk = (list: LayerNode[], depth: number, parentKey: string) => {
+    const walk = (list: LayerNode[], depth: number, parentKey: string, dim: boolean) => {
       for (const node of list) {
         const key = rowKey(frame.id, node.selector)
         const nodeOpen = node.children.length > 0 && (!!query || expanded.has(key))
-        rows.push({ kind: 'node', key, frame, node, depth, open: nodeOpen, parentKey })
-        if (nodeOpen) walk(node.children, depth + 1, key)
+        rows.push({ kind: 'node', key, frame, node, depth, open: nodeOpen, parentKey, dim })
+        if (nodeOpen) walk(node.children, depth + 1, key, dim || node.hidden)
       }
     }
-    walk(nodes, 1, frame.id)
+    walk(nodes, 1, frame.id, !!frame.hidden)
   }
   return rows
 }
@@ -516,6 +530,9 @@ function FrameRow({
             label={frame.name}
             className={cn('font-semibold', current && !selected && 'text-brand [&_[data-icon]]:text-brand')}
             selected={selected}
+            hidden={!!frame.hidden}
+            dimmed={!!frame.hidden}
+            onToggleHidden={() => setFrameHidden(frame, !frame.hidden)}
             onClick={onActivate}
             onDoubleClick={() => useStore.getState().requestFlyTo(frame.id)}
             onContextMenu={() => {
@@ -579,6 +596,9 @@ function NodeRow({
           label={node.label}
           detail={node.detail}
           selected={selected}
+          hidden={node.hidden}
+          dimmed={row.dim || node.hidden}
+          onToggleHidden={() => setLayerHidden(frame, node.selector, !node.hidden)}
           className={cn(dragging && 'opacity-40')}
           onClick={onActivate}
           onContextMenu={onActivate}
@@ -586,6 +606,11 @@ function NodeRow({
         />
       </ContextMenuTrigger>
       <ContextMenuContent>
+        <ContextMenuItem onSelect={() => setLayerHidden(frame, node.selector, !node.hidden)}>
+          {node.hidden ? 'Show' : 'Hide'}
+          <MenuHint>{MOD_KEY}⇧H</MenuHint>
+        </ContextMenuItem>
+        <ContextMenuSeparator />
         <ContextMenuItem
           onSelect={() => {
             const html = elementHtml(frame.html, node.selector)
@@ -631,6 +656,12 @@ type RowProps = Omit<HTMLAttributes<HTMLDivElement>, 'onClick'> & {
   /** where a dragged layer would land on this row */
   drop?: DropPlace
   trailing?: ReactNode
+  /** switched off by its own eye: the crossed eye stays, hover or not */
+  hidden?: boolean
+  /** faded: this row, or something above it, is hidden */
+  dimmed?: boolean
+  /** the eye at the row's right end; it shows on hover, and stays while hidden */
+  onToggleHidden?: () => void
   onClick: () => void
 }
 
@@ -645,6 +676,9 @@ function Row({
   drop,
   className,
   trailing,
+  hidden,
+  dimmed,
+  onToggleHidden,
   onClick,
   ...rest
 }: RowProps) {
@@ -660,7 +694,7 @@ function Row({
       role="treeitem"
       aria-selected={selected}
       className={cn(
-        'relative flex h-[26px] cursor-default select-none items-center gap-1 whitespace-nowrap rounded-md pr-1.5 text-[12.5px] text-ink hover:bg-paper-deep',
+        'group relative flex h-[26px] cursor-default select-none items-center gap-1 whitespace-nowrap rounded-md pr-1 text-[12.5px] text-ink hover:bg-paper-deep',
         selected && 'bg-brand text-white hover:bg-brand [&_[data-icon]]:text-white/85',
         drop === 'inside' && 'shadow-[inset_0_0_0_2px_var(--brand)]',
         className,
@@ -689,14 +723,42 @@ function Row({
       >
         {caret}
       </span>
-      <span data-icon className="grid size-4 flex-none place-items-center text-ink-faint">
+      <span data-icon className={cn('grid size-4 flex-none place-items-center text-ink-faint', dimmed && 'opacity-50')}>
         {icon}
       </span>
-      <span className="min-w-0 flex-1 overflow-hidden text-ellipsis">
+      <span className={cn('min-w-0 flex-1 overflow-hidden text-ellipsis', dimmed && 'opacity-50')}>
         {label}
         {detail && <span className={cn('text-ink-faint', selected && 'text-white/85')}>{detail}</span>}
       </span>
       {trailing && <span className="flex flex-none items-center gap-1">{trailing}</span>}
+      {onToggleHidden && (
+        <Tooltip label={hidden ? 'Show' : 'Hide'} side="left">
+          <button
+            type="button"
+            aria-label={hidden ? 'Show' : 'Hide'}
+            aria-pressed={hidden}
+            className={cn(
+              'grid size-5 flex-none place-items-center rounded-[5px] text-ink-faint opacity-0 hover:bg-ink/10 hover:text-ink focus-visible:opacity-100 group-hover:opacity-100',
+              hidden && 'opacity-100',
+              selected && 'text-white/85 hover:bg-white/15 hover:text-white',
+            )}
+            /* the eye is its own control: no select, no drag, no fly-to —
+               and ↵/space on it must press the button, not reach the tree,
+               whose ↵ handler would cancel the press and fly to the frame */
+            onPointerDown={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') e.stopPropagation()
+            }}
+            onClick={(e) => {
+              e.stopPropagation()
+              onToggleHidden()
+            }}
+          >
+            {hidden ? <EyeClosedIcon width={13} height={13} /> : <EyeIcon width={13} height={13} />}
+          </button>
+        </Tooltip>
+      )}
     </div>
   )
 }

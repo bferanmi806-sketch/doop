@@ -1,12 +1,14 @@
 import type { Frame } from '../../shared/types'
 import { useStore } from './store'
-import { api } from './api'
-import { deleteFramesTracked, recordUpdate } from './history'
+import { api, errorMessage } from './api'
+import { deleteFramesTracked, recordUpdate, recordUpdates, trackSave } from './history'
 import {
   duplicateElement,
+  isElementHidden,
   moveElement,
   removeElement,
   replaceElement,
+  setElementHidden,
   shiftElement,
   type DropTarget,
   type MovedElement,
@@ -57,6 +59,64 @@ export function deleteSelection(): boolean {
 export function duplicateLayer(frame: Frame, selector: string) {
   const html = duplicateElement(frame.html, selector)
   if (html !== null) saveFrameHtml(frame, html)
+}
+
+/* ---- the eye: hiding and showing, frames and elements alike ---- */
+
+/** Hide the frames from the stage, or bring them back, as one undo step.
+ *  A hidden frame keeps its row, its HTML and its exports — only the canvas
+ *  stops drawing it. Frames already in the asked-for state are left alone. */
+export function setFramesHidden(frames: Frame[], hidden: boolean) {
+  const changed = frames.filter((f) => !!f.hidden !== hidden)
+  if (!changed.length) return
+  recordUpdates(changed.map((f) => ({ frameId: f.id, before: { hidden: !!f.hidden }, after: { hidden } })))
+  const store = useStore.getState()
+  for (const f of changed) {
+    store.patchFrameLocal(f.id, { hidden })
+    /* undo waits for the save, as it does for a drag — an immediate ⌘Z must
+       not land before the hide it reverses. A save the server refused is
+       rolled back, so the eye and the stage show what everyone else sees. */
+    trackSave(
+      api.updateFrame(f.id, { hidden }).catch((err: unknown) => {
+        const s = useStore.getState()
+        s.patchFrameLocal(f.id, { hidden: !hidden })
+        s.pushNotice(errorMessage(err, `Couldn’t ${hidden ? 'hide' : 'show'} “${f.name}”`))
+      }),
+    )
+  }
+}
+
+export function setFrameHidden(frame: Frame, hidden: boolean) {
+  setFramesHidden([frame], hidden)
+}
+
+/** Hide one element inside the frame, or show it again; false when the
+ *  selector no longer resolves. The mark lives in the frame's HTML, so it
+ *  rides the same save as any other layer edit. */
+export function setLayerHidden(frame: Frame, selector: string, hidden: boolean): boolean {
+  const html = setElementHidden(frame.html, selector, hidden)
+  if (html === null) return false
+  if (html !== frame.html) saveFrameHtml(frame, html)
+  return true
+}
+
+/** ⌘⇧H: a picked element flips on its own; otherwise the selected frames
+ *  move together — all shown when every one is hidden, hidden otherwise.
+ *  False when the key had nothing to act on. */
+export function toggleSelectionHidden(): boolean {
+  const s = useStore.getState()
+  const frames = s.canvas?.frames ?? []
+  const picked = s.selectedElement
+  if (picked) {
+    const frame = frames.find((f) => f.id === picked.frameId)
+    const hidden = frame ? isElementHidden(frame.html, picked.selector) : null
+    if (frame && hidden !== null) setLayerHidden(frame, picked.selector, !hidden)
+    return true
+  }
+  const selected = frames.filter((f) => s.selectedIds.includes(f.id))
+  if (!selected.length) return false
+  setFramesHidden(selected, !selected.every((f) => f.hidden))
+  return true
 }
 
 /** Swap one element's markup; false when the selector no longer resolves. */

@@ -1285,6 +1285,7 @@ export function createFrame(
     height?: number
     html?: string
     demo?: boolean
+    hidden?: boolean
   },
   actor: Actor,
 ): Frame | undefined {
@@ -1307,7 +1308,7 @@ export function createFrame(
 
 export function updateFrame(
   frameId: string,
-  patch: Partial<Pick<Frame, 'name' | 'pageId' | 'x' | 'y' | 'width' | 'height' | 'html'>>,
+  patch: Partial<Pick<Frame, 'name' | 'pageId' | 'x' | 'y' | 'width' | 'height' | 'html' | 'hidden'>>,
   actor: Actor,
 ): Frame | undefined {
   const before = store.getFrame(frameId)
@@ -1315,6 +1316,7 @@ export function updateFrame(
   if (patch.html !== undefined) patch = { ...patch, html: repairEscapedHtml(patch.html) }
   const prevName = before.name
   const prevHtml = before.html
+  const prevHidden = !!before.hidden
   const frame = store.updateFrame(frameId, patch, actor.name)
   if (!frame) return undefined
 
@@ -1352,6 +1354,8 @@ export function updateFrame(
       logActivity(frame.canvasId, actor, `updated the design of “${frame.name}”`, frame.id)
     } else if (patch.name !== undefined && patch.name !== prevName) {
       logActivity(frame.canvasId, actor, `renamed “${prevName}” to “${frame.name}”`, frame.id)
+    } else if (patch.hidden !== undefined && !!patch.hidden !== prevHidden) {
+      logActivity(frame.canvasId, actor, `${frame.hidden ? 'hid' : 'showed'} frame “${frame.name}”`, frame.id)
     }
   }
 

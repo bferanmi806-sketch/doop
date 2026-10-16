@@ -16,6 +16,8 @@ export interface LayerNode {
   /** the first class (".hero") or id ("#nav") shown faint after the tag */
   detail: string
   kind: LayerKind
+  /** switched off through the Layers panel's eye (see setElementHidden) */
+  hidden: boolean
   children: LayerNode[]
 }
 
@@ -133,7 +135,7 @@ function detailOf(el: Element): string {
 
 function toNode(el: Element): LayerNode {
   const tag = el.tagName.toLowerCase()
-  const base = { selector: elementPath(el), tag, detail: detailOf(el) }
+  const base = { selector: elementPath(el), tag, detail: detailOf(el), hidden: el.hasAttribute(HIDDEN_ATTR) }
   if (el.namespaceURI === 'http://www.w3.org/2000/svg') return { ...base, label: 'svg', kind: 'svg', children: [] }
   if (IMAGE_TAGS.has(el.tagName)) return { ...base, label: tag, kind: 'image', children: [] }
   const children = layerChildren(el)
@@ -209,6 +211,51 @@ export function replaceElement(html: string, selector: string, outerHtml: string
   const el = find(doc, selector)
   if (!el) return null
   el.outerHTML = outerHtml
+  return serialize(doc)
+}
+
+/* The Layers panel's eye on an element. The element stays in the markup,
+   marked and switched off with an inline display — so the live frame, every
+   export and an agent's screenshot agree it is not there, with no runtime
+   rule to carry around. */
+export const HIDDEN_ATTR = 'data-doop-hidden'
+/* the inline display it had before — value, and "!important" when it
+   carried one — so showing it again puts exactly that back */
+const DISPLAY_ATTR = 'data-doop-display'
+
+/** Whether the element is hidden; null when the selector no longer resolves. */
+export function isElementHidden(html: string, selector: string): boolean | null {
+  const el = find(parse(html), selector)
+  return el ? el.hasAttribute(HIDDEN_ATTR) : null
+}
+
+/** The frame's HTML with the element hidden or shown — the input itself
+ *  when it already is, null when the selector no longer resolves. Hiding
+ *  sets `display: none !important` inline (author CSS cannot put it back)
+ *  and remembers any inline display the element had; showing restores it. */
+export function setElementHidden(html: string, selector: string, hidden: boolean): string | null {
+  const doc = parse(html)
+  const el = find(doc, selector)
+  if (!el) return null
+  if (el.hasAttribute(HIDDEN_ATTR) === hidden) return html
+  const { style } = el as HTMLElement
+  if (hidden) {
+    if (style.display) {
+      const priority = style.getPropertyPriority('display')
+      el.setAttribute(DISPLAY_ATTR, priority ? `${style.display} !${priority}` : style.display)
+    }
+    el.setAttribute(HIDDEN_ATTR, 'true')
+    style.setProperty('display', 'none', 'important')
+  } else {
+    const prior = el.getAttribute(DISPLAY_ATTR)
+    el.removeAttribute(HIDDEN_ATTR)
+    el.removeAttribute(DISPLAY_ATTR)
+    if (prior) {
+      const [value = '', priority = ''] = prior.split(' !')
+      style.setProperty('display', value, priority)
+    } else style.removeProperty('display')
+    if (!el.getAttribute('style')) el.removeAttribute('style')
+  }
   return serialize(doc)
 }
 

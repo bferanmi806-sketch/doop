@@ -20,6 +20,8 @@ import {
   Compass,
   Computer,
   Download,
+  Eye,
+  EyeClosed,
   Group,
   HalfMoon,
   HelpCircle,
@@ -96,6 +98,8 @@ export const PanelExpandIcon = icon(SidebarExpand)
 export const PanelCollapseRightIcon = icon(SidebarCollapse, mirrored)
 export const PanelExpandRightIcon = icon(SidebarExpand, mirrored)
 export const LayersIcon = icon(ViewStructureUp)
+export const EyeIcon = icon(Eye)
+export const EyeClosedIcon = icon(EyeClosed)
 export const FrameIcon = icon(FrameAltEmpty)
 export const BoxIcon = icon(Square)
 export const TextIcon = icon(Text)

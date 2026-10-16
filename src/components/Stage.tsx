@@ -3,7 +3,7 @@ import { useStore } from '../lib/store'
 import { usePageCanvas, currentPageCanvas } from '../lib/pages'
 import { sendWs } from '../lib/ws'
 import { throttle } from '../lib/throttle'
-import { FrameView } from './FrameView'
+import { FrameView, HiddenFrameView } from './FrameView'
 import { FlowOverlay } from './FlowOverlay'
 import { GhostFrames } from './GhostFrames'
 import { Cursors } from './Cursors'
@@ -547,9 +547,11 @@ export function Stage({ onAddFrame }: { onAddFrame: () => void }) {
       }
       setMarquee(rect)
       const frames = currentPageCanvas()?.frames ?? []
+      /* a hidden frame is not on the stage to be lassoed */
       const hits = frames
         .filter(
           (f) =>
+            !f.hidden &&
             f.x < rect.x + rect.width &&
             f.x + f.width > rect.x &&
             f.y < rect.y + rect.height &&
@@ -614,9 +616,13 @@ export function Stage({ onAddFrame }: { onAddFrame: () => void }) {
             {/* `world` is likewise a behaviour hook: pan hit-testing checks
             classList.contains('world') to tell background from frame */}
             <div className="world absolute left-0 top-0 origin-top-left will-change-transform" ref={worldRef}>
-              {canvas?.frames.map((f) => (
-                <FrameView key={f.id} frame={f} raster={raster} />
-              ))}
+              {canvas?.frames.map((f) =>
+                f.hidden ? (
+                  <HiddenFrameView key={f.id} frame={f} />
+                ) : (
+                  <FrameView key={f.id} frame={f} raster={raster} />
+                ),
+              )}
               <GhostFrames />
               <FlowOverlay />
               <SnapGuides />

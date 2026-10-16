@@ -164,6 +164,8 @@ export const frames = pgTable(
     updatedBy: text('updated_by').notNull(),
     /** product-made onboarding/example content; null = a real user frame */
     demo: boolean('demo'),
+    /** hidden from the stage via the Layers panel; null = shown */
+    hidden: boolean('hidden'),
   },
   (t) => [index('frames_canvas_idx').on(t.canvasId)],
 )

@@ -3,6 +3,7 @@ import type { Frame } from '../../shared/types'
 import { errorMessage } from '../lib/api'
 import { copyFrames, duplicateFrames, hasFrameClip, pasteFrameAtScreen } from '../lib/frameClipboard'
 import { deleteFramesTracked } from '../lib/history'
+import { setFramesHidden } from '../lib/layerEdits'
 import { useStore } from '../lib/store'
 import { MOD_KEY } from '../lib/keys'
 import { ContextMenuContent, ContextMenuItem, ContextMenuSeparator } from './ui/context-menu'
@@ -25,6 +26,11 @@ export function FrameContextMenu({ frame, at }: { frame: Frame; at: MutableRefOb
   const [showExport, setShowExport] = useState(false)
   /* a right-click inside a multi-selection acts on the whole group */
   const groupSize = useStore((s) => (s.selectedIds.includes(frame.id) ? s.selectedIds.length : 1))
+  /* Hide/Show reads as one item: the group shows when every frame in it is hidden */
+  const allHidden = useStore((s) => {
+    const ids = s.selectedIds.includes(frame.id) ? s.selectedIds : [frame.id]
+    return (s.canvas?.frames ?? []).filter((f) => ids.includes(f.id)).every((f) => !!f.hidden)
+  })
   function groupFrames(): Frame[] {
     const s = useStore.getState()
     const ids = s.selectedIds.includes(frame.id) ? s.selectedIds : [frame.id]
@@ -55,6 +61,10 @@ export function FrameContextMenu({ frame, at }: { frame: Frame; at: MutableRefOb
         <ContextMenuItem onSelect={() => duplicateFrames(groupFrames())}>
           {groupSize > 1 ? `Duplicate ${groupSize} frames` : 'Duplicate'}
           <MenuHint>{MOD_KEY}D</MenuHint>
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={() => setFramesHidden(groupFrames(), !allHidden)}>
+          {`${allHidden ? 'Show' : 'Hide'}${groupSize > 1 ? ` ${groupSize} frames` : ''}`}
+          <MenuHint>{MOD_KEY}⇧H</MenuHint>
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem

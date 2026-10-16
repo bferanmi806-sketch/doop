@@ -48,7 +48,7 @@ import {
   pasteImagesCentered,
 } from '../lib/frameClipboard'
 import { clearHistory, redo, undo } from '../lib/history'
-import { deleteSelection } from '../lib/layerEdits'
+import { deleteSelection, toggleSelectionHidden } from '../lib/layerEdits'
 import { authClient } from '../lib/auth'
 import { posthog } from '../lib/posthog'
 import { useIsMobile } from '../hooks/use-mobile'
@@ -197,6 +197,12 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
       if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'y') {
         e.preventDefault()
         void redo()
+        return
+      }
+      /* ⌘⇧H hides or shows what is selected — the picked element, else the
+         frames — as the eye in the Layers panel would */
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === 'h') {
+        if (toggleSelectionHidden()) e.preventDefault()
         return
       }
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {

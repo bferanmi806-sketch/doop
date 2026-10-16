@@ -436,6 +436,7 @@ class Store {
       height?: number
       html?: string
       demo?: boolean
+      hidden?: boolean
     },
     by: string,
   ): Frame | undefined {
@@ -468,6 +469,7 @@ class Store {
       updatedBy: by,
     }
     if (input.demo) frame.demo = true
+    if (input.hidden) frame.hidden = true
     c.frames.push(frame)
     c.updatedAt = now
     this.frameIndex.set(frame.id, canvasId)
@@ -478,7 +480,7 @@ class Store {
 
   updateFrame(
     frameId: string,
-    patch: Partial<Pick<Frame, 'name' | 'pageId' | 'x' | 'y' | 'width' | 'height' | 'html'>>,
+    patch: Partial<Pick<Frame, 'name' | 'pageId' | 'x' | 'y' | 'width' | 'height' | 'html' | 'hidden'>>,
     by: string,
   ): Frame | undefined {
     const frame = this.getFrame(frameId)

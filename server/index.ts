@@ -1446,13 +1446,14 @@ app.put('/api/canvases/:id/pages', (req, res) => {
 
 app.post('/api/canvases/:id/frames', (req, res) => {
   if (!requireCanvas(req, res, req.params.id)) return
-  const { name, pageId, x, y, width, height, html } = req.body ?? {}
+  const { name, pageId, x, y, width, height, html, hidden } = req.body ?? {}
   if (pageId !== undefined && !store.getCanvas(req.params.id)?.pages?.some((p) => p.id === pageId))
     return res.status(400).json({ error: 'page not found' })
   const actor = actions.resolveActor({ name: req.user!.name, kind: 'user' })
+  /* `hidden` lets undo bring a deleted hidden frame back as it was */
   const frame = actions.createFrame(
     req.params.id,
-    { name: String(name || 'Frame'), pageId, x, y, width, height, html },
+    { name: String(name || 'Frame'), pageId, x, y, width, height, html, hidden: hidden === true },
     actor,
   )
   if (!frame) return res.status(404).json({ error: 'canvas not found' })
@@ -1471,6 +1472,8 @@ app.patch('/api/frames/:id', (req, res) => {
   const allowed = ['name', 'pageId', 'x', 'y', 'width', 'height', 'html'] as const
   const clean: Record<string, unknown> = {}
   for (const k of allowed) if (patch[k] !== undefined) clean[k] = patch[k]
+  /* the eye in the Layers panel: anything but a literal true shows the frame */
+  if (patch.hidden !== undefined) clean.hidden = patch.hidden === true
   const frame = actions.updateFrame(req.params.id, clean, actor)
   if (!frame) return res.status(404).json({ error: 'frame not found' })
   res.json(frame)

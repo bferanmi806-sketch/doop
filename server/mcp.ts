@@ -190,12 +190,14 @@ function frameSummary(f: {
   updatedBy: string
   html: string
   demo?: boolean
+  hidden?: boolean
 }) {
   return {
     id: f.id,
     pageId: f.pageId,
     name: f.name,
     ...(f.demo ? { demo: true } : {}),
+    ...(f.hidden ? { hidden: true } : {}),
     x: f.x,
     y: f.y,
     width: f.width,
