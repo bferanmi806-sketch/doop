@@ -16,6 +16,7 @@ import * as actions from '../server/actions.ts'
 import { onFeedback } from '../server/resident.ts'
 import { pickModel } from '../server/agentModel.ts'
 import { consumeResidentTask } from '../server/allowance.ts'
+import { isBanned } from '../server/auth.ts'
 
 vi.mock('../server/db/index.ts', async () => {
   const { PGlite } = await import('@electric-sql/pglite')
@@ -24,6 +25,7 @@ vi.mock('../server/db/index.ts', async () => {
   return { db: drizzle(new PGlite(), { schema }) }
 })
 vi.mock('../server/resident.ts', () => ({ onFeedback: vi.fn() }))
+vi.mock('../server/auth.ts', () => ({ isBanned: vi.fn().mockResolvedValue(false) }))
 vi.mock('../server/agentModel.ts', () => ({ pickModel: vi.fn().mockResolvedValue({ userId: 'owner' }) }))
 vi.mock('../server/allowance.ts', () => ({
   consumeResidentTask: vi.fn().mockResolvedValue({ ok: true, byoModel: true }),
@@ -109,6 +111,7 @@ beforeEach(async () => {
   eventId = `Ev${randomUUID().replace(/-/g, '').slice(0, 10)}`
   sent.length = 0
   vi.clearAllMocks()
+  vi.mocked(isBanned).mockResolvedValue(false)
   vi.mocked(pickModel).mockResolvedValue({ userId } as Awaited<ReturnType<typeof pickModel>>)
   vi.mocked(consumeResidentTask).mockResolvedValue({ ok: true, byoModel: true } as Awaited<
     ReturnType<typeof consumeResidentTask>
@@ -377,6 +380,25 @@ describe('design jobs', () => {
     const other = 'EvOTHERTHREAD'
     await receiveRequest(mention({ id: other, threadTs: '1700000000.000900' }))
     expect((await session(other)).followUp).toBe(false)
+  })
+
+  it('stops a suspended installer’s work and refuses new requests', async () => {
+    await receiveRequest(mention())
+    await tickSlack()
+    const row = await session()
+    expect(row.status).toBe('running')
+    vi.mocked(isBanned).mockResolvedValue(true)
+    await tickSlack()
+    expect((await session()).status).toBe('canceled')
+    expect((await session()).reported).toBe(true)
+    expect(actions.getTasks(row.canvasId!).find((task) => task.id === row.taskId)?.failedAt).toBeTruthy()
+    const told = sent.filter((request) => request.method === 'chat.postMessage').at(-1)!
+    expect(String(told.body.text)).toContain('suspended')
+    const later = 'EvAFTERBAN'
+    await receiveRequest(mention({ id: later, threadTs: '1700000000.000500' }))
+    await tickSlack()
+    expect((await session(later)).status).toBe('canceled')
+    expect(consumeResidentTask).toHaveBeenCalledTimes(1)
   })
 
   it('answers a slash command in the channel and threads under its own message', async () => {

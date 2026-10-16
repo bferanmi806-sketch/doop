@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid'
 import { z } from 'zod'
 import { db, type Db } from '../db/index.ts'
 import { canvases, tasks, slackInstallations, slackSessions } from '../db/schema.ts'
+import { isBanned } from '../auth.ts'
 import { store } from '../store.ts'
 import * as actions from '../actions.ts'
 import { consumeResidentTask, refundResidentTask } from '../allowance.ts'
@@ -21,6 +22,7 @@ const RUN_TIMEOUT_MS = 60 * 60_000
 const workInFlight = new Set<string>()
 const SLACK_COLOR = '#4A154B'
 const NO_BRIEF = 'Mention @Doop with a design brief, for example “@Doop design a pricing page for a note-taking app”.'
+const SUSPENDED = 'The Doop account behind this Slack agent is suspended, so it cannot design.'
 
 /** A mention or slash command, after the webhook verified its signature. */
 export interface Inbound {
@@ -214,6 +216,7 @@ async function dispatch(session: Session) {
   let gate: Awaited<ReturnType<typeof consumeResidentTask>> | undefined
   let committed = false
   try {
+    if (await isBanned(session.userId)) throw new Error(SUSPENDED)
     if (!(await pickModel(session.userId)))
       throw new Error('Connect a model account in Doop Settings, then mention @Doop again.')
     gate = await consumeResidentTask(session.userId)
@@ -299,7 +302,7 @@ async function dispatch(session: Session) {
         error:
           error instanceof SlackError
             ? error.message
-            : error instanceof Error && /^(Connect|The design canvas)/.test(error.message)
+            : error instanceof Error && /^(Connect|The design canvas|The Doop account)/.test(error.message)
               ? error.message
               : 'Doop could not start the design. Check your model account in Doop Settings and mention @Doop again.',
         updatedAt: Date.now(),
@@ -325,6 +328,14 @@ async function processSession(session: Session) {
         .set({ status: 'canceled', error: 'The Slack agent was disconnected.', reported: true, updatedAt: Date.now() })
         .where(and(eq(slackSessions.id, session.id), inArray(slackSessions.status, active)))
       return
+    }
+    if (await isBanned(installation.userId)) {
+      // Access was revoked after the request was queued: stop the installer's work and say why.
+      const rows = await db.transaction((tx) => cancelStoredSessions(tx, installation.teamId, SUSPENDED))
+      stopPublishedCards(rows, SUSPENDED)
+      const [latest] = await db.select().from(slackSessions).where(eq(slackSessions.id, session.id))
+      if (!latest) return
+      session = latest
     }
     if (!session.acknowledged && !terminal.includes(session.status)) {
       const ackTs = await post(installation, session, {
