@@ -3,12 +3,11 @@
    Preserve the installed dependency layout, including nested version conflicts. */
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises'
-import { createRequire } from 'node:module'
-import { join, relative, sep } from 'node:path'
+import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import JSZip from 'jszip'
 
-const root = fileURLToPath(new URL('../', import.meta.url))
+const root = resolve(fileURLToPath(new URL('../', import.meta.url)))
 const zip = new JSZip()
 const date = new Date('2026-01-01T00:00:00Z')
 const packed = new Set()
@@ -31,13 +30,21 @@ async function addDirectory(directory) {
 }
 
 async function addPackage(name, parent) {
-  const require = createRequire(join(parent, 'package.json'))
-  // Looking up package.json through resolution paths also handles packages that
-  // hide their manifest behind an exports map.
-  const directory = require.resolve
-    .paths(name)
-    ?.map((path) => join(path, name))
-    .find((path) => existsSync(join(path, 'package.json')))
+  // Walk Node's installed package locations, closest dependency first. Bun
+  // treats undici as a built-in and returns null from require.resolve.paths,
+  // but the archive still needs the real package for Claude's Node runtime.
+  // Reading manifests directly also handles restrictive package exports.
+  let directory
+  for (let search = parent; ; search = dirname(search)) {
+    if (basename(search) !== 'node_modules') {
+      const candidate = join(search, 'node_modules', name)
+      if (existsSync(join(candidate, 'package.json'))) {
+        directory = candidate
+        break
+      }
+    }
+    if (search === root) break
+  }
   if (!directory || !relative(root, directory).startsWith(`node_modules${sep}`)) {
     throw new Error(`Cannot package ${name}: install dependencies with bun install first`)
   }

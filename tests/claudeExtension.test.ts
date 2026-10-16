@@ -15,7 +15,9 @@ let directory: string
 let archive: JSZip
 
 beforeAll(async () => {
-  execFileSync(process.execPath, ['scripts/build-claude-extension.mjs'])
+  // The Docker build stage runs scripts under Bun; Claude runs the extracted
+  // proxy under Node. Exercise that runtime boundary rather than Node-only.
+  execFileSync('bun', ['scripts/build-claude-extension.mjs'])
   archive = await JSZip.loadAsync(await readFile('public/claude-extension/doop.mcpb'))
   directory = await mkdtemp(join(tmpdir(), 'doop-claude-extension-'))
   for (const file of Object.values(archive.files)) {
@@ -31,6 +33,20 @@ beforeAll(async () => {
 afterAll(async () => {
   server?.stop()
   if (directory) await rm(directory, { recursive: true, force: true })
+})
+
+it('packages the same installed dependencies under Bun and Node', async () => {
+  execFileSync(process.execPath, ['scripts/build-claude-extension.mjs'])
+  const nodeArchive = await JSZip.loadAsync(await readFile('public/claude-extension/doop.mcpb'))
+  expect(Object.keys(archive.files).sort()).toEqual(Object.keys(nodeArchive.files).sort())
+  for (const name of Object.keys(archive.files).filter((name) => name.endsWith('/package.json'))) {
+    expect(await archive.file(name)!.async('string'), name).toBe(await nodeArchive.file(name)!.async('string'))
+  }
+  // mcp-remote needs undici 7; Doop itself uses 8. Keep the nested dependency.
+  const undici = JSON.parse(
+    await archive.file('node_modules/mcp-remote/node_modules/undici/package.json')!.async('string'),
+  )
+  expect(undici.version).toMatch(/^7\./)
 })
 
 it('ships an installable manifest and all runtime files without repository credentials', async () => {

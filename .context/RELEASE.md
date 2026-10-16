@@ -26,6 +26,9 @@ No container release pipeline for the server app. Self-hosting is
 on port 4400 alongside a `postgres:16-alpine` container, and applies DB migrations at boot
 (`server/db/index.ts`). CI (`ci.yml`) validates every push/PR to `main` (typecheck, lint,
 format:check, build, test) but does not build or push a container image.
+The CI build uses `bun run --bun build` to match the `oven/bun` Docker build stage,
+where `node` commands run with Bun. Extension tests also build with both runtimes
+and run the Bun-built archive under Node, including its nested runtime dependencies.
 
 ## Desktop app (Tauri: macOS DMG + Windows NSIS installer)
 

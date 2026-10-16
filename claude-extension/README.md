@@ -53,6 +53,8 @@ licenses. It is included automatically in `bun run dev` and `bun run build`, so
 Vite and the production server serve the download at `/claude-extension/doop.mcpb`.
 No additional packages are fetched when Claude installs or starts the extension. Claude
 Desktop supplies the Node runtime (20.18.1 or newer).
+The packager supports both Node and Bun. It resolves installed package directories
+directly so Bun's built-in modules do not replace runtime dependencies in the archive.
 
 The proxy forwards MCP tools, resources and server instructions over Streamable
 HTTP and handles OAuth registration, PKCE sign-in and token refresh. Credentials
