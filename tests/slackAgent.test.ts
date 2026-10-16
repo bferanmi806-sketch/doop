@@ -382,6 +382,45 @@ describe('design jobs', () => {
     expect((await session(other)).followUp).toBe(false)
   })
 
+  it('joins a follow-up to the thread’s first request even before that request has a canvas', async () => {
+    await receiveRequest(mention())
+    const followUpId = 'EvEARLYFOLLOWUP'
+    await receiveRequest(mention({ id: followUpId, text: `<@${botUserId}> make the button orange` }))
+    expect((await session(followUpId)).followUp).toBe(true)
+    await tickSlack()
+    await tickSlack()
+    const first = await session()
+    const second = await session(followUpId)
+    expect(first.status).toBe('running')
+    expect(second.status).toBe('running')
+    expect(second.followUp).toBe(true)
+    expect(second.canvasId).toBe(first.canvasId)
+    expect(await db.select().from(canvases)).toHaveLength(1)
+    expect(await db.select().from(tasks)).toHaveLength(2)
+  })
+
+  it('holds a follow-up while the thread’s first request is still on its way to a canvas', async () => {
+    await receiveRequest(mention())
+    await db
+      .update(slackSessions)
+      .set({ status: 'preparing', createdAt: Date.now() - 1000, updatedAt: Date.now() })
+      .where(eq(slackSessions.id, eventId))
+    const followUpId = 'EvWAITINGFOLLOWUP'
+    await receiveRequest(mention({ id: followUpId, text: `<@${botUserId}> make the button orange` }))
+    await tickSlack()
+    expect((await session(followUpId)).status).toBe('pending')
+    expect(consumeResidentTask).not.toHaveBeenCalled()
+    await db.update(slackSessions).set({ status: 'pending' }).where(eq(slackSessions.id, eventId))
+    await tickSlack()
+    await tickSlack()
+    const first = await session()
+    const second = await session(followUpId)
+    expect(first.status).toBe('running')
+    expect(second.status).toBe('running')
+    expect(second.canvasId).toBe(first.canvasId)
+    expect(await db.select().from(canvases)).toHaveLength(1)
+  })
+
   it('stops a suspended installer’s work and refuses new requests', async () => {
     await receiveRequest(mention())
     await tickSlack()
