@@ -1,6 +1,6 @@
 import { useState, type MutableRefObject } from 'react'
 import type { Frame } from '../../shared/types'
-import { api, errorMessage } from '../lib/api'
+import { errorMessage } from '../lib/api'
 import { copyFrames, duplicateFrames, hasFrameClip, pasteFrameAtScreen } from '../lib/frameClipboard'
 import { deleteFramesTracked } from '../lib/history'
 import { useStore } from '../lib/store'
@@ -64,13 +64,6 @@ export function FrameContextMenu({ frame, at }: { frame: Frame; at: MutableRefOb
         </ContextMenuItem>
         <ContextMenuItem onSelect={() => void copyImageUrl(frame)}>Copy image URL</ContextMenuItem>
         <ContextMenuItem onSelect={() => setShowExport(true)}>Export…</ContextMenuItem>
-        <ContextMenuSeparator />
-        <ContextMenuItem
-          title="Will be used as reference — agents copy its style in new designs"
-          onSelect={() => api.pinReference(frame.canvasId, frame.id).catch(console.error)}
-        >
-          Add to design memory
-        </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem tone="danger" onSelect={deleteSelection}>
           {groupSize > 1 ? `Delete ${groupSize} frames` : 'Delete frame'}
