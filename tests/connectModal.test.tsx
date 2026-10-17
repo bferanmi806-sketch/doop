@@ -165,3 +165,28 @@ it('shows native handoff errors and allows retry', async () => {
   expect(document.querySelector('[role="alert"]')?.textContent).toBe('Install Claude Desktop first.')
   expect(button('Add to Claude')?.disabled).toBe(false)
 })
+
+// Decode the actual rendered install link to catch a wrong config envelope or endpoint.
+it.each(['https://doop.design', 'http://localhost:4301'])(
+  'offers an Add to Cursor link for %s with a manual fallback and canvas prompt',
+  async (origin) => {
+    vi.stubGlobal('location', new URL(origin))
+    await mount('cursor-canvas')
+    await pickCard('Cursor')
+    await click('Connect →')
+
+    const link = Array.from(document.body.querySelectorAll('a')).find((a) => a.textContent === 'Add to Cursor')!
+    const installUrl = new URL(link.href)
+    expect(installUrl.protocol).toBe('cursor:')
+    expect(installUrl.host).toBe('anysphere.cursor-deeplink')
+    expect(installUrl.pathname).toBe('/mcp/install')
+    expect(installUrl.searchParams.get('name')).toBe('doop')
+    expect(JSON.parse(atob(installUrl.searchParams.get('config')!))).toEqual({ url: `${origin}/mcp` })
+    expect(document.querySelector('details')?.open).toBe(false)
+    expect(text()).toContain('keeping any existing servers')
+    expect(text()).toContain('Work on Doop canvas cursor-canvas.')
+    expect(text()).toContain('listening for Cursor')
+    expect(text()).not.toContain('it worked')
+    expect(document.querySelector('a[download]')).toBeNull()
+  },
+)

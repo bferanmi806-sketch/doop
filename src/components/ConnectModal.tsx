@@ -4,9 +4,11 @@ import { navigate } from '../App'
 import { useStore } from '../lib/store'
 import { roleByAgentName } from '../../shared/agents'
 import { posthog } from '../lib/posthog'
+import { canUseChatGPTPublicEndpoint, CHATGPT_CONNECTION_GUIDE, CHATGPT_PLUGINS_URL } from '../lib/chatgptConnection'
 import { AgentIcon } from './AgentIcon'
 import { ClaudeDesktopInstall } from './ClaudeDesktopInstall'
 import { canAddToClaudeDesktop, claudeConnectorInstallUrl } from '../lib/claudeConnection'
+import { CursorInstall } from './CursorInstall'
 import { Button } from './ui/button'
 import { CodeBlock } from './ui/code-block'
 import { Dot } from './ui/dot'
@@ -41,12 +43,12 @@ const AGENTS: AgentOption[] = [
     icon: <AgentIcon name="claude" size={20} />,
   },
   { id: 'claude', name: 'Claude', blurb: 'Add Doop to Claude', icon: <AgentIcon name="claude" size={20} /> },
-  { id: 'chatgpt', name: 'ChatGPT', blurb: 'Add an MCP connection', icon: <AgentIcon name="gpt" size={20} /> },
+  { id: 'chatgpt', name: 'ChatGPT', blurb: 'Add Doop to ChatGPT', icon: <AgentIcon name="gpt" size={20} /> },
   { id: 'codex', name: 'Codex', blurb: 'Connect your coding agent', icon: <AgentIcon name="codex" size={20} /> },
   {
     id: 'cursor',
     name: 'Cursor',
-    blurb: 'Add to your MCP settings',
+    blurb: 'Add Doop to Cursor',
     icon: <AgentIcon name="cursor" size={20} />,
   },
   {
@@ -229,25 +231,56 @@ function agentSteps(
         ],
       }
     case 'chatgpt':
+      if (!canUseChatGPTPublicEndpoint(mcpUrl)) {
+        return {
+          lede: 'ChatGPT needs a public HTTPS address or a secure tunnel to reach this Doop server.',
+          steps: [
+            {
+              title: 'Make your Doop server reachable',
+              body: 'ChatGPT cannot reach this address directly. Open your public HTTPS Doop address and start this connection there, or configure an OpenAI Secure MCP Tunnel for this server.',
+              code: mcpUrl,
+              action: (
+                <Button asChild variant="solid" className="mt-2.5">
+                  <a href={CHATGPT_CONNECTION_GUIDE} target="_blank" rel="noopener noreferrer">
+                    View ChatGPT setup guide
+                  </a>
+                </Button>
+              ),
+            },
+          ],
+        }
+      }
       return {
-        lede: 'No terminal. You add Doop as a connector inside ChatGPT, then approve it in your browser.',
+        lede: 'No download. Open ChatGPT, paste the server address below, and approve the Doop connection.',
         steps: [
           {
-            title: 'Turn on Developer mode',
+            title: 'Open ChatGPT plugins',
             body: (
               <>
-                In ChatGPT open <strong>Settings → Connectors → Advanced</strong> and switch on{' '}
-                <strong>Developer mode</strong>. Available on Plus, Pro, Business and Enterprise plans.
+                Click the <strong>+</strong> button on the Plugins page, then <strong>Add custom MCP server</strong>.
+                Your account or workspace must allow custom servers.
               </>
+            ),
+            action: (
+              <Button asChild variant="solid" className="mt-2.5">
+                <a
+                  href={CHATGPT_PLUGINS_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => posthog.capture('chatgpt_connection_opened')}
+                >
+                  Add to ChatGPT
+                </a>
+              </Button>
             ),
           },
           {
-            title: 'Create the Doop connector',
+            title: 'Add Doop and sign in',
             body: (
               <>
-                Back in <strong>Connectors</strong> click <strong>Create</strong>, name it <strong>Doop</strong>, choose{' '}
-                <strong>OAuth</strong> and paste this as the MCP server URL. Save, then approve the connection in the
-                browser tab that opens.
+                Name it <strong>Doop</strong>, describe it as a design canvas, and paste this as the MCP server URL.
+                Choose <strong>OAuth</strong>, review the permissions, then select <strong>Create as a plugin</strong>.
+                Sign in to Doop when prompted and install the resulting plugin.
               </>
             ),
             code: mcpUrl,
@@ -255,8 +288,8 @@ function agentSteps(
           {
             ...pointAt,
             body: prompt
-              ? 'In a new chat open the + menu, tick Doop, and send this as your first message.'
-              : 'In a new chat open the + menu, tick Doop, and tell it which canvas to work on.',
+              ? 'Start a new chat, type @ and select Doop, then send this as your first message.'
+              : 'Start a new chat, type @ and select Doop, then tell it which canvas to work on.',
           },
         ],
       }
@@ -282,21 +315,16 @@ function agentSteps(
       }
     case 'cursor':
       return {
-        lede: 'Cursor reads MCP servers from its settings. Paste one entry and approve the sign-in.',
+        lede: 'Add Doop to Cursor, sign in, and start designing together.',
         steps: [
           {
-            title: 'Add Doop to your MCP settings',
-            body: (
-              <>
-                Open <strong>Cursor Settings → MCP → Add new global MCP server</strong> and paste this into{' '}
-                <code>mcp.json</code>.
-              </>
-            ),
-            code: jsonConfig,
+            title: 'Add Doop to Cursor',
+            body: 'Open Cursor and review the server connection. No file download needed.',
+            action: <CursorInstall mcpUrl={mcpUrl} />,
           },
           {
             title: 'Approve the sign-in',
-            body: 'Switch the doop server on. A browser tab opens so you can approve the connection.',
+            body: 'Enable the doop server in Cursor and complete its browser sign-in. Your agent can then work on the canvases you can access.',
           },
           {
             ...pointAt,

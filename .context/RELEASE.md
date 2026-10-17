@@ -75,6 +75,23 @@ also install it in Claude Desktop on macOS and Windows. Installation, build and 
 notes live in [`claude-extension/README.md`](../claude-extension/README.md). No directory
 submission or publication is performed by the build.
 
+## Cursor marketplace plugin
+
+`cursor-plugin/` is a standalone Cursor plugin directory; `.cursor-plugin/marketplace.json` at
+repo root indexes it. It contains the hosted MCP connection, the scoped `doop-design` skill,
+metadata, logo, and license. It needs no build artifact or release download. The app's
+**Connect AI → Cursor → Add to Cursor** uses Cursor's MCP install link for the current Doop
+instance and is available independently of marketplace publication.
+
+After local Cursor smoke testing, sync the plugin commit to public `kgoedecke/doop` through the
+existing cherry-pick workflow. Confirm the root marketplace manifest and `cursor-plugin/` are
+present at the same paths. The OSS export script was removed; do not recreate a wipe-and-export
+step. This development repository is private and cannot serve as a public listing source. A maintainer submits the public repository
+at `https://cursor.com/marketplace/publish`. Cursor must approve the plugin before it appears in
+the public marketplace. No workflow submits or publishes it automatically. Bump the version
+in `cursor-plugin/.cursor-plugin/plugin.json` for plugin updates; full setup and reviewer steps
+live in `cursor-plugin/README.md`.
+
 ## Other workflows
 
 - `.github/workflows/desktop.yml` - desktop app CI (build/check) outside of the release path.
