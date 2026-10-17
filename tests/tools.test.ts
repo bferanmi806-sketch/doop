@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolvePointerAction, toolForKey, type PointerContext } from '../src/lib/tools'
+import { TOOLS, resolvePointerAction, toolForKey, type PointerContext } from '../src/lib/tools'
 
 /**
  * The bottom toolbar's tools decide what a pointer-down means. Select is the
@@ -38,14 +38,14 @@ describe('resolvePointerAction', () => {
   })
 
   it('space held is a temporary Hand in every tool', () => {
-    for (const tool of ['select', 'comment'] as const) {
+    for (const { id: tool } of TOOLS) {
       expect(resolvePointerAction(mouse({ tool, target: 'frame', spaceHeld: true }))).toBe('pan')
       expect(resolvePointerAction(mouse({ tool, target: 'background', spaceHeld: true }))).toBe('pan')
     }
   })
 
   it('the middle button pans in every tool; other buttons are not ours', () => {
-    for (const tool of ['select', 'hand', 'comment'] as const) {
+    for (const { id: tool } of TOOLS) {
       expect(resolvePointerAction(mouse({ tool, target: 'frame', button: 1 }))).toBe('pan')
       expect(resolvePointerAction(mouse({ tool, target: 'frame', button: 2 }))).toBe('none')
     }
@@ -57,6 +57,15 @@ describe('resolvePointerAction', () => {
     /* the Comment tool keeps one-finger pan too: a canvas comment is a click */
     expect(resolvePointerAction(mouse({ tool: 'comment', pointerType: 'touch', target: 'background' }))).toBe('pan')
   })
+
+  it('drawing tools draw on both frames and background, including touch and pen', () => {
+    for (const tool of ['rectangle', 'circle', 'path', 'text', 'frame'] as const) {
+      for (const pointerType of ['mouse', 'touch', 'pen']) {
+        expect(resolvePointerAction(mouse({ tool, pointerType, target: 'background' }))).toBe('draw')
+        expect(resolvePointerAction(mouse({ tool, pointerType, target: 'frame' }))).toBe('draw')
+      }
+    }
+  })
 })
 
 describe('toolForKey', () => {
@@ -67,7 +76,12 @@ describe('toolForKey', () => {
   })
 
   it('knows nothing about other keys', () => {
-    expect(toolForKey('f')).toBeNull()
+    expect(toolForKey('q')).toBeNull()
     expect(toolForKey('Escape')).toBeNull()
+  })
+
+  it('maps the drawing shortcuts without conflicts', () => {
+    expect(['f', 'R', 'o', 'P', 't'].map(toolForKey)).toEqual(['frame', 'rectangle', 'circle', 'path', 'text'])
+    expect(new Set(TOOLS.map((t) => t.key)).size).toBe(TOOLS.length)
   })
 })

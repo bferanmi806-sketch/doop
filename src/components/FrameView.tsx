@@ -1,6 +1,7 @@
 import { memo, useEffect, useRef, useState } from 'react'
 import type { ElementComment, Frame } from '../../shared/types'
 import { useStore } from '../lib/store'
+import { isCanvasElement } from '../lib/drawing'
 import { currentPageCanvas } from '../lib/pages'
 import { registerFrameWindow, unregisterFrameWindow } from '../lib/frameBridge'
 import { api } from '../lib/api'
@@ -789,13 +790,14 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
 
           <div
             className={cn(
-              'absolute inset-0 overflow-hidden rounded-[6px] border border-line bg-white',
+              'absolute inset-0 overflow-hidden',
+              isCanvasElement(frame.html) ? 'bg-transparent' : 'rounded-[6px] border border-line bg-white',
               /* Select keeps the arrow, like Figma: the frame is a thing to
                  point at, not a handle. The Hand tool's grab and the Comment
                  tool's bubble come from the Stage, which overrides every
                  cursor under it. */
               'cursor-default',
-              dragging ? 'shadow-pop' : 'shadow-card',
+              !isCanvasElement(frame.html) && (dragging ? 'shadow-pop' : 'shadow-card'),
               selected && 'outline-2 outline-offset-1 outline-brand',
               editing && 'cursor-text outline-2 outline-offset-1 outline-dashed outline-brand',
               !stream &&
@@ -819,7 +821,7 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
           >
             <iframe
               ref={iframeRef}
-              className="block border-none bg-white"
+              className={cn('block border-none', isCanvasElement(frame.html) ? 'bg-transparent' : 'bg-white')}
               title={frame.name}
               data-doop-frame=""
               sandbox="allow-scripts"

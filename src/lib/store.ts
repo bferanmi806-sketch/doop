@@ -57,7 +57,7 @@ interface State {
   /** the primary selection (the last frame added) — what the Inspector,
    *  presence, and the flow overlay follow */
   selectedId: string | null
-  /** the active canvas tool (bottom toolbar): Select, Hand or Comment */
+  /** the active canvas tool in the bottom toolbar */
   tool: Tool
   /** space bar held: the stage pans on drag instead of drawing a marquee */
   panMode: boolean

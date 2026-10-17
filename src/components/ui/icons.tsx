@@ -13,6 +13,7 @@ import {
   ChatBubble,
   ChatLines,
   MapPin,
+  Circle,
   Building,
   CreditCard,
   Lock,
@@ -111,6 +112,7 @@ export const EyeIcon = icon(Eye)
 export const EyeClosedIcon = icon(EyeClosed)
 export const FrameIcon = icon(FrameAltEmpty)
 export const BoxIcon = icon(Square)
+export const CircleIcon = icon(Circle)
 export const TextIcon = icon(Text)
 export const ImageIcon = icon(MediaImage)
 export const VectorIcon = icon(DesignNib)

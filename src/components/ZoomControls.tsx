@@ -1,5 +1,6 @@
 import type { RefObject } from 'react'
 import { useStore } from '../lib/store'
+import { isDrawingTool } from '../lib/tools'
 import { useIsMobile } from '../hooks/use-mobile'
 import { MOD_KEY } from '../lib/keys'
 import { cn } from '../lib/utils'
@@ -40,6 +41,7 @@ export function ZoomControls({
 }) {
   const isMobile = useIsMobile()
   const hasSelection = useStore((s) => s.selectedIds.length > 0)
+  const drawing = useStore((s) => isDrawingTool(s.tool))
   /* phones have no room for shortcut hints, and no keyboard to use them */
   const hint = (keys: string) => !isMobile && <MenuHint>{keys}</MenuHint>
   /* a quieter pill than the frame toolbar: 26px rows, narrow steppers */
@@ -48,7 +50,8 @@ export function ZoomControls({
   return (
     <Toolbar
       className={cn(
-        'absolute bottom-[calc(8px+env(safe-area-inset-bottom))] z-[35] gap-0 p-[3px] transition-[right] duration-150 ease-[ease] sm:gap-0 sm:bottom-4 sm:p-[3px]',
+        'absolute bottom-[calc(64px+env(safe-area-inset-bottom))] z-[35] gap-0 p-[3px] transition-[right] duration-150 ease-[ease] sm:gap-0 min-[1000px]:bottom-4 sm:p-[3px]',
+        drawing && 'max-[999px]:bottom-[calc(124px+env(safe-area-inset-bottom))]',
         /* the corner is free when only the (top-anchored) side rail is out;
            clear of the full-height 300px side panel at right: 12px otherwise */
         isMobile ? 'right-2' : sidePanelOpen ? 'right-[324px]' : 'right-3',

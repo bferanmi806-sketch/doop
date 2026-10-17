@@ -141,21 +141,23 @@ function detailOf(el: Element): string {
 
 function toNode(el: Element): LayerNode {
   const tag = el.tagName.toLowerCase()
+  const drawingName = el.hasAttribute('data-doop-drawing') ? el.getAttribute('data-name') : null
   const base = {
     selector: elementPath(el),
     tag,
-    detail: detailOf(el),
+    detail: drawingName ? '' : detailOf(el),
     hidden: el.hasAttribute(HIDDEN_ATTR),
     locked: el.hasAttribute(LOCK_ATTR),
   }
-  if (el.namespaceURI === 'http://www.w3.org/2000/svg') return { ...base, label: 'svg', kind: 'svg', children: [] }
+  if (el.namespaceURI === 'http://www.w3.org/2000/svg')
+    return { ...base, label: drawingName ?? 'svg', kind: 'svg', children: [] }
   if (IMAGE_TAGS.has(el.tagName)) return { ...base, label: tag, kind: 'image', children: [] }
   const children = layerChildren(el)
   const text = ownText(el)
   if (children.length === 0 && text) {
     return { ...base, label: text.length > 60 ? text.slice(0, 57) + '…' : text, detail: '', kind: 'text', children }
   }
-  return { ...base, label: tag, kind: 'box', children }
+  return { ...base, label: drawingName ?? tag, kind: 'box', children }
 }
 
 function layerChildren(el: Element): LayerNode[] {

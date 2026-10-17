@@ -33,6 +33,23 @@
   services.
 - `pg` 8.22.0 - Postgres driver for the real-database path.
 
+## 4. Canvas Drawing
+
+- `src/lib/tools.ts` defines bottom-toolbar tools and shortcuts. `Stage.tsx` delegates drawing
+  gestures and world-space previews to `CanvasDrawing.tsx`; Space/middle-button panning takes
+  precedence over drawing.
+- `src/lib/drawing.ts` creates rectangles, circles, straight-line SVG paths, text and empty
+  frames through the existing frame API. Drawing inside a frame appends a positioned HTML/SVG
+  layer. Standalone elements use frame persistence with a `data-doop-canvas-element` body marker
+  for transparent canvas chrome; no separate shape schema or protocol is required.
+- Saves are serialized, tracked by undo/redo, and scoped to the originating canvas/page. Each
+  completed gesture has its own undo entry. The Layers panel shows the drawing's `data-name`.
+  Completed saves survive navigation; unfinished drafts are cancelled. Drawing shortcuts leave
+  native fields and rich-text editors alone, except for the drawing textarea's save/cancel keys.
+- `tests/drawing.test.ts` covers geometry, serialization and persistence; `drawingBrowser.test.ts`
+  exercises the toolbar and gestures in Chromium, including double-click paths, mobile input,
+  and coexistence with canvas comment pins and reply fields.
+
 ## 5. Security and Secrets
 
 - better-auth 1.6.26 - authentication: email/password, generic OIDC/SSO, and Google / Microsoft /

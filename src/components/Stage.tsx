@@ -14,7 +14,7 @@ import { Cursors } from './Cursors'
 import { FollowFrame } from './FollowFrame'
 import { cameraOnCursor, cameraToFollow } from '../lib/follow'
 import { SnapGuides } from './SnapGuides'
-import { MOD_KEY } from '../lib/keys'
+import { isTypingTarget, MOD_KEY } from '../lib/keys'
 import { cn } from '../lib/utils'
 import { gesture } from '../lib/gesture'
 import { hasFrameClip, pasteFrameAtScreen } from '../lib/frameClipboard'
@@ -23,8 +23,9 @@ import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } 
 import { Toolbar, ToolbarButton } from './ui/toolbar'
 import { ZoomControls } from './ZoomControls'
 import { Tooltip } from './ui/tooltip'
-import { CommentIcon, CursorIcon, HandIcon } from './ui/icons'
-import { TOOLS, resolvePointerAction, toolForKey, type Tool } from '../lib/tools'
+import { BoxIcon, CircleIcon, CommentIcon, CursorIcon, FrameIcon, HandIcon, TextIcon, VectorIcon } from './ui/icons'
+import { TOOLS, isDrawingTool, resolvePointerAction, toolForKey, type Tool } from '../lib/tools'
+import { useCanvasDrawing } from './CanvasDrawing'
 
 const MIN_ZOOM = 0.08
 const MAX_ZOOM = 3
@@ -63,6 +64,11 @@ const TOOL_ICONS: Record<Tool, React.ReactNode> = {
   select: <CursorIcon />,
   hand: <HandIcon />,
   comment: <CommentIcon />,
+  rectangle: <BoxIcon />,
+  circle: <CircleIcon />,
+  path: <VectorIcon />,
+  text: <TextIcon />,
+  frame: <FrameIcon />,
 }
 
 const sendCursor = throttle((x: number, y: number) => sendWs({ type: 'cursor', x, y }), 50)
@@ -83,6 +89,7 @@ const sendViewport = throttle(
 
 export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; sidePanelOpen: boolean }) {
   const ref = useRef<HTMLDivElement>(null)
+  const drawing = useCanvasDrawing(ref)
   const worldRef = useRef<HTMLDivElement>(null)
   const gridRef = useRef<HTMLDivElement>(null)
   const zoomLabelRef = useRef<HTMLSpanElement>(null)
@@ -583,24 +590,19 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
     }
   }, [])
 
-  /* V / H / C pick a tool, F adds a frame, Esc returns to Select — bare keys
+  /* Bare shortcut keys pick a tool, Esc returns to Select — bare keys
      only (no modifiers), and never while typing in a field. Esc is the one
-     exception: it must work from inside the comment composer too, so a single
-     press both drops the draft and returns to Select. */
+     exception for canvas composers: it drops their draft and returns to Select.
+     Other fields keep Escape for their own editing behavior. */
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || e.repeat) return
       if (e.key === 'Escape') {
+        if (isTypingTarget(e.target) && !e.target.closest('[data-comment-ui], [data-drawing-input]')) return
         if (useStore.getState().tool !== 'select') useStore.getState().setTool('select')
         return
       }
-      const t = e.target as HTMLElement
-      if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable) return
-      if (e.key === 'f') {
-        e.preventDefault()
-        onAddFrame()
-        return
-      }
+      if (isTypingTarget(e.target)) return
       const next = toolForKey(e.key)
       if (!next) return
       e.preventDefault()
@@ -608,7 +610,7 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onAddFrame])
+  }, [])
 
   function onPointerDown(e: React.PointerEvent) {
     const target = e.target as HTMLElement
@@ -725,6 +727,7 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
   }
 
   function onPointerMove(e: React.PointerEvent) {
+    drawing.onPointerMove(e)
     const { x, y } = toWorld(e.clientX, e.clientY)
     sendCursor(Math.round(x), Math.round(y))
   }
@@ -746,8 +749,15 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
                   ? 'cursor-grab! [&_*]:cursor-grab!'
                   : tool === 'comment'
                     ? COMMENT_CURSOR
-                    : 'cursor-default',
+                    : isDrawingTool(tool)
+                      ? tool === 'text'
+                        ? 'cursor-text! [&_:not([data-comment-ui]_*)]:cursor-text!'
+                        : 'cursor-crosshair! [&_:not([data-comment-ui]_*)]:cursor-crosshair!'
+                      : 'cursor-default',
             )}
+            onPointerDownCapture={drawing.onPointerDown}
+            onDoubleClickCapture={drawing.onDoubleClick}
+            onTouchStartCapture={drawing.onTouchStart}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onContextMenu={(e) => {
@@ -783,6 +793,7 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
               <SnapGuides />
               <CanvasComments composeAt={composeAt} onComposeDone={dismissCompose} />
               <Cursors />
+              {drawing.preview}
               {marquee && (
                 <div
                   className="pointer-events-none absolute bg-brand/10 [box-shadow:inset_0_0_0_calc(1px/var(--zoom,1))_var(--brand)]"
@@ -794,29 +805,62 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
         </ContextMenuTrigger>
         <FollowFrame />
 
-        <Toolbar
+        <div
           className={cn(
             'absolute bottom-[calc(8px+env(safe-area-inset-bottom))] left-1/2 z-[35] -translate-x-1/2 transition-[left] duration-150 ease-[ease] sm:bottom-4',
             /* on a narrow desktop window the open side panel (312px incl. its
                margin) leaves no room between the zoom pill and the window's
                center: center on the canvas area left of the panel instead */
-            sidePanelOpen && 'md:max-[1000px]:left-[calc((100%-312px)/2)]',
+            sidePanelOpen && 'md:left-[calc((100%-312px)/2)]',
             uiHidden && 'hidden',
           )}
         >
-          {TOOLS.map((t) => (
-            <Tooltip key={t.id} label={`${t.label} (${t.key})`}>
-              <ToolbarButton
-                aria-label={t.label}
-                aria-pressed={tool === t.id}
-                className="px-2 aria-pressed:bg-ink aria-pressed:text-paper aria-pressed:hover:bg-ink sm:px-2"
-                onClick={() => setTool(t.id)}
-              >
-                {TOOL_ICONS[t.id]}
-              </ToolbarButton>
-            </Tooltip>
-          ))}
-        </Toolbar>
+          {isDrawingTool(tool) && (
+            <div
+              data-drawing-hint
+              className="absolute bottom-full left-1/2 mb-2 flex w-max max-w-[min(340px,90vw)] -translate-x-1/2 flex-wrap items-center justify-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-center text-xs text-ink-soft shadow-pop"
+            >
+              <span>
+                {tool === 'path'
+                  ? 'Click to add points · Enter to finish'
+                  : tool === 'text'
+                    ? `Click or drag, then type · ${MOD_KEY}Enter to save`
+                    : tool === 'circle'
+                      ? 'Drag to draw a circle · Esc to cancel'
+                      : 'Drag to draw · Shift for a square · Esc to cancel'}
+              </span>
+              {drawing.pathActive && (
+                <>
+                  <button
+                    type="button"
+                    className="font-semibold text-brand disabled:opacity-40"
+                    disabled={!drawing.canFinishPath}
+                    onClick={drawing.finish}
+                  >
+                    Finish path
+                  </button>
+                  <button type="button" onClick={drawing.cancel}>
+                    Cancel
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+          <Toolbar aria-label="Canvas tools">
+            {TOOLS.map((t) => (
+              <Tooltip key={t.id} label={`${t.label} (${t.key})`}>
+                <ToolbarButton
+                  aria-label={t.label}
+                  aria-pressed={tool === t.id}
+                  className="px-2 aria-pressed:bg-ink aria-pressed:text-paper aria-pressed:hover:bg-ink sm:px-2"
+                  onClick={() => setTool(t.id)}
+                >
+                  {TOOL_ICONS[t.id]}
+                </ToolbarButton>
+              </Tooltip>
+            ))}
+          </Toolbar>
+        </div>
 
         <ZoomControls
           labelRef={zoomLabelRef}
