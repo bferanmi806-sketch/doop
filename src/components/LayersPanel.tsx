@@ -39,7 +39,7 @@ import { cn } from '@/lib/utils'
 import { AgentIcon } from './AgentIcon'
 import { LayerKindIcon } from './LayerKindIcon'
 import { FrameContextMenu } from './FrameContextMenu'
-import { Panel, PanelBody } from './ui/panel'
+import { Panel, PanelBody, PanelHeader } from './ui/panel'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Tooltip } from './ui/tooltip'
@@ -336,24 +336,28 @@ export function LayersPanel({ onAddFrame }: { onAddFrame: () => void }) {
 
   return (
     <Panel className="left-3 inset-y-3 w-[300px]">
+      {/* the same header as the right-hand panel: the panel's name as an icon
+          pill, the collapse control at the far end */}
+      <PanelHeader>
+        <span className="inline-flex h-7 items-center gap-1.5 rounded-md bg-paper-deep px-1.5 font-sans text-[12.5px] font-medium normal-case tracking-normal text-ink">
+          <LayersIcon className="size-4" />
+          Layers
+        </span>
+        <Tooltip label="Collapse panel" side="bottom" align="end">
+          <Button
+            variant="bare"
+            size="icon-sm"
+            className="shrink-0 text-ink-faint hover:bg-paper-deep hover:text-ink"
+            aria-label="Collapse panel"
+            onClick={() => setLayersOpen(false)}
+          >
+            <PanelCollapseIcon width={13} height={13} />
+          </Button>
+        </Tooltip>
+      </PanelHeader>
       {/* Figma's order: the pages fold at the top, the frames of the active
           page under them, the search at the bottom within thumb's reach */}
-      <PagesPanel
-        collapsible
-        actions={
-          <Tooltip label="Collapse panel" side="bottom" align="end">
-            <Button
-              variant="bare"
-              size="icon-sm"
-              className={sectionBtn}
-              aria-label="Collapse panel"
-              onClick={() => setLayersOpen(false)}
-            >
-              <PanelCollapseIcon width={13} height={13} />
-            </Button>
-          </Tooltip>
-        }
-      />
+      <PagesPanel collapsible />
       <div className={cn('flex items-center justify-between py-1.5 pr-2 pl-3.5', sectionHeading)}>
         <span data-slot="frame-section-heading" className={sectionHeading}>
           Frames

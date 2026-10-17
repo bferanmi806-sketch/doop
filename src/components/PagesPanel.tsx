@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { nanoid } from 'nanoid'
 import { canvasPages } from '../../shared/pages'
 import type { CanvasPageInfo } from '../../shared/types'
@@ -19,14 +19,11 @@ const sectionBtn = 'size-5 rounded-[5px] text-ink-faint hover:bg-paper-deep hove
 export function PagesPanel({
   fill = false,
   collapsible = false,
-  actions,
 }: {
   fill?: boolean
   /** Figma-style: the "Pages" heading folds the list, as the top section of
    *  the Layers panel */
   collapsible?: boolean
-  /** extra controls at the heading's right end (the panel's collapse button) */
-  actions?: ReactNode
 }) {
   const canvas = useStore((s) => s.canvas)
   const activePageId = useStore((s) => s.activePageId)
@@ -291,10 +288,7 @@ export function PagesPanel({
               Pages
             </span>
           </CollapsibleTrigger>
-          <span className="flex items-center gap-0.5">
-            {addPage}
-            {actions}
-          </span>
+          {addPage}
         </div>
         <CollapsibleContent className="max-h-[35vh] overflow-y-auto px-3 pb-2">{list}</CollapsibleContent>
       </Collapsible>
