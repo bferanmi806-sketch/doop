@@ -1620,6 +1620,44 @@ app.post('/api/frames/:id/comments', async (req, res) => {
   res.json(comment)
 })
 
+/* a comment pinned to a point on the canvas (world coordinates on one of its
+   pages) rather than to an element — metered exactly like an element comment */
+app.post('/api/canvases/:id/comments', async (req, res) => {
+  const canvas = requireCanvas(req, res, req.params.id)
+  if (!canvas) return
+  const { pageId, x, y, text } = req.body ?? {}
+  if (typeof pageId !== 'string' || !canvasPages(canvas).some((page) => page.id === pageId)) {
+    return res.status(400).json({ error: 'page not found' })
+  }
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return res.status(400).json({ error: 'x and y must be numbers' })
+  const body = String(text ?? '')
+  if (!body.trim()) return res.status(400).json({ error: 'empty text' })
+  let gate: Awaited<ReturnType<typeof allowance.consumeResidentTask>> | undefined
+  if (mentionedRole(body)) {
+    gate = await allowance.consumeResidentTask(req.user!.id)
+    if (!gate.ok) {
+      return res.status(403).json({ error: 'resident_limit', used: gate.used, limit: gate.limit })
+    }
+  }
+  const comment = actions.addCanvasComment(
+    canvas.id,
+    { pageId, x: Number(x), y: Number(y), text: body },
+    req.user!.name,
+    req.user!.id,
+  )
+  if (!comment) {
+    /* the page went away while the meter was being written: give the task
+       back — a failed refund is logged, never turned into a 500 */
+    if (gate) {
+      await allowance.refundResidentTask(gate, req.user!.id).catch((err) => {
+        console.error(`[comments] could not refund a resident task for ${req.user!.id}:`, err)
+      })
+    }
+    return res.status(409).json({ error: 'page removed meanwhile' })
+  }
+  res.json(comment)
+})
+
 app.post('/api/comments/:id/replies', async (req, res) => {
   const found = actions.findComment(req.params.id)
   if (!found) return res.status(404).json({ error: 'comment not found' })

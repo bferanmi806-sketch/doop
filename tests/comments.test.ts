@@ -4,9 +4,9 @@ import { isComposingEnter } from '../src/lib/keys'
 import type { Canvas, ElementComment } from '../shared/types'
 
 /**
- * The Comments panel lists the threads pinned to frames on the page in view:
- * replies fold under their root, resolved roots read as resolved, and the
- * rail badge counts only the open ones.
+ * The Comments panel lists the threads on the page in view — pinned to its
+ * frames or to the canvas itself: replies fold under their root, resolved
+ * roots read as resolved, and the rail badge counts only the open ones.
  */
 
 const frame = (id: string, pageId?: string) => ({
@@ -34,6 +34,11 @@ function comment(id: string, frameId: string, at: number, extra: Partial<Element
   return { id, canvasId: 'c', frameId, selector: 'h1', snippet: '', from: 'Ada', text: id, at, ...extra }
 }
 
+/* a comment pinned to a point on the canvas: a page and world coordinates, no frame */
+function canvasComment(id: string, pageId: string, at: number, extra: Partial<ElementComment> = {}): ElementComment {
+  return { id, canvasId: 'c', pageId, x: 10, y: 20, selector: '', snippet: '', from: 'Ada', text: id, at, ...extra }
+}
+
 /* the store keeps comments newest first */
 const comments: ElementComment[] = [
   comment('reply-late', 'hero', 50, { parentId: 'root-a' }),
@@ -49,7 +54,7 @@ describe('pageThreads', () => {
     const threads = pageThreads(comments, canvas, 'p1')
     const a = threads.find((t) => t.root.id === 'root-a')
     expect(a?.replies.map((r) => r.id)).toEqual(['reply-early', 'reply-late'])
-    expect(a?.frame.name).toBe('hero')
+    expect(a?.frame?.name).toBe('hero')
     expect(threads.some((t) => t.root.id === 'orphan')).toBe(false)
   })
 
@@ -86,5 +91,30 @@ describe('openThreadCount', () => {
     expect(openThreadCount(comments, canvas, 'p1')).toBe(1)
     expect(openThreadCount(comments, canvas, 'p2')).toBe(1)
     expect(openThreadCount([], canvas, 'p1')).toBe(0)
+  })
+})
+
+describe('comments pinned to the canvas', () => {
+  const mixed: ElementComment[] = [
+    canvasComment('pin-reply', 'p2', 70, { parentId: 'pin-b' }),
+    canvasComment('pin-b', 'p2', 60),
+    canvasComment('pin-a', 'p1', 45),
+    ...comments,
+  ]
+
+  it('lists them on their page without a frame, replies folded under the root', () => {
+    const p1 = pageThreads(mixed, canvas, 'p1')
+    expect(p1.map((t) => t.root.id)).toEqual(['root-a', 'pin-a', 'root-b'])
+    expect(p1.find((t) => t.root.id === 'pin-a')?.frame).toBeUndefined()
+    const p2 = pageThreads(mixed, canvas, 'p2')
+    expect(p2.map((t) => t.root.id)).toEqual(['pin-b', 'root-c'])
+    expect(p2[0]?.replies.map((r) => r.id)).toEqual(['pin-reply'])
+    expect(p2[0]?.lastAt).toBe(70)
+  })
+
+  it('counts them in the open badge', () => {
+    expect(openThreadCount(mixed, canvas, 'p1')).toBe(2)
+    expect(openThreadCount(mixed, canvas, 'p2')).toBe(2)
+    expect(openThreadCount([canvasComment('done', 'p1', 1, { resolvedAt: 2 })], canvas, 'p1')).toBe(0)
   })
 })

@@ -5,19 +5,21 @@ import { api } from '../lib/api'
 import { posthog } from '../lib/posthog'
 import { timeAgo } from '../lib/time'
 import { isComposingEnter } from '../lib/keys'
+import { isCanvasComment } from '../../shared/comments'
 import { pageThreads, threadState, type CommentThreadGroup, type ThreadState } from '../lib/comments'
 import { cn } from '@/lib/utils'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { PanelBody } from './ui/panel'
+import { PinIcon } from './ui/icons'
 import { isResidentLimit } from './TeamAllowance'
 
 const emptyNote = 'px-4 py-6 text-center text-[13px] text-ink-faint'
 
-/** Every comment thread pinned to a frame on the current page, open ones
- *  first. Clicking a thread flies to its frame and opens the pin; replying
- *  and resolving work from here too, so a review pass never has to hunt
- *  pins across the canvas. */
+/** Every comment thread on the current page — pinned to a frame or to the
+ *  canvas itself — open ones first. Clicking a thread flies to its pin and
+ *  opens it; replying and resolving work from here too, so a review pass
+ *  never has to hunt pins across the canvas. */
 export function CommentsPanel() {
   const comments = useStore((s) => s.comments)
   const canvas = useStore((s) => s.canvas)
@@ -85,12 +87,18 @@ function ThreadRow({ thread }: { thread: CommentThreadGroup }) {
   const [sending, setSending] = useState(false)
   const [failed, setFailed] = useState(false)
 
-  /* fly to the frame and pop the thread's pin — the pin shows the whole
-     conversation, this row is the index entry */
+  /* fly to the pin (its frame, or its point on the canvas) and pop it — the
+     pin shows the whole conversation, this row is the index entry */
   const goToThread = () => {
     const s = useStore.getState()
-    s.select(frame.id)
-    s.requestFlyTo(frame.id)
+    if (frame) {
+      s.select(frame.id)
+      s.requestFlyTo(frame.id)
+    } else if (isCanvasComment(root)) {
+      s.select(null)
+      s.setActivePage(root.pageId)
+      s.requestFlyToPoint(root.x, root.y)
+    }
     if (!resolved) s.requestOpenThread(root.id)
   }
 
@@ -123,7 +131,7 @@ function ThreadRow({ thread }: { thread: CommentThreadGroup }) {
       <div
         role="button"
         tabIndex={0}
-        title={`Go to “${frame.name}”`}
+        title={frame ? `Go to “${frame.name}”` : 'Go to the pin on the canvas'}
         onClick={goToThread}
         onKeyDown={(e) => {
           if (e.target !== e.currentTarget) return
@@ -150,9 +158,15 @@ function ThreadRow({ thread }: { thread: CommentThreadGroup }) {
         </div>
         <div className="mt-1 break-words text-[13px] leading-[1.45] text-ink">{root.text}</div>
         <div className="mt-1 flex items-center gap-2 text-[11px] text-ink-faint">
-          <span className="min-w-0 truncate" title={frame.name}>
-            ▢ {frame.name}
-          </span>
+          {frame ? (
+            <span className="min-w-0 truncate" title={frame.name}>
+              ▢ {frame.name}
+            </span>
+          ) : (
+            <span className="inline-flex min-w-0 items-center gap-0.5 truncate" title="Pinned to the canvas">
+              <PinIcon className="size-3" /> Canvas
+            </span>
+          )}
           <span className="flex-none">
             · {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
           </span>

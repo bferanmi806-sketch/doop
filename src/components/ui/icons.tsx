@@ -12,6 +12,7 @@ import {
   Bell,
   ChatBubble,
   ChatLines,
+  MapPin,
   Building,
   CreditCard,
   Lock,
@@ -96,6 +97,7 @@ export const ChatIcon = icon(ChatBubble)
 export const CursorIcon = icon(CursorPointer)
 export const HandIcon = icon(DragHandGesture)
 export const CommentIcon = icon(ChatLines)
+export const PinIcon = icon(MapPin)
 export const SparkIcon = icon(SparkSolid)
 export const SearchIcon = icon(Search)
 export const PlusIcon = icon(Plus)

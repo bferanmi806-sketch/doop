@@ -408,17 +408,28 @@ export interface TaskFeedback {
   failureReason?: string
 }
 
-/** A comment pinned to a specific element inside a frame. Comments that
- *  mention @Doop are routed to the resident agent; others are notes for
- *  the humans in the room. */
+/** A comment pinned to a specific element inside a frame, or to a point on
+ *  the canvas itself. Comments that mention @Doop are routed to the resident
+ *  agent; others are notes for the humans in the room.
+ *
+ *  Two anchors: an element comment carries `frameId` + `selector` + `snippet`;
+ *  a canvas comment carries `pageId` + `x` + `y` (world coordinates) and no
+ *  `frameId`, with `selector` and `snippet` empty. `isCanvasComment` in
+ *  shared/comments.ts tells them apart. */
 export interface ElementComment {
   id: string
   canvasId: string
-  frameId: string
-  /** CSS selector of the anchored element, resolved at comment time */
+  /** the frame the element lives in; absent on a canvas comment */
+  frameId?: string
+  /** CSS selector of the anchored element, resolved at comment time ('' on a canvas comment) */
   selector: string
-  /** outerHTML excerpt of the element, for agent context and dead-anchor display */
+  /** outerHTML excerpt of the element, for agent context and dead-anchor display ('' on a canvas comment) */
   snippet: string
+  /** canvas comment: the page it sits on … */
+  pageId?: string
+  /** … and its world point on that page */
+  x?: number
+  y?: number
   from: string
   /** account id of the human who left it — decides which model credential runs it */
   fromUserId?: string

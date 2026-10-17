@@ -362,9 +362,14 @@ export const comments = pgTable(
   {
     id: text('id').primaryKey(),
     canvasId: text('canvas_id').notNull(),
-    frameId: text('frame_id').notNull(),
+    /* element comment: the frame + selector + snippet; canvas comment: no
+       frame, a page and a world point instead (selector/snippet empty) */
+    frameId: text('frame_id'),
     selector: text('selector').notNull(),
     snippet: text('snippet').notNull(),
+    pageId: text('page_id'),
+    x: doublePrecision('x'),
+    y: doublePrecision('y'),
     fromName: text('from_name').notNull(),
     fromUserId: text('from_user_id'),
     text: text('text').notNull(),

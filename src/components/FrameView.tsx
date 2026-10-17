@@ -1,6 +1,5 @@
 import { memo, useEffect, useRef, useState } from 'react'
 import type { ElementComment, Frame } from '../../shared/types'
-import { colorFor } from '../../shared/types'
 import { useStore } from '../lib/store'
 import { currentPageCanvas } from '../lib/pages'
 import { registerFrameWindow, unregisterFrameWindow } from '../lib/frameBridge'
@@ -16,18 +15,17 @@ import { resolvePointerAction } from '../lib/tools'
 import { FrameContextMenu } from './FrameContextMenu'
 import { CodePanel } from './CodePanel'
 import { ContextMenu, ContextMenuTrigger } from './ui/context-menu'
-import { AGENT_ROLES, DEFAULT_ROLE_ID, mentionedRole, roleName } from '../../shared/agents'
+import { DEFAULT_ROLE_ID } from '../../shared/agents'
 import { posthog } from '../lib/posthog'
 import { isResidentLimit } from './TeamAllowance'
+import { CommentComposer, CommentPin, CommentThread } from './CommentPopovers'
 import { cn } from '@/lib/utils'
 import { Button } from './ui/button'
-import { Textarea } from './ui/textarea'
 import { Tooltip } from './ui/tooltip'
 import { EyeClosedIcon, GithubIcon, LockIcon, SyncIcon } from './ui/icons'
 import { isSyncedFrame } from '../lib/sync'
 import { isGithubFrame, isGithubPlaceholder } from '../lib/github'
 import { AgentIcon } from './AgentIcon'
-import { RoleMark } from './RoleMark'
 
 /** ?comment=<rootId> — the link in a comment email. The thread opens once
  *  Stage has selected the linked frame (deselection closes popovers, and on
@@ -42,11 +40,10 @@ function deepLinkedThread(): string | null {
    far out, so a pin or label never dwarfs the frame it sits on). Preserve
    these expressions exactly. */
 const COUNTER_SCALE = '[transform:scale(min(calc(1/var(--zoom,1)),2.4))]'
-/* The comment UI (pins, the element toolbar, the composer, an open thread)
-   is not capped: it is screen UI the user reads and types in, so it keeps
+/* The element toolbar and the composer are not capped, like the rest of the
+   comment UI (CommentPopovers): screen UI the user reads and types in keeps
    its size at every zoom, the way Figma's comment pins do. */
 const POPOVER_SCALE = '[transform:scale(calc(1/var(--zoom,1)))_translateY(calc(-100%_-_8px))]'
-const PIN_SCALE = '[transform:translate(-50%,-50%)_scale(calc(1/var(--zoom,1)))]'
 
 /* the inverse of COUNTER_SCALE: a box this wide, once counter-scaled, spans
    exactly the frame's width on screen */
@@ -794,10 +791,10 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
             className={cn(
               'absolute inset-0 overflow-hidden rounded-[6px] border border-line bg-white',
               /* Select keeps the arrow, like Figma: the frame is a thing to
-                 point at, not a handle. The Comment tool targets an element,
-                 so it shows a crosshair; the Hand tool's grab comes from the
-                 Stage, which overrides every cursor under it. */
-              tool === 'comment' ? 'cursor-crosshair' : 'cursor-default',
+                 point at, not a handle. The Hand tool's grab and the Comment
+                 tool's bubble come from the Stage, which overrides every
+                 cursor under it. */
+              'cursor-default',
               dragging ? 'shadow-pop' : 'shadow-card',
               selected && 'outline-2 outline-offset-1 outline-brand',
               editing && 'cursor-text outline-2 outline-offset-1 outline-dashed outline-brand',
@@ -896,76 +893,60 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
 
           {/* element comments: pins + element toolbar + composer, all in frame
           coords. The toolbar anchors to the probed element normally, and to
-          the actively edited element in edit mode. */}
+          the actively edited element in edit mode. `data-comment-ui`: the
+          Comment tool's cursor is forced over the whole stage except inside
+          the comment UI, which keeps its own cursors. */}
           {(() => {
             const anchor = editing ? activeHit : probe
             return (
-              <div className="pointer-events-none absolute inset-0">
+              <div data-comment-ui className="pointer-events-none absolute inset-0">
                 {comments.map((c) => {
                   const pos = pinPos[c.id]
                   if (!pos) return null
                   const open = openThread === c.id
                   const replies = frameComments.filter((r) => r.parentId === c.id).reverse() // store is newest-first
-                  const thread = [c, ...replies.sort((a, b) => a.at - b.at)]
-                  /* the pin reflects the newest agent request in the thread */
-                  const agentItem = [...thread].reverse().find((x) => x.forAgent && !x.resolvedAt)
-                  const working = agentItem?.claimedBy && !agentItem.failedAt
+                  const thread: [ElementComment, ...ElementComment[]] = [c, ...replies.sort((a, b) => a.at - b.at)]
                   return (
-                    <div
+                    <CommentPin
                       key={c.id}
-                      className={cn(
-                        'pointer-events-auto absolute z-[4] grid h-[26px] w-[26px] cursor-pointer place-items-center rounded-[50%_50%_50%_4px] border-2 border-white text-[13px] text-white animate-[chip-in_0.25s_ease]',
-                        PIN_SCALE,
-                        agentItem?.failedAt
-                          ? 'bg-accent-ink! font-extrabold shadow-[0_0_0_3px_rgba(208,52,31,0.2),var(--shadow-card)]'
-                          : 'shadow-card',
-                        working &&
-                          "after:absolute after:-inset-1.5 after:rounded-[inherit] after:border-2 after:border-current after:opacity-50 after:content-[''] after:[animation:stream-pulse_1.1s_ease-in-out_infinite]",
-                      )}
-                      style={{
-                        left: Math.min(Math.max(pos.x, 10), frame.width - 10),
-                        top: Math.min(Math.max(pos.y, 10), frame.height - 10),
-                        background: colorFor(c.from),
-                      }}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={() => {
+                      thread={thread}
+                      open={open}
+                      left={Math.min(Math.max(pos.x, 10), frame.width - 10)}
+                      top={Math.min(Math.max(pos.y, 10), frame.height - 10)}
+                      onToggle={() => {
                         setProbe(null)
                         setComposing(false)
                         setOpenThread(open ? null : c.id)
                       }}
-                      title={`${c.from}: ${c.text}${thread.length > 1 ? ` (${thread.length - 1} replies)` : ''}`}
                     >
-                      {agentItem?.failedAt ? '!' : working ? '✦' : '💬'}
-                      {open && (
-                        <CommentThread
-                          thread={thread}
-                          onReply={(text) =>
-                            api
-                              .replyComment(c.id, text)
-                              .then(() => posthog.capture('element_comment_replied'))
-                              .catch((err) => {
-                                /* the wall explains a hit limit; anything else
-                                   surfaces in the thread so the draft survives */
-                                if (isResidentLimit(err)) useStore.getState().setLimitWall(true)
-                                throw err
-                              })
-                          }
-                          onResolve={() => {
-                            api
-                              .resolveComment(c.id)
-                              .then(() => posthog.capture('element_comment_resolved'))
-                              .catch(console.error)
-                            setOpenThread(null)
-                          }}
-                          onRetry={(id) =>
-                            api.retryComment(id).catch((err) => {
+                      <CommentThread
+                        thread={thread}
+                        onReply={(text) =>
+                          api
+                            .replyComment(c.id, text)
+                            .then(() => posthog.capture('element_comment_replied'))
+                            .catch((err) => {
+                              /* the wall explains a hit limit; anything else
+                                 surfaces in the thread so the draft survives */
                               if (isResidentLimit(err)) useStore.getState().setLimitWall(true)
-                              else console.error(err)
+                              throw err
                             })
-                          }
-                        />
-                      )}
-                    </div>
+                        }
+                        onResolve={() => {
+                          api
+                            .resolveComment(c.id)
+                            .then(() => posthog.capture('element_comment_resolved'))
+                            .catch(console.error)
+                          setOpenThread(null)
+                        }}
+                        onRetry={(id) =>
+                          api.retryComment(id).catch((err) => {
+                            if (isResidentLimit(err)) useStore.getState().setLimitWall(true)
+                            else console.error(err)
+                          })
+                        }
+                      />
+                    </CommentPin>
                   )
                 })}
 
@@ -1066,185 +1047,3 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
     </ContextMenu>
   )
 })
-
-function CommentComposer({
-  onSubmit,
-  onCancel,
-  initialText = '',
-}: {
-  onSubmit: (text: string) => void
-  onCancel: () => void
-  initialText?: string
-}) {
-  const [text, setText] = useState(initialText)
-  const taRef = useRef<HTMLTextAreaElement>(null)
-  useEffect(() => taRef.current?.focus(), [])
-  const send = () => text.trim() && onSubmit(text)
-  /* @mention a resident agent to route the comment to it; without one the
-     comment is a note for the humans in the room */
-  const mentioned = mentionedRole(text)
-  return (
-    <div className="w-[240px] rounded-[10px] border border-line bg-surface p-2 shadow-pop animate-[chip-in_0.18s_ease]">
-      <Textarea
-        ref={taRef}
-        variant="bare"
-        className="min-h-[58px] md:text-[13px]"
-        value={text}
-        placeholder="Leave a comment on this element…"
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) send()
-          if (e.key === 'Escape') onCancel()
-        }}
-      />
-      {!mentioned && (
-        <div className="mb-2 flex flex-wrap gap-1">
-          {AGENT_ROLES.map((role) => (
-            <Button
-              key={role.id}
-              variant="ghost"
-              size="pill"
-              className="border-dashed px-2 text-[11px] font-semibold text-ink-soft hover:border-brand hover:bg-transparent hover:text-brand"
-              title={`${role.name} — ${role.blurb}`}
-              onClick={() => setText((t) => (t ? t.replace(/\s*$/, ' ') : '') + `@${role.id} `)}
-            >
-              <RoleMark role={role} size={13} /> @{role.id}
-            </Button>
-          ))}
-        </div>
-      )}
-      <div className="flex items-center justify-end gap-2">
-        {mentioned && (
-          <span className="mr-auto inline-flex items-center gap-1 text-[11px] font-semibold text-brand">
-            <RoleMark role={mentioned} size={13} />
-            {mentioned.name} will pick this up
-          </span>
-        )}
-        <Button variant="solid" size="pill" className="px-3.5 py-[5px] text-xs" disabled={!text.trim()} onClick={send}>
-          Post
-        </Button>
-      </div>
-    </div>
-  )
-}
-
-/** Where an @agent request in the thread stands, or null for a human note. */
-function agentStatus(c: ElementComment): string | null {
-  const target = c.targetAgent ?? roleName(DEFAULT_ROLE_ID)
-  if (c.failedAt) return `${target} stopped`
-  if (c.resolvedAt) return c.forAgent ? `✓ ${c.resolvedBy ?? target}` : null
-  if (c.claimedBy) return `✦ ${c.claimedBy} is on it`
-  return c.forAgent ? `✦ waiting for ${target}` : null
-}
-
-function CommentThread({
-  thread,
-  onReply,
-  onResolve,
-  onRetry,
-}: {
-  /** root comment first, then its replies oldest → newest */
-  thread: ElementComment[]
-  /** rejects when the reply did not land — the draft is kept for a retry */
-  onReply: (text: string) => Promise<unknown>
-  onResolve: () => void
-  onRetry: (commentId: string) => void
-}) {
-  const [reply, setReply] = useState('')
-  const [sending, setSending] = useState(false)
-  const [failed, setFailed] = useState(false)
-  const listRef = useRef<HTMLDivElement>(null)
-  /* a long conversation opens (and grows) scrolled to its newest message */
-  useEffect(() => {
-    listRef.current?.scrollTo({ top: listRef.current.scrollHeight })
-  }, [thread.length])
-  const send = () => {
-    if (!reply.trim() || sending) return
-    const submitted = reply
-    setSending(true)
-    setFailed(false)
-    onReply(submitted)
-      /* only clear what was sent — text typed meanwhile is a new draft */
-      .then(() => setReply((current) => (current === submitted ? '' : current)))
-      .catch(() => setFailed(true))
-      .finally(() => setSending(false))
-  }
-  const mentioned = mentionedRole(reply)
-  return (
-    <div
-      className="absolute top-[calc(100%_+_8px)] left-1/2 w-[250px] -translate-x-1/2 cursor-default rounded-[10px] border border-line bg-surface p-2.5 text-left shadow-pop animate-[chip-in_0.18s_ease]"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div ref={listRef} className="-mx-1 max-h-[240px] overflow-y-auto px-1">
-        {thread.map((c, i) => {
-          const status = agentStatus(c)
-          return (
-            <div key={c.id} className={cn(i > 0 && 'mt-2 border-t border-line-soft pt-2')}>
-              <div className="flex items-center justify-between gap-2 text-[12px]">
-                <b style={{ color: colorFor(c.from) }}>{c.from}</b>
-                {status && <span className="whitespace-nowrap text-[11px] font-semibold text-brand">{status}</span>}
-              </div>
-              <div className="mt-1 break-words text-[13px] leading-[1.45] text-ink">{c.text}</div>
-              {c.failedAt ? (
-                <div className="mt-1 flex items-center gap-2 text-[11px] leading-[1.4] text-accent-ink">
-                  <span>{c.failureReason ?? 'The agent did not finish.'}</span>
-                  <Button
-                    variant="danger-solid"
-                    size="pill"
-                    className="shrink-0 px-[9px] py-[3px] text-[11px]"
-                    onClick={() => onRetry(c.id)}
-                  >
-                    ↻ Retry
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-          )
-        })}
-      </div>
-      <Textarea
-        variant="bare"
-        className="mt-2 min-h-[38px] md:text-[13px]"
-        value={reply}
-        placeholder="Reply… (@doop to ask the agent)"
-        onChange={(e) => setReply(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) send()
-        }}
-      />
-      {failed && (
-        <div className="mt-1 text-[11px] leading-[1.4] text-accent-ink">
-          That reply did not go through — it may be resolved already. Try again.
-        </div>
-      )}
-      <div className="mt-1.5 flex items-center gap-1.5">
-        <Button
-          variant="ghost"
-          size="pill"
-          className="px-2.5 text-ink-soft hover:border-ink-soft hover:bg-transparent hover:text-ink"
-          onClick={onResolve}
-        >
-          ✓ Resolve
-        </Button>
-        {mentioned && (
-          <span
-            className="ml-auto inline-flex min-w-0 items-center gap-1 truncate text-[11px] font-semibold text-brand"
-            title={`${mentioned.name} will pick this up`}
-          >
-            <RoleMark role={mentioned} size={13} />
-            <span className="truncate">{mentioned.name}</span>
-          </span>
-        )}
-        <Button
-          variant="solid"
-          size="pill"
-          className={cn('px-3 py-[4px] text-xs', !mentioned && 'ml-auto')}
-          disabled={!reply.trim() || sending}
-          onClick={send}
-        >
-          {sending ? 'Posting…' : 'Reply'}
-        </Button>
-      </div>
-    </div>
-  )
-}

@@ -4,6 +4,7 @@ import * as persist from './db/persist.ts'
 import * as thumbs from './thumbs.ts'
 import { colorFor } from '../shared/types.ts'
 import { DEFAULT_ROLE_ID, mentionedRole, normalizePipeline, roleByAgentName, roleName } from '../shared/agents.ts'
+import { isCanvasComment } from '../shared/comments.ts'
 import { decodeEscapedHtml, looksEscapedHtml, repairEscapedHtml } from './escapedHtml.ts'
 import { emitCanvasEvent } from './events.ts'
 import type {
@@ -426,9 +427,9 @@ export function retryTaskFeedback(feedbackId: string, by: string): TaskFeedback 
 }
 
 /* ------------------------------------------------------------------ */
-/* Element comments: pinned to a specific element inside a frame.      */
-/* Comments mentioning @Doop are routed to the resident agent; the     */
-/* rest are notes for the humans in the room.                          */
+/* Comments: pinned to a specific element inside a frame, or to a      */
+/* point on the canvas. Comments mentioning @Doop are routed to the    */
+/* resident agent; the rest are notes for the humans in the room.      */
 /* ------------------------------------------------------------------ */
 
 const commentLog = new Map<string, ElementComment[]>() // canvasId -> entries (newest first)
@@ -446,6 +447,10 @@ export function findComment(commentId: string): ElementComment | undefined {
   return undefined
 }
 
+/** Where a new comment sits: on an element inside a frame, or at a world
+ *  point on one page of the canvas. */
+type CommentAnchor = { frame: Frame; selector: string; snippet: string } | { pageId: string; x: number; y: number }
+
 export function addElementComment(
   frameId: string,
   input: { selector: string; snippet: string; text: string },
@@ -455,16 +460,32 @@ export function addElementComment(
   const frame = store.getFrame(frameId)
   if (!frame) return undefined
   return postComment(
-    frame,
-    { selector: String(input.selector ?? '').slice(0, 300), snippet: String(input.snippet ?? '').slice(0, 400) },
+    frame.canvasId,
+    { frame, selector: String(input.selector ?? '').slice(0, 300), snippet: String(input.snippet ?? '').slice(0, 400) },
     input.text,
     from,
     fromUserId,
   )
 }
 
-/** Reply inside a thread: the reply inherits the root comment's element so an
- *  @mention in it gives the agent the same anchor the conversation is about. */
+/** A comment pinned to a point on the canvas (world coordinates on one of
+ *  its pages) rather than to an element — a note about the layout, a gap
+ *  between frames, or a spot where something should go. */
+export function addCanvasComment(
+  canvasId: string,
+  input: { pageId: string; x: number; y: number; text: string },
+  from: string,
+  fromUserId?: string,
+): ElementComment | undefined {
+  const canvas = store.getCanvas(canvasId)
+  if (!canvas || !canvasPages(canvas).some((page) => page.id === input.pageId)) return undefined
+  if (!Number.isFinite(input.x) || !Number.isFinite(input.y)) return undefined
+  return postComment(canvasId, { pageId: input.pageId, x: input.x, y: input.y }, input.text, from, fromUserId)
+}
+
+/** Reply inside a thread: the reply inherits the root comment's anchor (its
+ *  element, or its point on the canvas) so an @mention in it gives the agent
+ *  the same anchor the conversation is about. */
 export function replyToComment(
   commentId: string,
   text: string,
@@ -474,80 +495,86 @@ export function replyToComment(
 ): ElementComment | undefined {
   const open = openThread(commentId)
   if (!open) return undefined
-  const { root, frame } = open
-  return postComment(
-    frame,
-    { selector: root.selector, snippet: root.snippet, parentId: root.id },
-    text,
-    from,
-    fromUserId,
-    kind,
-  )
+  const anchor = replyAnchor(open)
+  if (!anchor) return undefined
+  return postComment(open.root.canvasId, anchor, text, from, fromUserId, kind, open.root.id)
 }
 
-/** The root and frame a reply to this comment would land on, or undefined
- *  when the thread is resolved or its frame is gone — checked before any
- *  metering so a rejected reply never costs a resident task. */
-export function openThread(commentId: string): { root: ElementComment; frame: Frame } | undefined {
+function replyAnchor({ root, frame }: { root: ElementComment; frame?: Frame }): CommentAnchor | undefined {
+  if (frame) return { frame, selector: root.selector, snippet: root.snippet }
+  return isCanvasComment(root) ? { pageId: root.pageId, x: root.x, y: root.y } : undefined
+}
+
+/** The root a reply to this comment would land under, with its frame when
+ *  it is an element comment (a canvas comment has none), or undefined when
+ *  the thread is resolved or its frame is gone — checked before any metering
+ *  so a rejected reply never costs a resident task. */
+export function openThread(commentId: string): { root: ElementComment; frame?: Frame } | undefined {
   const parent = findComment(commentId)
   if (!parent) return undefined
   const root = parent.parentId ? findComment(parent.parentId) : parent
   if (!root || root.resolvedAt) return undefined
-  const frame = store.getFrame(root.frameId)
+  if (isCanvasComment(root)) return { root }
+  const frame = root.frameId ? store.getFrame(root.frameId) : undefined
   if (!frame) return undefined
   return { root, frame }
 }
 
 function postComment(
-  frame: Frame,
-  anchor: { selector: string; snippet: string; parentId?: string },
+  canvasId: string,
+  anchor: CommentAnchor,
   text: string,
   from: string,
   fromUserId?: string,
   kind: ActorKind = 'user',
+  parentId?: string,
 ): ElementComment | undefined {
   const clean = text.trim()
   if (!clean) return undefined
   /* @Doop, @brand, @a11y… — whichever resident agent is mentioned picks it up */
   const mentioned = mentionedRole(clean)
-  const list = commentLog.get(frame.canvasId) ?? []
+  const list = commentLog.get(canvasId) ?? []
   /* strictly increasing per canvas: thread order is reconstructed from `at`
      after a restart, so two messages must never share a timestamp */
   const at = Math.max(Date.now(), (list[0]?.at ?? 0) + 1)
+  const frame = 'frame' in anchor ? anchor.frame : undefined
   const comment: ElementComment = {
     id: nanoid(8),
-    canvasId: frame.canvasId,
-    frameId: frame.id,
-    selector: anchor.selector,
-    snippet: anchor.snippet,
+    canvasId,
+    ...('frame' in anchor
+      ? { frameId: anchor.frame.id, selector: anchor.selector, snippet: anchor.snippet }
+      : { selector: '', snippet: '', pageId: anchor.pageId, x: anchor.x, y: anchor.y }),
     from,
     ...(fromUserId ? { fromUserId } : {}),
     text: clean,
     at,
     ...(mentioned ? { forAgent: true, targetAgent: mentioned.name } : {}),
-    ...(anchor.parentId ? { parentId: anchor.parentId } : {}),
+    ...(parentId ? { parentId } : {}),
   }
   list.unshift(comment)
   if (list.length > 100) list.length = 100
-  commentLog.set(frame.canvasId, list)
+  commentLog.set(canvasId, list)
   persist.saveComment(comment)
-  broadcast(frame.canvasId, { type: 'comment', comment })
+  broadcast(canvasId, { type: 'comment', comment })
   const excerpt = clean.length > 80 ? clean.slice(0, 77) + '…' : clean
+  const where = frame ? `in “${frame.name}”` : 'on the canvas'
   logActivity(
-    frame.canvasId,
+    canvasId,
     resolveActor({ name: from, kind }),
-    anchor.parentId
-      ? `replied to a comment in “${frame.name}”: “${excerpt}”`
-      : `commented on an element in “${frame.name}”: “${excerpt}”`,
-    frame.id,
+    parentId
+      ? `replied to a comment ${where}: “${excerpt}”`
+      : frame
+        ? `commented on an element in “${frame.name}”: “${excerpt}”`
+        : `commented on the canvas: “${excerpt}”`,
+    frame?.id,
   )
   if (comment.forAgent) {
     /* @Doop mention: the resident agent picks it up instantly (no-op without
        an API key). Dynamic import: resident depends on this module. */
-    import('./resident.ts').then((r) => r.onFeedback(frame.canvasId)).catch(() => {})
+    import('./resident.ts').then((r) => r.onFeedback(canvasId)).catch(() => {})
   }
-  emitCanvasEvent(frame.canvasId, {
-    type: anchor.parentId ? 'comment.replied' : 'comment.created',
+  emitCanvasEvent(canvasId, {
+    type: parentId ? 'comment.replied' : 'comment.created',
     comment,
     frame,
     actorKind: kind,
@@ -610,7 +637,7 @@ export function retryComment(commentId: string, by: string): ElementComment | un
     delete comment.failureReason
     persist.saveComment(comment)
     broadcast(canvasId, { type: 'comment', comment })
-    logActivity(canvasId, resolveActor({ name: by, kind: 'user' }), 'retried an element comment', comment.frameId)
+    logActivity(canvasId, resolveActor({ name: by, kind: 'user' }), 'retried a comment', comment.frameId)
     import('./resident.ts').then((r) => r.onFeedback(canvasId)).catch(() => {})
     return comment
   }
@@ -642,7 +669,12 @@ export function resolveComment(commentId: string, by: string): ElementComment | 
         })
       }
     }
-    emitCanvasEvent(canvasId, { type: 'comment.resolved', comment: c, frame: store.getFrame(c.frameId), by })
+    emitCanvasEvent(canvasId, {
+      type: 'comment.resolved',
+      comment: c,
+      frame: c.frameId ? store.getFrame(c.frameId) : undefined,
+      by,
+    })
     return c
   }
   return undefined

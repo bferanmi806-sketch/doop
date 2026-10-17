@@ -19,6 +19,8 @@ export type PointerAction =
   | 'frame-drag'
   /** start a comment on the element under the pointer */
   | 'comment'
+  /** start a comment pinned to the canvas at the pointer */
+  | 'comment-canvas'
   /** nothing — the press is not ours */
   | 'none'
 
@@ -39,7 +41,10 @@ export function resolvePointerAction({ tool, target, button, pointerType, spaceH
   if (tool === 'hand' || spaceHeld) return 'pan'
   /* a finger on the background pans: touch has no space bar, and one-finger
      pan is how phones move around */
-  if (target === 'background') return pointerType === 'touch' || tool === 'comment' ? 'pan' : 'marquee'
+  if (target === 'background') {
+    if (pointerType === 'touch') return 'pan'
+    return tool === 'comment' ? 'comment-canvas' : 'marquee'
+  }
   return tool === 'comment' ? 'comment' : 'frame-drag'
 }
 

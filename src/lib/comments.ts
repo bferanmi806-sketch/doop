@@ -1,5 +1,6 @@
 import type { Canvas, ElementComment, Frame } from '../../shared/types'
 import { canvasPages, framePageId } from '../../shared/pages'
+import { isCanvasComment } from '../../shared/comments'
 import { useStore } from './store'
 
 /** One comment thread: its root pin plus the replies under it. */
@@ -7,8 +8,8 @@ export interface CommentThreadGroup {
   root: ElementComment
   /** oldest → newest */
   replies: ElementComment[]
-  /** the frame the thread is pinned to */
-  frame: Frame
+  /** the frame the thread is pinned to; absent when it is pinned to the canvas */
+  frame?: Frame
   /** when the thread last moved: the newest reply, or the root itself */
   lastAt: number
 }
@@ -19,9 +20,9 @@ export function threadState(thread: Pick<CommentThreadGroup, 'root'>): ThreadSta
   return thread.root.resolvedAt ? 'resolved' : 'open'
 }
 
-/** The threads pinned to frames on one page, newest activity first. Replies
- *  whose root is not in `comments` (the store keeps a bounded window) are
- *  dropped rather than shown as headless threads. */
+/** The threads on one page — pinned to its frames or to the canvas itself —
+ *  newest activity first. Replies whose root is not in `comments` (the store
+ *  keeps a bounded window) are dropped rather than shown as headless threads. */
 export function pageThreads(
   comments: ElementComment[],
   canvas: Pick<Canvas, 'id' | 'pages' | 'frames'> | null,
@@ -40,11 +41,16 @@ export function pageThreads(
   const threads: CommentThreadGroup[] = []
   for (const root of comments) {
     if (root.parentId) continue
-    const frame = frames.get(root.frameId)
-    if (!frame) continue
+    let frame: Frame | undefined
+    if (isCanvasComment(root)) {
+      if (root.pageId !== page) continue
+    } else {
+      frame = root.frameId ? frames.get(root.frameId) : undefined
+      if (!frame) continue
+    }
     const own = (replies.get(root.id) ?? []).sort((a, b) => a.at - b.at)
     const lastAt = own.length ? own[own.length - 1]!.at : root.at
-    threads.push({ root, replies: own, frame, lastAt })
+    threads.push({ root, replies: own, ...(frame ? { frame } : {}), lastAt })
   }
   return threads.sort((a, b) => b.lastAt - a.lastAt)
 }

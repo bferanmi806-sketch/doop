@@ -4,6 +4,10 @@ import { usePageCanvas, currentPageCanvas } from '../lib/pages'
 import { sendWs } from '../lib/ws'
 import { throttle } from '../lib/throttle'
 import { FrameView, HiddenFrameView } from './FrameView'
+import { CanvasComments, type CanvasComposeAt } from './CanvasComments'
+import { placeComposer } from '../lib/composerPlacement'
+import { isCanvasComment, type CanvasComment } from '../../shared/comments'
+import { canvasPages } from '../../shared/pages'
 import { FlowOverlay } from './FlowOverlay'
 import { GhostFrames } from './GhostFrames'
 import { Cursors } from './Cursors'
@@ -24,6 +28,21 @@ import { TOOLS, resolvePointerAction, toolForKey, type Tool } from '../lib/tools
 
 const MIN_ZOOM = 0.08
 const MAX_ZOOM = 3
+
+/* The Comment tool's cursor wins over everything under the stage — frames
+   included, like the Hand tool's grab — except inside the comment UI itself
+   (pins, composer, threads: `data-comment-ui`), which keeps its own cursors. */
+const COMMENT_CURSOR = 'cursor-comment! [&_:not([data-comment-ui]_*)]:cursor-comment!'
+/* the open side panel overlays the stage's right edge (312px incl. margin,
+   see the Toolbar below): that strip is not room for a comment composer */
+const SIDE_PANEL_WIDTH = 312
+
+/** The canvas-pinned root comment a ?comment= link names, if it is loaded. */
+function linkedCanvasComment(id: string | null): CanvasComment | null {
+  if (!id) return null
+  const c = useStore.getState().comments.find((x) => x.id === id)
+  return c && isCanvasComment(c) && !c.parentId ? c : null
+}
 
 /* zoom to an absolute level pivoting on the view center — the world point in
    the middle of the stage stays in the middle */
@@ -79,6 +98,9 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
   const [panning, setPanning] = useState(false)
   /* the selection rectangle being dragged out, in world coordinates */
   const [marquee, setMarquee] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
+  /* where the Comment tool was clicked on empty canvas: the composer opens there */
+  const [composeAt, setComposeAt] = useState<CanvasComposeAt | null>(null)
+  const dismissCompose = useCallback(() => setComposeAt(null), [])
   /* where the background menu opened, so Paste drops the frame there */
   const bgAt = useRef({ x: 0, y: 0 })
   /* iframe oversampling factor — bumped only once the zoom settles */
@@ -272,6 +294,21 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
     [setViewport, select],
   )
 
+  /* centre a canvas comment's pin at 100% on its page and open its thread
+     (the link in a comment email) */
+  const focusPoint = useCallback(
+    (c: CanvasComment) => {
+      const el = ref.current
+      if (!el) return
+      const s = useStore.getState()
+      focusedPage.current = c.pageId
+      s.setActivePage(c.pageId)
+      setViewport({ x: el.clientWidth / 2 - c.x, y: el.clientHeight / 2 - c.y, zoom: 1 })
+      s.requestOpenThread(c.id)
+    },
+    [setViewport],
+  )
+
   /* fit a set of frames (with their name labels above) into the view; an
      empty set resets to the origin at 100% */
   const fitFrames = useCallback(
@@ -321,18 +358,36 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
     focusedPage.current = null
   }, [activePageId])
 
-  /* zoom-to-fit once the canvas arrives — unless the URL deep-links a frame */
+  /* zoom-to-fit once the canvas arrives — unless the URL deep-links a frame,
+     a comment pinned to the canvas, or a page */
   useEffect(() => {
     if (!canvas || fitted.current) return
     fitted.current = true
     if (useStore.getState().following) return
-    const focusId = deepLinkHandled.current ? null : new URLSearchParams(location.search).get('frame')
+    const params = deepLinkHandled.current ? null : new URLSearchParams(location.search)
+    const focusId = params?.get('frame')
     const target = focusId ? useStore.getState().canvas?.frames.find((f) => f.id === focusId) : null
     if (target) {
       deepLinkHandled.current = true
       focusFrame(target)
-    } else fit()
-  }, [canvas, activePageId, fit, focusFrame])
+      return
+    }
+    const pinned = params ? linkedCanvasComment(params.get('comment')) : null
+    if (pinned) {
+      deepLinkHandled.current = true
+      focusPoint(pinned)
+      return
+    }
+    const page = params?.get('page')
+    const whole = useStore.getState().canvas
+    if (page && whole && page !== activePageId && canvasPages(whole).some((p) => p.id === page)) {
+      /* the page switch re-runs this effect, which then fits that page */
+      deepLinkHandled.current = true
+      useStore.getState().setActivePage(page)
+      return
+    }
+    fit()
+  }, [canvas, activePageId, fit, focusFrame, focusPoint])
 
   /* wheel: pan / pinch-zoom — needs a non-passive listener. Trackpads fire
      wheel events faster than the display refreshes, so deltas accumulate and
@@ -573,6 +628,26 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
        (Hand, space held) — anything but a pan on it is the frame's own business */
     if (action === 'pan') return startPan(e, isBackground)
     if (action === 'marquee') startMarquee(e)
+    if (action === 'comment-canvas') startCanvasComment(e)
+  }
+
+  /* the Comment tool on empty canvas: a click (not a drag) opens the composer
+     at that point; the pin lands there when the comment is posted. Any
+     composer already open was closed by the press (CanvasComments). */
+  function startCanvasComment(e: React.PointerEvent) {
+    const origin = { x: e.clientX, y: e.clientY }
+    const point = toWorld(e.clientX, e.clientY)
+    /* the composer hangs beside the pin on whichever side keeps it on the
+       visible stage (the side panel overlays the stage's right edge) */
+    const rect = e.currentTarget.getBoundingClientRect()
+    const placement = placeComposer(e.clientX, rect.left, rect.right - (sidePanelOpen ? SIDE_PANEL_WIDTH : 0))
+    function onUp(ev: PointerEvent) {
+      window.removeEventListener('pointerup', onUp)
+      if (Math.abs(ev.clientX - origin.x) + Math.abs(ev.clientY - origin.y) > 3) return
+      select(null)
+      setComposeAt({ x: point.x, y: point.y, placement, at: Date.now() })
+    }
+    window.addEventListener('pointerup', onUp)
   }
 
   function startPan(e: React.PointerEvent, isBackground: boolean) {
@@ -669,7 +744,9 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
                 ? 'cursor-grabbing! [&_*]:cursor-grabbing!'
                 : panMode || tool === 'hand'
                   ? 'cursor-grab! [&_*]:cursor-grab!'
-                  : 'cursor-default',
+                  : tool === 'comment'
+                    ? COMMENT_CURSOR
+                    : 'cursor-default',
             )}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
@@ -704,6 +781,7 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
               <GhostFrames />
               <FlowOverlay />
               <SnapGuides />
+              <CanvasComments composeAt={composeAt} onComposeDone={dismissCompose} />
               <Cursors />
               {marquee && (
                 <div

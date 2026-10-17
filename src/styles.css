@@ -213,6 +213,16 @@
 @utility corner-squircle {
   corner-shape: superellipse(1.4);
 }
+/* The Comment tool's cursor: a speech bubble with a +, its hotspot on the
+   bubble's tail. Ink fill with a paper outline so it reads on both the light
+   and the dark canvas, like a native cursor; crosshair when a browser cannot
+   show image cursors. */
+@utility cursor-comment {
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M4 3.5h16a2.5 2.5 0 0 1 2.5 2.5v9a2.5 2.5 0 0 1-2.5 2.5H9.5L4 22v-4.5A2.5 2.5 0 0 1 1.5 15V6A2.5 2.5 0 0 1 4 3.5z' fill='%2317171b' stroke='%23fff' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M12 7.5v6M9 10.5h6' stroke='%23fff' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E")
+      4 22,
+    crosshair;
+}
 
 @layer base {
   * {

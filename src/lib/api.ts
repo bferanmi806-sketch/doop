@@ -476,6 +476,9 @@ export const api = {
     req(`/api/canvases/${canvasId}/cards/${cardId}/retry`, { method: 'POST' }),
   addComment: (frameId: string, input: { selector: string; snippet: string; text: string }) =>
     req(`/api/frames/${frameId}/comments`, { method: 'POST', body: JSON.stringify(input) }),
+  /** a comment pinned to a point on the canvas (world coordinates on a page) rather than to an element */
+  addCanvasComment: (canvasId: string, input: { pageId: string; x: number; y: number; text: string }) =>
+    req(`/api/canvases/${canvasId}/comments`, { method: 'POST', body: JSON.stringify(input) }),
   replyComment: (commentId: string, text: string) =>
     req(`/api/comments/${commentId}/replies`, { method: 'POST', body: JSON.stringify({ text }) }),
   resolveComment: (commentId: string) => req(`/api/comments/${commentId}/resolve`, { method: 'POST' }),

@@ -4,8 +4,9 @@ import { resolvePointerAction, toolForKey, type PointerContext } from '../src/li
 /**
  * The bottom toolbar's tools decide what a pointer-down means. Select is the
  * canvas as it always was; Hand pans wherever the press lands; Comment turns
- * a press on a frame into a comment on the element under it. The space bar
- * is a temporary Hand in every tool.
+ * a press on a frame into a comment on the element under it and a press on
+ * empty canvas into a comment pinned to that point. The space bar is a
+ * temporary Hand in every tool.
  */
 
 const mouse = (over: Partial<PointerContext>): PointerContext => ({
@@ -28,9 +29,12 @@ describe('resolvePointerAction', () => {
     expect(resolvePointerAction(mouse({ tool: 'hand', target: 'frame' }))).toBe('pan')
   })
 
-  it('Comment: a press on a frame starts a comment; the background pans', () => {
+  it('Comment: a press on a frame starts an element comment, one on the background a canvas comment', () => {
     expect(resolvePointerAction(mouse({ tool: 'comment', target: 'frame' }))).toBe('comment')
-    expect(resolvePointerAction(mouse({ tool: 'comment', target: 'background' }))).toBe('pan')
+    expect(resolvePointerAction(mouse({ tool: 'comment', target: 'background' }))).toBe('comment-canvas')
+    expect(resolvePointerAction(mouse({ tool: 'comment', target: 'background', pointerType: 'pen' }))).toBe(
+      'comment-canvas',
+    )
   })
 
   it('space held is a temporary Hand in every tool', () => {
@@ -50,6 +54,8 @@ describe('resolvePointerAction', () => {
   it('a finger on the background pans (phones have no space bar), on a frame it drags', () => {
     expect(resolvePointerAction(mouse({ pointerType: 'touch', target: 'background' }))).toBe('pan')
     expect(resolvePointerAction(mouse({ pointerType: 'touch', target: 'frame' }))).toBe('frame-drag')
+    /* the Comment tool keeps one-finger pan too: a canvas comment is a click */
+    expect(resolvePointerAction(mouse({ tool: 'comment', pointerType: 'touch', target: 'background' }))).toBe('pan')
   })
 })
 
