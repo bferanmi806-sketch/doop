@@ -16,8 +16,11 @@ import { gesture } from '../lib/gesture'
 import { hasFrameClip, pasteFrameAtScreen } from '../lib/frameClipboard'
 import { MenuHint } from './ui/menu'
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from './ui/context-menu'
-import { Toolbar, ToolbarButton } from './ui/toolbar'
+import { Toolbar, ToolbarButton, ToolbarDivider } from './ui/toolbar'
 import { ZoomControls } from './ZoomControls'
+import { Tooltip } from './ui/tooltip'
+import { CommentIcon, CursorIcon, HandIcon } from './ui/icons'
+import { TOOLS, resolvePointerAction, toolForKey, type Tool } from '../lib/tools'
 
 const MIN_ZOOM = 0.08
 const MAX_ZOOM = 3
@@ -35,6 +38,12 @@ function zoomCentered(el: HTMLElement, next: number) {
     y: cy - (cy - vp.y) * scale,
     zoom,
   })
+}
+
+const TOOL_ICONS: Record<Tool, React.ReactNode> = {
+  select: <CursorIcon />,
+  hand: <HandIcon />,
+  comment: <CommentIcon />,
 }
 
 const sendCursor = throttle((x: number, y: number) => sendWs({ type: 'cursor', x, y }), 50)
@@ -63,8 +72,10 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
   const activePageId = useStore((s) => s.activePageId)
   const select = useStore((s) => s.select)
   const panMode = useStore((s) => s.panMode)
-  /* ⌘. — the frame toolbar and the zoom pill go with the rest of the chrome */
+  /* ⌘. — the tool pill and the zoom pill go with the rest of the chrome */
   const uiHidden = useStore((s) => s.uiHidden)
+  const tool = useStore((s) => s.tool)
+  const setTool = useStore((s) => s.setTool)
   const [panning, setPanning] = useState(false)
   /* the selection rectangle being dragged out, in world coordinates */
   const [marquee, setMarquee] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
@@ -517,16 +528,47 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
     }
   }, [])
 
+  /* V / H / C pick a tool, F adds a frame, Esc returns to Select — bare keys
+     only (no modifiers), and never while typing in a field. Esc is the one
+     exception: it must work from inside the comment composer too, so a single
+     press both drops the draft and returns to Select. */
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || e.repeat) return
+      if (e.key === 'Escape') {
+        if (useStore.getState().tool !== 'select') useStore.getState().setTool('select')
+        return
+      }
+      const t = e.target as HTMLElement
+      if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable) return
+      if (e.key === 'f') {
+        e.preventDefault()
+        onAddFrame()
+        return
+      }
+      const next = toolForKey(e.key)
+      if (!next) return
+      e.preventDefault()
+      useStore.getState().setTool(next)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onAddFrame])
+
   function onPointerDown(e: React.PointerEvent) {
     const isBackground = e.target === e.currentTarget || (e.target as HTMLElement).classList.contains('world')
-    /* pan: middle mouse anywhere, space-drag anywhere, or a finger on the
-       background (touch has no space bar, and one-finger pan is how phones
-       move around) */
-    const pan = e.button === 1 || (e.button === 0 && (useStore.getState().panMode || e.pointerType === 'touch'))
-    if (pan) return startPan(e, isBackground)
-    /* left drag on the background draws a selection marquee */
-    if (e.button !== 0 || !isBackground) return
-    startMarquee(e)
+    const s = useStore.getState()
+    const action = resolvePointerAction({
+      tool: s.tool,
+      target: isBackground ? 'background' : 'frame',
+      button: e.button,
+      pointerType: e.pointerType,
+      spaceHeld: s.panMode,
+    })
+    /* a press on a frame only reaches the stage when the frame let it through
+       (Hand, space held) — anything but a pan on it is the frame's own business */
+    if (action === 'pan') return startPan(e, isBackground)
+    if (action === 'marquee') startMarquee(e)
   }
 
   function startPan(e: React.PointerEvent, isBackground: boolean) {
@@ -619,7 +661,7 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
               'stage absolute inset-0 touch-none',
               panning
                 ? 'cursor-grabbing! [&_*]:cursor-grabbing!'
-                : panMode
+                : panMode || tool === 'hand'
                   ? 'cursor-grab! [&_*]:cursor-grab!'
                   : 'cursor-default',
             )}
@@ -678,7 +720,22 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
             uiHidden && 'hidden',
           )}
         >
-          <ToolbarButton onClick={onAddFrame}>+ Frame</ToolbarButton>
+          {TOOLS.map((t) => (
+            <Tooltip key={t.id} label={`${t.label} (${t.key})`}>
+              <ToolbarButton
+                aria-label={t.label}
+                aria-pressed={tool === t.id}
+                className="px-2 aria-pressed:bg-ink aria-pressed:text-paper aria-pressed:hover:bg-ink sm:px-2"
+                onClick={() => setTool(t.id)}
+              >
+                {TOOL_ICONS[t.id]}
+              </ToolbarButton>
+            </Tooltip>
+          ))}
+          <ToolbarDivider />
+          <Tooltip label="New frame (F)">
+            <ToolbarButton onClick={onAddFrame}>+ Frame</ToolbarButton>
+          </Tooltip>
         </Toolbar>
 
         <ZoomControls

@@ -19,6 +19,7 @@
       import { createRoot } from 'react-dom/client'
       import { Stage } from '/src/components/Stage.tsx'
       import { useStore } from '/src/lib/store.ts'
+      import { TooltipProvider } from '/src/components/ui/tooltip.tsx'
       import '/src/styles.css'
       window.seedPages = (canvas) => useStore.getState().setCanvas(canvas)
       window.pageState = () => ({
@@ -26,7 +27,10 @@
         viewport: useStore.getState().viewport,
         selectedId: useStore.getState().selectedId,
       })
-      createRoot(document.getElementById('root')).render(React.createElement(Stage, { onAddFrame: () => {} }))
+      /* mounted as main.tsx mounts it: the toolbar's tooltips need the provider */
+      createRoot(document.getElementById('root')).render(
+        React.createElement(TooltipProvider, null, React.createElement(Stage, { onAddFrame: () => {} })),
+      )
     </script>
   </body>
 </html>

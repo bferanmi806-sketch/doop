@@ -12,6 +12,7 @@ import { FRAME_BOOTSTRAP } from '../lib/frameRuntime'
 import { recordCreate, recordUpdate, recordUpdates, trackSave } from '../lib/history'
 import { snapFrame } from '../lib/snap'
 import { gesture } from '../lib/gesture'
+import { resolvePointerAction } from '../lib/tools'
 import { FrameContextMenu } from './FrameContextMenu'
 import { CodePanel } from './CodePanel'
 import { ContextMenu, ContextMenuTrigger } from './ui/context-menu'
@@ -138,6 +139,9 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
   /* space held: the shield stays up even in edit mode, so the press reaches
      the Stage and pans instead of vanishing into the editable iframe */
   const panMode = useStore((s) => s.panMode)
+  /* the canvas tool: Hand lets presses fall through to the Stage, Comment
+     turns a click on the surface into a comment on the element under it */
+  const tool = useStore((s) => s.tool)
   const select = useStore((s) => s.select)
   const flash = useStore((s) => s.flashes[frame.id])
   const stream = useStore((s) => s.streams[frame.id])
@@ -172,9 +176,27 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
   }
 
   function startDrag(e: React.PointerEvent, mode: 'move' | 'resize', probeOnClick = false, panelOnClick = false) {
-    if (e.button !== 0) return
-    /* space held: let the event reach the Stage, which pans */
-    if (useStore.getState().panMode) return
+    const s = useStore.getState()
+    const action = resolvePointerAction({
+      tool: s.tool,
+      target: 'frame',
+      button: e.button,
+      pointerType: e.pointerType,
+      spaceHeld: s.panMode,
+    })
+    /* a pan (Hand, space held, middle button): let the event reach the
+       Stage, which pans */
+    if (action === 'pan') return
+    if (action === 'comment') {
+      /* the Comment tool: no drag — the frame is selected and a click on its
+         surface opens the composer on the element under the pointer */
+      e.stopPropagation()
+      e.preventDefault()
+      if (!s.selectedIds.includes(frame.id)) select(frame.id)
+      if (probeOnClick) probeAt(e.nativeEvent.offsetX, e.nativeEvent.offsetY, 'comment')
+      return
+    }
+    if (action !== 'frame-drag') return
     e.stopPropagation()
     e.preventDefault()
     /* ⌥⇧-drag duplicates: the moment the drag is real, leave a copy of the
@@ -351,6 +373,9 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
   const [pinPos, setPinPos] = useState<Record<string, { x: number; y: number } | null>>({})
   const probeReq = useRef(0)
   const probeTimer = useRef<number | null>(null)
+  /* what the pending probe is for: the element toolbar, or (Comment tool) a
+     composer opened straight away on the hit */
+  const probeIntent = useRef<'toolbar' | 'comment'>('toolbar')
   const activeSelRef = useRef<string | null>(null)
 
   /* ---- hover inspection (paper.design-style element outlines) ---- */
@@ -397,15 +422,20 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
   }
 
   /* delayed slightly so the second click of a double-click (→ edit mode)
-     cancels it instead of flashing the toolbar */
-  function probeAt(x: number, y: number) {
+     cancels it instead of flashing the toolbar; a comment click has no
+     double-click to wait out, so it probes at once */
+  function probeAt(x: number, y: number, intent: 'toolbar' | 'comment' = 'toolbar') {
     if (!frame.html || editing) return
     closePopovers()
-    probeTimer.current = window.setTimeout(() => {
-      probeTimer.current = null
-      probeReq.current += 1
-      iframeRef.current?.contentWindow?.postMessage({ type: 'doop:probe', reqId: probeReq.current, x, y }, '*')
-    }, 250)
+    probeIntent.current = intent
+    probeTimer.current = window.setTimeout(
+      () => {
+        probeTimer.current = null
+        probeReq.current += 1
+        iframeRef.current?.contentWindow?.postMessage({ type: 'doop:probe', reqId: probeReq.current, x, y }, '*')
+      },
+      intent === 'comment' ? 0 : 250,
+    )
   }
 
   /* keep comment pins glued to their elements: re-locate whenever the frame's
@@ -465,7 +495,10 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
   useEffect(() => {
     const cur = useStore.getState().selectedElement
     if (probeSel) {
-      useStore.getState().pickElement({ frameId: frame.id, selector: probeSel })
+      const el = { frameId: frame.id, selector: probeSel }
+      /* the Comment tool outlines the element without sliding its properties panel in */
+      if (useStore.getState().tool === 'comment') useStore.getState().setSelectedElement(el)
+      else useStore.getState().pickElement(el)
     } else if (cur?.frameId === frame.id) {
       useStore.getState().pickElement(null)
     }
@@ -496,7 +529,14 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
     function onMsg(ev: MessageEvent) {
       if (ev.source !== iframeRef.current?.contentWindow) return
       if (ev.data?.type === 'doop:probe-result' && ev.data.reqId === probeReq.current) {
-        setProbe(ev.data.hit ?? null)
+        const hit = (ev.data.hit ?? null) as ProbeHit | null
+        setProbe(hit)
+        /* the Comment tool skips the element toolbar: the composer opens on
+           the hit, the same one the toolbar's own Comment button opens */
+        if (hit && probeIntent.current === 'comment') {
+          setComposePrefill('')
+          setComposing(true)
+        }
       }
       if (ev.data?.type === 'doop:select-result' && ev.data.reqId === selectReq.current) {
         /* the answer is only acted on while the asked-for element is still
@@ -580,6 +620,15 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
     setSuspendPost(true)
     window.setTimeout(() => setSuspendPost(false), 500)
   }
+
+  /* switching to Hand or Comment ends a text-edit session: both put the
+     shield back over the document, and a comment click has to probe the
+     frame, which an open edit blocks. The iframe is told to leave edit mode
+     too, so this is a sync with it rather than a state reset. */
+  useEffect(() => {
+    // eslint-disable-next-line react/set-state-in-effect -- exitEdit syncs the iframe's edit mode
+    if (editing && tool !== 'select') exitEdit()
+  }, [tool]) // eslint-disable-line react-hooks/exhaustive-deps
 
   /* serialized edits stream out of the iframe; save through the human path */
   useEffect(() => {
@@ -719,7 +768,9 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
 
           <div
             className={cn(
-              'absolute inset-0 cursor-grab overflow-hidden rounded-[6px] border border-line bg-white',
+              'absolute inset-0 overflow-hidden rounded-[6px] border border-line bg-white',
+              /* the Comment tool targets an element, so it shows a crosshair */
+              tool === 'comment' ? 'cursor-crosshair' : 'cursor-grab',
               dragging ? 'shadow-pop' : 'shadow-card',
               selected && 'outline-2 outline-offset-1 outline-brand',
               editing && 'cursor-text outline-2 outline-offset-1 outline-dashed outline-brand',
@@ -731,9 +782,10 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
             )}
             style={duping || (dupKeyHeld && !editing) ? { cursor: DUP_CURSOR } : undefined}
             onPointerDown={(e) => startDrag(e, 'move', true)}
-            onDoubleClick={() => canEdit && !editing && enterEdit()}
+            onDoubleClick={() => canEdit && !editing && tool === 'select' && enterEdit()}
             onPointerMove={(e) => {
-              if (editing || dragging || !frame.html || !runtimeReady) return
+              /* the Hand only pans: no element outlines under it */
+              if (editing || dragging || !frame.html || !runtimeReady || tool === 'hand') return
               /* screen px → design px: the frame lives inside the zoomed stage */
               const r = e.currentTarget.getBoundingClientRect()
               const zoom = useStore.getState().viewport.zoom
@@ -762,7 +814,7 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
             )}
             {/* shield keeps pointer events on the canvas, not the iframe;
             lifted while editing so clicks land in the editable document */}
-            {(!editing || panMode) && <div className="absolute inset-0" />}
+            {(!editing || panMode || tool !== 'select') && <div className="absolute inset-0" />}
             {hover && !editing && !dragging && (
               <div
                 className="pointer-events-none absolute z-[3] bg-[rgba(60,130,246,0.06)] shadow-[inset_0_0_0_calc(1.5px/var(--zoom,1))_#3c82f6]"

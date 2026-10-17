@@ -20,6 +20,8 @@ import {
   Brain,
   Compass,
   Computer,
+  CursorPointer,
+  DragHandGesture,
   Download,
   Eye,
   EyeClosed,
@@ -90,6 +92,9 @@ export const ImportIcon = icon(Import)
 export const PulseIcon = icon(Activity)
 export const BellIcon = icon(Bell)
 export const ChatIcon = icon(ChatBubble)
+/* the canvas tools */
+export const CursorIcon = icon(CursorPointer)
+export const HandIcon = icon(DragHandGesture)
 export const CommentIcon = icon(ChatLines)
 export const SparkIcon = icon(SparkSolid)
 export const SearchIcon = icon(Search)

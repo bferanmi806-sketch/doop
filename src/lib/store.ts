@@ -15,6 +15,7 @@ import type {
   TaskFeedback,
 } from '../../shared/types'
 import type { SnapGuide } from './snap'
+import type { Tool } from './tools'
 
 export interface Viewport {
   x: number
@@ -48,6 +49,8 @@ interface State {
   /** the primary selection (the last frame added) — what the Inspector,
    *  presence, and the flow overlay follow */
   selectedId: string | null
+  /** the active canvas tool (bottom toolbar): Select, Hand or Comment */
+  tool: Tool
   /** space bar held: the stage pans on drag instead of drawing a marquee */
   panMode: boolean
   /** the Inspector panel is showing — opened by clicking a frame's name, not
@@ -160,6 +163,7 @@ interface State {
   toggleSelect(id: string): void
   /** marquee: replace the selection with these frames */
   selectMany(ids: string[]): void
+  setTool(tool: Tool): void
   setPanMode(v: boolean): void
   setInspectorOpen(v: boolean): void
   openCtxMenu(menu: { frameId: string; deferPanel: boolean }): void
@@ -209,6 +213,7 @@ export const useStore = create<State>((set, get) => ({
   following: null,
   selectedIds: [],
   selectedId: null,
+  tool: 'select',
   panMode: false,
   inspectorOpen: false,
   ctxMenu: null,
@@ -491,6 +496,7 @@ export const useStore = create<State>((set, get) => ({
         : { selectedIds: ids, selectedId, inspectorOpen: false, selectedElement: null, elementPanelOpen: false }
     })
   },
+  setTool: (tool) => set({ tool }),
   setPanMode: (panMode) => set({ panMode }),
   setInspectorOpen: (inspectorOpen) => set({ inspectorOpen }),
   openCtxMenu: (ctxMenu) => set({ ctxMenu }),
