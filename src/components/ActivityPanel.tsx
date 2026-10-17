@@ -14,6 +14,7 @@ import { Input } from './ui/input'
 import { Dot } from './ui/dot'
 import { isResidentLimit } from './TeamAllowance'
 import { CommentsPanel } from './CommentsPanel'
+import { PromptBar } from './PromptBar'
 import { taskFrameId } from '../lib/taskFrame'
 import { useOpenThreadCount } from '../lib/comments'
 
@@ -36,9 +37,11 @@ function duration(t: AgentTask): string {
 }
 
 export function ActivityPanel({
+  canvasId,
   onClose,
   surface = 'floating',
 }: {
+  canvasId: string
   onClose: () => void
   /* 'inline' when the panel is filling a mobile Sheet rather than floating */
   surface?: 'floating' | 'inline'
@@ -93,8 +96,11 @@ export function ActivityPanel({
             </Button>
           </Tooltip>
         </PanelHeader>
+        {/* the Agents tab is a column: what the agents are doing scrolls above,
+            the prompt composer is docked underneath */}
         <PanelTabPanel value="tasks">
           <TaskList />
+          <PromptBar canvasId={canvasId} />
         </PanelTabPanel>
         <PanelTabPanel value="comments">
           <CommentsPanel />
@@ -134,7 +140,8 @@ function TaskList() {
     return (
       <PanelBody className="py-2">
         <div className={emptyNote}>
-          No tasks yet. Agents announce what they're working on here — the history sticks around after they finish.
+          No tasks yet. Ask the Doop Agent below, or connect your own — what agents work on shows up here, and the
+          history sticks around after they finish.
         </div>
       </PanelBody>
     )

@@ -10,7 +10,7 @@ export function WorkingNow() {
   return (
     <div
       className={cn(
-        'pointer-events-none absolute bottom-4 left-4 z-30 flex max-w-[min(420px,60vw)] flex-col gap-1.5 max-md:right-2 max-md:bottom-[calc(132px+env(safe-area-inset-bottom))] max-md:left-2 max-md:max-w-none',
+        'pointer-events-none absolute bottom-4 left-4 z-30 flex max-w-[min(420px,60vw)] flex-col gap-1.5 max-md:right-2 max-md:bottom-[calc(66px+env(safe-area-inset-bottom))] max-md:left-2 max-md:max-w-none',
         /* clear of the 300px Layers rail at left: 12px */
         layersOpen && 'md:left-[324px]',
       )}

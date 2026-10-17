@@ -40,7 +40,7 @@ function save(p: Progress) {
   localStorage.setItem(LS_KEY, JSON.stringify(p))
 }
 
-export function Onboarding({ canvasId }: { canvasId: string }) {
+export function Onboarding({ canvasId, panelOpen = false }: { canvasId: string; panelOpen?: boolean }) {
   const isMobile = useIsMobile()
   const tasks = useStore((s) => s.tasks)
   const presences = useStore((s) => s.presences)
@@ -171,7 +171,14 @@ export function Onboarding({ canvasId }: { canvasId: string }) {
   }
 
   return (
-    <div className="absolute right-4 bottom-4 z-40 md:right-[72px] flex w-[300px] flex-col gap-2.5 rounded-[12px] border border-line bg-surface px-4 pt-3.5 pb-4 shadow-pop">
+    <div
+      className={cn(
+        'absolute right-4 bottom-4 z-40 flex w-[300px] flex-col gap-2.5 rounded-[12px] border border-line bg-surface px-4 pt-3.5 pb-4 shadow-pop md:right-[72px]',
+        /* clear of the open 300px side panel at right: 12px — its Agents tab
+           ends in the composer this checklist must not cover */
+        panelOpen && 'md:right-[324px]',
+      )}
+    >
       <header className="flex items-center justify-between">
         <span className="font-display text-[14px] font-semibold tracking-[-0.01em]">Getting started</span>
         <Button variant="bare" size="icon-sm" className="text-xs" onClick={dismiss} title="Dismiss">

@@ -25,6 +25,14 @@ export interface Viewport {
 
 export type PanelTab = 'tasks' | 'comments' | 'activity' | 'memory'
 
+/** A send from the Agents tab composer: in flight, or how the last one
+ *  ended. Lives in the store because the composer unmounts with its tab and
+ *  a failure must still be there when the tab comes back. */
+export type ComposerSend =
+  | { canvasId: string; status: 'busy' }
+  | { canvasId: string; status: 'sent'; at: number }
+  | { canvasId: string; status: 'error'; message: string; at: number }
+
 interface State {
   canvas: Canvas | null
   presences: Record<string, Presence>
@@ -103,6 +111,14 @@ interface State {
   /** a request for the frame holding this comment thread to open its pin —
    *  the Comments panel raises it; the FrameView that owns the root consumes it */
   threadRequest: { id: string; at: number } | null
+  /** when the "Design it" composer in the Agents tab was last asked to take
+   *  focus (⌘K) — a timestamp, so a composer that mounts long after an old
+   *  request does not grab the keyboard */
+  composerFocusAt: number
+  /** the composer's unsent text per canvas — collapsing the panel or
+   *  switching tabs unmounts the field and must not eat the draft */
+  composerDrafts: Record<string, string>
+  composerSend: ComposerSend | null
   /** clientId of the peer whose camera this one is tracking (Figma-style
    *  follow); any camera move of our own lets go */
   following: string | null
@@ -158,6 +174,11 @@ interface State {
   requestOpenThread(commentId: string): void
   /** the owning frame has opened the thread */
   clearThreadRequest(): void
+  /** put the keyboard in the Agents tab's composer (the page opens the panel
+   *  on that tab first) */
+  requestComposerFocus(): void
+  setComposerDraft(canvasId: string, text: string): void
+  setComposerSend(send: ComposerSend | null): void
   select(id: string | null): void
   /** ⇧-click: add the frame to the selection, or drop it if already in */
   toggleSelect(id: string): void
@@ -210,6 +231,9 @@ export const useStore = create<State>((set, get) => ({
   allowanceVersion: 0,
   flyTo: null,
   threadRequest: null,
+  composerFocusAt: 0,
+  composerDrafts: {},
+  composerSend: null,
   following: null,
   selectedIds: [],
   selectedId: null,
@@ -463,6 +487,16 @@ export const useStore = create<State>((set, get) => ({
   requestFlyToPoint: (x, y) => set({ flyTo: { point: { x, y }, at: Date.now() } }),
   requestOpenThread: (id) => set({ threadRequest: { id, at: Date.now() } }),
   clearThreadRequest: () => set({ threadRequest: null }),
+  requestComposerFocus: () => set({ composerFocusAt: Date.now() }),
+  setComposerDraft: (canvasId, text) =>
+    set((s) => ({
+      composerDrafts: { ...s.composerDrafts, [canvasId]: text },
+      /* a failure stays up until the draft is touched again: it is not on a
+         timer, so a send that failed while another tab was open is still
+         there when this one comes back */
+      composerSend: s.composerSend?.status === 'error' ? null : s.composerSend,
+    })),
+  setComposerSend: (composerSend) => set({ composerSend }),
   /* selecting a different frame (or deselecting) closes the Inspector — the
      panel must not follow surface clicks, paste, or undo onto another frame.
      Re-selecting the same frame keeps an open panel open. */

@@ -32,7 +32,7 @@ export function SideRail({ onOpen }: { onOpen: () => void }) {
       </RailControl>
       <span aria-hidden className="my-0.5 h-px w-6 bg-line-soft" />
       <RailControl
-        label={working ? `Agents · ${working} working` : 'Agents'}
+        label={working ? `Agents · ${working} working` : 'Agents · ⌘K to ask the Doop Agent'}
         className={cn(working > 0 && 'bg-brand/6 text-brand')}
         onClick={() => show('tasks')}
       >

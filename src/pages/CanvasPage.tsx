@@ -24,7 +24,6 @@ import { ElementPanel } from '../components/ElementPanel'
 import { ActivityPanel } from '../components/ActivityPanel'
 import { ConnectModal } from '../components/ConnectModal'
 import { LimitWall, isResidentLimit } from '../components/TeamAllowance'
-import { PromptBar } from '../components/PromptBar'
 import { WorkingNow } from '../components/WorkingNow'
 import { SideRail } from '../components/SideRail'
 import { LayersPanel, LayersRailToggle } from '../components/LayersPanel'
@@ -169,6 +168,18 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
   /* frame keyboard shortcuts: delete, copy/paste/duplicate, undo/redo */
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      /* ⌘K from anywhere, fields included: open the side panel on the Agents
+         tab and put the keyboard in its "Design it" composer. Asking for the
+         composer ends ⌘. hide-UI — a field under `hidden` cannot take focus. */
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setView('canvas')
+        setShowActivity(true)
+        if (useStore.getState().uiHidden) useStore.getState().toggleUiHidden()
+        useStore.getState().setPanelTab('tasks')
+        useStore.getState().requestComposerFocus()
+        return
+      }
       const t = e.target as HTMLElement
       if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable) return
       const selectedIds = useStore.getState().selectedIds
@@ -509,8 +520,7 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
                 )}
               </div>
               <WorkingNow />
-              <PromptBar canvasId={canvasId} />
-              <Onboarding canvasId={canvasId} />
+              <Onboarding canvasId={canvasId} panelOpen={showActivity} />
               {!isMobile && (layersOpen ? <LayersPanel onAddFrame={addFrame} /> : <LayersRailToggle />)}
               {!isMobile && selectedFrame && panelElement && !deferPanel && (
                 <ElementPanel
@@ -524,7 +534,9 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
                 <Inspector frame={selectedFrame} className={propertiesPanelCls} />
               )}
               {!isMobile && !showActivity && <SideRail onOpen={() => setShowActivity(true)} />}
-              {!isMobile && showActivity && <ActivityPanel onClose={() => setShowActivity(false)} />}
+              {!isMobile && showActivity && (
+                <ActivityPanel canvasId={canvasId} onClose={() => setShowActivity(false)} />
+              )}
             </div>
           </>
         )}
@@ -610,7 +622,7 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
               className="max-h-[calc(100svh-56px)] gap-0 rounded-t-2xl border-line bg-surface p-0 shadow-pop data-[side=bottom]:h-[min(78svh,680px)]"
             >
               <SheetTitle className="sr-only">Canvas activity</SheetTitle>
-              <ActivityPanel onClose={() => setShowActivity(false)} surface="inline" />
+              <ActivityPanel canvasId={canvasId} onClose={() => setShowActivity(false)} surface="inline" />
             </SheetContent>
           </Sheet>
         </>
