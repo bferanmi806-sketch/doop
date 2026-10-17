@@ -26,6 +26,25 @@ export interface Frame {
   locked?: boolean
 }
 
+/** One entry of a frame's design history: the HTML (and size) the frame had
+ *  before a later burst of edits replaced it. The listing omits the HTML. */
+export interface FrameVersionInfo {
+  id: string
+  frameId: string
+  canvasId: string
+  width: number
+  height: number
+  /** who authored that state, and when it was last written */
+  savedBy: string
+  savedByKind?: ActorKind
+  savedAt: number
+  htmlBytes: number
+}
+
+export interface FrameVersion extends FrameVersionInfo {
+  html: string
+}
+
 export interface CanvasMeta {
   id: string
   name: string

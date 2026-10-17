@@ -1004,6 +1004,102 @@ export function retryCard(canvasId: string, cardId: string, by: string): AgentTa
 }
 
 /* ------------------------------------------------------------------ */
+/* Design history: a frame's HTML history is kept per BURST of edits,  */
+/* not per write — a stream's chunks, an agent's tweak right after its  */
+/* redesign, a human typing in the Inspector are each one burst. What  */
+/* gets snapshotted is the state a burst starts from (where the burst  */
+/* before it ended), so an agent's one-shot replace or stream can never */
+/* leave itself as the only copy of a design. A full replace always    */
+/* opens a burst; a small tweak joins the open one when the same actor */
+/* made it within BURST_IDLE_MS.                                        */
+/* ------------------------------------------------------------------ */
+
+interface Burst {
+  actor: Actor
+  /** when this actor last wrote the frame's HTML */
+  lastAt: number
+}
+
+const bursts = new Map<string, Burst>() // frameId -> the burst open on it
+const BURST_IDLE_MS = 2 * 60_000
+
+type PriorState = Pick<Frame, 'id' | 'canvasId' | 'html' | 'width' | 'height' | 'updatedAt' | 'updatedBy'>
+
+/** The store mutates frames in place, so what a write replaces has to be
+ *  captured before the write. */
+function priorState(f: Frame): PriorState {
+  const { id, canvasId, html, width, height, updatedAt, updatedBy } = f
+  return { id, canvasId, html, width, height, updatedAt, updatedBy }
+}
+
+/** Record that `actor` has just replaced the frame's HTML. `tweak` marks a
+ *  small edit that may join the open burst; anything else starts a new one
+ *  and files the state it replaced as a version. */
+function noteHtmlChange(prior: PriorState, actor: Actor, tweak: boolean) {
+  const open = bursts.get(prior.id)
+  const now = Date.now()
+  const joins =
+    tweak &&
+    open !== undefined &&
+    open.actor.name === actor.name &&
+    open.actor.kind === actor.kind &&
+    now - open.lastAt < BURST_IDLE_MS
+  bursts.set(prior.id, { actor, lastAt: now })
+  if (joins || !prior.html) return
+  /* the open burst wrote this state; without one (first write since boot)
+     the frame's own stamp is the best attribution there is, even though a
+     move or rename since may have refreshed it */
+  persist.saveFrameVersion({
+    id: nanoid(10),
+    frameId: prior.id,
+    canvasId: prior.canvasId,
+    html: prior.html,
+    width: prior.width,
+    height: prior.height,
+    savedAt: open?.lastAt ?? prior.updatedAt,
+    savedBy: open?.actor.name ?? prior.updatedBy,
+    savedByKind: open?.actor.kind,
+    htmlBytes: prior.html.length,
+  })
+}
+
+export type RestoredFrame = {
+  frame: Frame
+  /** the complete state the restore replaced — a client mid-reveal only
+   *  holds a partial copy, so this is what its undo must put back */
+  replaced: Pick<Frame, 'html' | 'width' | 'height'>
+}
+
+/** Put a frame back to one of its recorded versions (HTML and size; the name
+ *  and position stay). null = no such version on this frame. The state being
+ *  replaced is filed as a version first, so a restore is itself reversible. */
+export async function restoreFrameVersion(
+  frameId: string,
+  versionId: string,
+  actor: Actor,
+): Promise<RestoredFrame | null | undefined> {
+  const version = await persist.getFrameVersion(frameId, versionId)
+  if (!version) return null
+  const before = store.getFrame(frameId)
+  if (!before) return undefined
+  const replaced = { html: before.html, width: before.width, height: before.height }
+  if (before.html === version.html && before.width === version.width && before.height === version.height)
+    return { frame: before, replaced }
+  /* whoever restores takes over: any live stream or playback ends */
+  finishStream(frameId, false)
+  finishReveal(frameId)
+  const prior = priorState(before)
+  const patch = { html: version.html, width: version.width, height: version.height }
+  const frame = store.updateFrame(frameId, patch, actor.name)
+  if (!frame) return undefined
+  noteHtmlChange(prior, actor, false)
+  broadcast(frame.canvasId, { type: 'frame:updated', frame, actor })
+  logActivity(frame.canvasId, actor, `restored “${frame.name}” to an earlier version by ${version.savedBy}`, frame.id)
+  touch(frame.canvasId, actor, frame.id)
+  return { frame, replaced }
+}
+
+/* ------------------------------------------------------------------ */
 /* Live rendering of agent writes.                                     */
 /*                                                                     */
 /* Streams (append_frame_html): every chunk broadcasts the moment it   */
@@ -1066,6 +1162,18 @@ function commonPrefixLen(a: string, b: string): number {
   let i = 0
   while (i < n && a[i] === b[i]) i++
   return i
+}
+
+/** Where two documents diverge, and how much they share at the start plus
+ *  the end. An edit in one spot (a find/replace, typing in one element)
+ *  leaves nearly everything shared however early in the document it sits;
+ *  only a rewrite scores low. */
+function sharedSpan(a: string, b: string): { prefix: number; shared: number } {
+  const prefix = commonPrefixLen(a, b)
+  const room = Math.min(a.length, b.length) - prefix
+  let suffix = 0
+  while (suffix < room && a[a.length - 1 - suffix] === b[b.length - 1 - suffix]) suffix++
+  return { prefix, shared: prefix + suffix }
 }
 
 function startReveal(frame: Frame, actor: Actor, shown: number) {
@@ -1139,7 +1247,10 @@ export function appendFrameHtml(
   const escaped = starting ? looksEscapedHtml(chunk) : (streams.get(frameId)?.escaped ?? false)
   const piece = escaped ? decodeEscapedHtml(chunk) : chunk
   const html = opts.start ? piece : before.html + piece
+  const prior = priorState(before)
   const frame = store.updateFrame(frameId, { html }, actor.name)!
+  /* the opening chunk replaces the design; every later one extends this burst */
+  noteHtmlChange(prior, actor, !starting)
 
   if (starting) {
     finishReveal(frameId) /* a live stream overrides any one-shot playback in flight */
@@ -1204,6 +1315,7 @@ export function createFrame(
   if (input.html !== undefined) input = { ...input, html: repairEscapedHtml(input.html) }
   const frame = store.createFrame(canvasId, input, actor.name)
   if (!frame) return undefined
+  bursts.set(frame.id, { actor, lastAt: frame.createdAt })
   if (actor.kind === 'agent' && frame.html.length > 0) {
     /* agent one-shot creation still plays back as a reveal */
     broadcast(canvasId, { type: 'frame:created', frame: { ...frame, html: '' }, actor })
@@ -1218,10 +1330,15 @@ export function createFrame(
   return frame
 }
 
+/** `replace` marks a deliberate whole-document write (set_frame_html): it
+ *  always opens a history burst, even when the new document keeps most of
+ *  the old one's wrapper — only the reveal-or-morph choice stays similarity
+ *  based. Without it a write is judged by how much it changed. */
 export function updateFrame(
   frameId: string,
   patch: Partial<Pick<Frame, 'name' | 'pageId' | 'x' | 'y' | 'width' | 'height' | 'html' | 'hidden' | 'locked'>>,
   actor: Actor,
+  opts: { replace?: boolean } = {},
 ): Frame | undefined {
   const before = store.getFrame(frameId)
   if (!before) return undefined
@@ -1230,16 +1347,19 @@ export function updateFrame(
   const prevHtml = before.html
   const prevHidden = !!before.hidden
   const prevLocked = !!before.locked
+  const prior = priorState(before)
   const frame = store.updateFrame(frameId, patch, actor.name)
   if (!frame) return undefined
 
   const htmlChanged = patch.html !== undefined && patch.html !== prevHtml
+  const { prefix, shared } = htmlChanged ? sharedSpan(prevHtml, frame.html) : { prefix: 0, shared: 0 }
+  /* mostly-unchanged replace (small tweak): the client morphs the live DOM
+     in place, so a reveal would only add churn — and the design history
+     files one version per burst of tweaks, not one per keystroke */
+  const smallTweak = htmlChanged && shared >= frame.html.length * 0.5 && shared >= prevHtml.length * 0.5
+  if (htmlChanged) noteHtmlChange(prior, actor, smallTweak && !opts.replace)
   if (htmlChanged && actor.kind === 'agent') {
     finishStream(frameId, false) /* a full replace ends an open append stream */
-    const prefix = commonPrefixLen(prevHtml, frame.html)
-    /* mostly-unchanged replace (small tweak): broadcast at once — the client
-       morphs the live DOM in place, so a reveal would only add churn */
-    const smallTweak = prefix >= frame.html.length * 0.5 && prefix >= prevHtml.length * 0.5
     const openReveal = reveals.get(frameId)
     if (openReveal) {
       /* new content mid-playback: rewind to the divergence and re-arm the deadline */
@@ -1287,6 +1407,7 @@ export function deleteFrame(frameId: string, actor: Actor): Frame | undefined {
   finishReveal(frameId)
   const frame = store.deleteFrame(frameId)
   if (!frame) return undefined
+  bursts.delete(frameId)
   thumbs.purge(frameId)
   broadcast(frame.canvasId, { type: 'frame:deleted', frameId, actor })
   logActivity(frame.canvasId, actor, `deleted frame “${frame.name}”`, frame.id)
@@ -1298,7 +1419,10 @@ export function deleteFrame(frameId: string, actor: Actor): Frame | undefined {
 export function deleteCanvas(canvasId: string): boolean {
   const c = store.deleteCanvas(canvasId)
   if (!c) return false
-  for (const f of c.frames) thumbs.purge(f.id)
+  for (const f of c.frames) {
+    thumbs.purge(f.id)
+    bursts.delete(f.id)
+  }
   broadcast(canvasId, { type: 'canvas:deleted' })
   taskLog.delete(canvasId)
   feedbackLog.delete(canvasId)

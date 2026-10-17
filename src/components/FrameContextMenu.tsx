@@ -9,6 +9,7 @@ import { MOD_KEY } from '../lib/keys'
 import { ContextMenuContent, ContextMenuItem, ContextMenuSeparator } from './ui/context-menu'
 import { MenuHint } from './ui/menu'
 import { FrameExportModal } from './FrameExportModal'
+import { FrameHistoryModal } from './FrameHistoryModal'
 
 async function copyImageUrl(frame: Frame) {
   const notify = useStore.getState().pushNotice
@@ -24,6 +25,7 @@ async function copyImageUrl(frame: Frame) {
  *  point the right-click happened at — Paste lands there. */
 export function FrameContextMenu({ frame, at }: { frame: Frame; at: MutableRefObject<{ x: number; y: number }> }) {
   const [showExport, setShowExport] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   /* a right-click inside a multi-selection acts on the whole group */
   const groupSize = useStore((s) => (s.selectedIds.includes(frame.id) ? s.selectedIds.length : 1))
   /* Hide/Show reads as one item: the group shows when every frame in it is hidden */
@@ -52,7 +54,7 @@ export function FrameContextMenu({ frame, at }: { frame: Frame; at: MutableRefOb
       <ContextMenuContent
         onCloseAutoFocus={(event) => {
           // The export dialog owns focus once the menu closes.
-          if (showExport) event.preventDefault()
+          if (showExport || historyOpen) event.preventDefault()
         }}
       >
         <ContextMenuItem onSelect={() => copyFrames(groupFrames())}>
@@ -82,6 +84,7 @@ export function FrameContextMenu({ frame, at }: { frame: Frame; at: MutableRefOb
         </ContextMenuItem>
         <ContextMenuItem onSelect={() => void copyImageUrl(frame)}>Copy image URL</ContextMenuItem>
         <ContextMenuItem onSelect={() => setShowExport(true)}>Export…</ContextMenuItem>
+        <ContextMenuItem onSelect={() => setHistoryOpen(true)}>Version history…</ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem onSelect={() => setFramesLocked(groupFrames(), !allLocked)}>
           {allLocked ? 'Unlock' : 'Lock'}
@@ -95,6 +98,7 @@ export function FrameContextMenu({ frame, at }: { frame: Frame; at: MutableRefOb
         </ContextMenuItem>
       </ContextMenuContent>
       {showExport && <FrameExportModal frame={frame} onClose={() => setShowExport(false)} />}
+      {historyOpen && <FrameHistoryModal frame={frame} onClose={() => setHistoryOpen(false)} />}
     </>
   )
 }

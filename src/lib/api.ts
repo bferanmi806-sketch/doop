@@ -10,6 +10,8 @@ import type {
   CommunityCategory,
   CommunityItem,
   Frame,
+  FrameVersion,
+  FrameVersionInfo,
   WorkspaceDetail,
   WorkspaceInvite,
   WorkspaceMember,
@@ -413,6 +415,19 @@ export const api = {
     req<Frame>('/api/frames/' + frameId, { method: 'PATCH', body: JSON.stringify({ ...patch, actor: actor() }) }),
   deleteFrame: (frameId: string) =>
     req('/api/frames/' + frameId, { method: 'DELETE', body: JSON.stringify({ actor: actor() }) }),
+  /* design history: the states earlier edits replaced, newest first (no HTML) */
+  frameVersions: (frameId: string) => req<FrameVersionInfo[]>(`/api/frames/${frameId}/versions`),
+  frameVersion: (frameId: string, versionId: string) =>
+    req<FrameVersion>(`/api/frames/${frameId}/versions/${versionId}`),
+  /* `replaced` is the complete state the server swapped out — the undo copy */
+  restoreFrameVersion: (frameId: string, versionId: string) =>
+    req<{ frame: Frame; replaced: Pick<Frame, 'html' | 'width' | 'height'> }>(
+      `/api/frames/${frameId}/versions/${versionId}/restore`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ actor: actor() }),
+      },
+    ),
   sendTaskFeedback: (taskId: string, text: string) =>
     req(`/api/tasks/${taskId}/feedback`, { method: 'POST', body: JSON.stringify({ text, from: getIdentity().name }) }),
   importPage: (canvasId: string, url: string) =>

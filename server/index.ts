@@ -1575,6 +1575,30 @@ app.delete('/api/frames/:id', (req, res) => {
   res.json({ ok: true })
 })
 
+/* design history: the states a frame had before later edits replaced them,
+   newest first and without HTML; one version in full; restore (same
+   permission model as editing — anyone with access to the canvas) */
+app.get('/api/frames/:id/versions', async (req, res) => {
+  if (!requireFrame(req, res, req.params.id)) return
+  res.json(await persist.listFrameVersions(req.params.id))
+})
+
+app.get('/api/frames/:id/versions/:versionId', async (req, res) => {
+  if (!requireFrame(req, res, req.params.id)) return
+  const version = await persist.getFrameVersion(req.params.id, req.params.versionId)
+  if (!version) return res.status(404).json({ error: 'version not found' })
+  res.json(version)
+})
+
+app.post('/api/frames/:id/versions/:versionId/restore', async (req, res) => {
+  if (!requireFrame(req, res, req.params.id)) return
+  const actor = actions.resolveActor({ name: req.user!.name, kind: 'user' })
+  const restored = await actions.restoreFrameVersion(req.params.id, req.params.versionId, actor)
+  if (restored === null) return res.status(404).json({ error: 'version not found' })
+  if (!restored) return res.status(404).json({ error: 'frame not found' })
+  res.json(restored)
+})
+
 app.post('/api/frames/:id/comments', async (req, res) => {
   if (!requireFrame(req, res, req.params.id)) return
   const { selector, snippet, text } = req.body ?? {}

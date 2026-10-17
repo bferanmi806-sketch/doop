@@ -218,6 +218,13 @@
       "when": 1792196134568,
       "tag": "0031_frame_locked",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1792196538603,
+      "tag": "0032_frame_versions",
+      "breakpoints": true
     }
   ]
 }

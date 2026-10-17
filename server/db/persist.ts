@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { nanoid } from 'nanoid'
-import { and, desc, eq, inArray } from 'drizzle-orm'
+import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { db } from './index.ts'
 import * as t from './schema.ts'
 import { extractAssetIds } from '../assets.ts'
@@ -9,12 +9,15 @@ import { roleByAgentName } from '../../shared/agents.ts'
 import { isCommunityCategory } from '../../shared/types.ts'
 import type {
   ActivityItem,
+  ActorKind,
   AgentTask,
   CardScope,
   Canvas,
   DesignDecision,
   ElementComment,
   Frame,
+  FrameVersion,
+  FrameVersionInfo,
   GuidelineDoc,
   MemoryProposal,
   MemoryReference,
@@ -348,6 +351,134 @@ async function writeFrame(f: Frame) {
   await syncAssetRefs(f.id, f.html)
 }
 
+/* Frame design history: one row per burst boundary (see actions.ts), newest
+   kept to MAX_FRAME_VERSIONS per frame. Appends are fire-and-forget like every
+   other write; reads happen only when someone opens the history. */
+const MAX_FRAME_VERSIONS = 50
+
+/* A version write reads the newest row before it inserts, so a frame's
+   deletion must queue behind its pending writes (and they behind each
+   other), or a late insert could put back history the delete just removed.
+   One queue per frame; deleteCanvas waits for every frame of the canvas. */
+const versionWrites = new Map<string, { canvasId: string; queued: Promise<unknown> }>()
+
+function queueVersionWrite(frameId: string, canvasId: string, work: () => Promise<unknown>) {
+  const previous = versionWrites.get(frameId)?.queued ?? Promise.resolve()
+  const queued = previous.then(work, work)
+  versionWrites.set(frameId, { canvasId, queued })
+  swallow(queued.finally(() => versionWrites.get(frameId)?.queued === queued && versionWrites.delete(frameId)))
+}
+
+export function saveFrameVersion(version: FrameVersion) {
+  queueVersionWrite(version.frameId, version.canvasId, () => appendFrameVersion(version))
+}
+
+/** Settles once every queued version write the filter picks has landed. */
+function pendingVersionWrites(pick: (frameId: string, canvasId: string) => boolean) {
+  const queued = [...versionWrites].filter(([frameId, e]) => pick(frameId, e.canvasId)).map(([, e]) => e.queued)
+  return Promise.allSettled(queued)
+}
+
+async function appendFrameVersion(version: FrameVersion) {
+  /* a burst that ended where it began (an edit typed and reverted) would
+     snapshot the same state twice — the newest row already holds it. Size
+     counts: the same document at another frame size is a state of its own */
+  const [latest] = await db
+    .select({ html: t.frameVersions.html, width: t.frameVersions.width, height: t.frameVersions.height })
+    .from(t.frameVersions)
+    .where(eq(t.frameVersions.frameId, version.frameId))
+    .orderBy(desc(t.frameVersions.savedAt))
+    .limit(1)
+  if (latest && latest.html === version.html && latest.width === version.width && latest.height === version.height)
+    return
+  await db.insert(t.frameVersions).values({
+    id: version.id,
+    frameId: version.frameId,
+    canvasId: version.canvasId,
+    html: version.html,
+    width: version.width,
+    height: version.height,
+    savedAt: version.savedAt,
+    savedBy: version.savedBy,
+    savedByKind: version.savedByKind ?? null,
+  })
+  const excess = await db
+    .select({ id: t.frameVersions.id })
+    .from(t.frameVersions)
+    .where(eq(t.frameVersions.frameId, version.frameId))
+    .orderBy(desc(t.frameVersions.savedAt))
+    .offset(MAX_FRAME_VERSIONS)
+  if (excess.length) {
+    await db.delete(t.frameVersions).where(
+      inArray(
+        t.frameVersions.id,
+        excess.map((e) => e.id),
+      ),
+    )
+  }
+}
+
+function frameVersionKind(kind: string | null): ActorKind | undefined {
+  return kind === 'user' || kind === 'agent' ? kind : undefined
+}
+
+/** Newest first, without the HTML — the list stays light however large the
+ *  designs are; `getFrameVersion` fetches one in full. */
+export async function listFrameVersions(frameId: string): Promise<FrameVersionInfo[]> {
+  /* a replace files its version behind the response; the list that follows
+     it must show it */
+  await pendingVersionWrites((id) => id === frameId)
+  const rows = await db
+    .select({
+      id: t.frameVersions.id,
+      frameId: t.frameVersions.frameId,
+      canvasId: t.frameVersions.canvasId,
+      width: t.frameVersions.width,
+      height: t.frameVersions.height,
+      savedAt: t.frameVersions.savedAt,
+      savedBy: t.frameVersions.savedBy,
+      savedByKind: t.frameVersions.savedByKind,
+      htmlBytes: sql<number>`length(${t.frameVersions.html})`,
+    })
+    .from(t.frameVersions)
+    .where(eq(t.frameVersions.frameId, frameId))
+    .orderBy(desc(t.frameVersions.savedAt))
+  return rows.map((row) => ({
+    id: row.id,
+    frameId: row.frameId,
+    canvasId: row.canvasId,
+    width: row.width,
+    height: row.height,
+    savedAt: row.savedAt,
+    savedBy: row.savedBy,
+    savedByKind: frameVersionKind(row.savedByKind),
+    htmlBytes: Number(row.htmlBytes),
+  }))
+}
+
+/** One version in full; undefined when the id is unknown OR belongs to
+ *  another frame, so a caller can never read across frames by id alone. */
+export async function getFrameVersion(frameId: string, versionId: string): Promise<FrameVersion | undefined> {
+  const [row] = await db
+    .select()
+    .from(t.frameVersions)
+    .where(and(eq(t.frameVersions.id, versionId), eq(t.frameVersions.frameId, frameId)))
+    .limit(1)
+  if (!row) return undefined
+  return {
+    id: row.id,
+    frameId: row.frameId,
+    canvasId: row.canvasId,
+    width: row.width,
+    height: row.height,
+    savedAt: row.savedAt,
+    savedBy: row.savedBy,
+    savedByKind: frameVersionKind(row.savedByKind),
+    htmlBytes: row.html.length,
+    html: row.html,
+  }
+}
+
 /* asset_refs is a projection of frame HTML: recompute this frame's full ref
    set on every durable write (never increment/decrement — nothing to drift).
    Boot reconciles the whole table, so a lost write here self-heals. */
@@ -381,6 +512,11 @@ export function deleteCanvas(canvasId: string) {
   swallow(db.delete(t.activity).where(eq(t.activity.canvasId, canvasId)))
   swallow(db.delete(t.guidelines).where(eq(t.guidelines.canvasId, canvasId)))
   swallow(db.delete(t.guidelineVersions).where(eq(t.guidelineVersions.canvasId, canvasId)))
+  swallow(
+    pendingVersionWrites((_, c) => c === canvasId).then(() =>
+      db.delete(t.frameVersions).where(eq(t.frameVersions.canvasId, canvasId)),
+    ),
+  )
   swallow(db.delete(t.memoryReferences).where(eq(t.memoryReferences.canvasId, canvasId)))
   swallow(db.delete(t.decisions).where(eq(t.decisions.canvasId, canvasId)))
   swallow(db.delete(t.memoryProposals).where(eq(t.memoryProposals.canvasId, canvasId)))
@@ -396,6 +532,9 @@ export function deleteFrame(frameId: string) {
   }
   swallow(db.delete(t.frames).where(eq(t.frames.id, frameId)))
   swallow(db.delete(t.assetRefs).where(eq(t.assetRefs.frameId, frameId)))
+  queueVersionWrite(frameId, versionWrites.get(frameId)?.canvasId ?? '', () =>
+    db.delete(t.frameVersions).where(eq(t.frameVersions.frameId, frameId)),
+  )
 }
 
 /** The frame/element a prompt card was scoped to, or nothing when the row
@@ -562,7 +701,8 @@ export function saveActivity(canvasId: string, item: ActivityItem) {
   )
 }
 
-/** Flush pending debounced frame writes (called on shutdown). */
+/** Flush pending debounced frame writes and queued version writes (called
+ *  on shutdown): a design must not survive a restart without its history. */
 export async function flush(getFrame: (id: string) => Frame | undefined): Promise<void> {
   const ids = [...frameTimers.keys()]
   for (const [, timer] of frameTimers) clearTimeout(timer)
@@ -573,6 +713,7 @@ export async function flush(getFrame: (id: string) => Frame | undefined): Promis
       return f ? writeFrame(f) : Promise.resolve()
     }),
   )
+  await pendingVersionWrites(() => true)
 }
 
 /* ------------------------------------------------------------------ */

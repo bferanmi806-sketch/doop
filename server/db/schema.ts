@@ -172,6 +172,29 @@ export const frames = pgTable(
   (t) => [index('frames_canvas_idx').on(t.canvasId)],
 )
 
+/** Frame design history: the HTML (and size) a frame had before a burst of
+ *  edits replaced it, so an agent's one-shot redesign or stream is never the
+ *  only copy left. Append-only, pruned to the newest MAX_FRAME_VERSIONS per
+ *  frame; `saved_by`/`saved_at` name who authored that state and when. Cold
+ *  path: written on each burst boundary, read only by the history UI. */
+export const frameVersions = pgTable(
+  'frame_versions',
+  {
+    id: text('id').primaryKey(),
+    frameId: text('frame_id').notNull(),
+    canvasId: text('canvas_id').notNull(),
+    html: text('html').notNull(),
+    width: doublePrecision('width').notNull(),
+    height: doublePrecision('height').notNull(),
+    savedAt: bigint('saved_at', { mode: 'number' }).notNull(),
+    savedBy: text('saved_by').notNull(),
+    /** 'user' | 'agent'; null when the author's kind was not known (a state
+     *  authored before the server last booted) */
+    savedByKind: text('saved_by_kind'),
+  },
+  (t) => [index('frame_versions_frame_idx').on(t.frameId), index('frame_versions_canvas_idx').on(t.canvasId)],
+)
+
 /** Design-sync keys: the write-only capability behind the /ingest endpoint.
  *  An app embeds the doop-sync snippet with a key's secret, and its live
  *  screens land on ONE canvas as frames — the secret grants no reads and no

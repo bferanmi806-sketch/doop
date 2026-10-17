@@ -13,6 +13,7 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Field } from './ui/field'
 import { Textarea } from './ui/textarea'
+import { FrameHistoryModal } from './FrameHistoryModal'
 
 const HTML_OPEN_KEY = 'doop:inspector-html'
 
@@ -37,6 +38,7 @@ export function Inspector({
   const [draft, setDraft] = useState(frame.html)
   const [saveState, setSaveState] = useState<'idle' | 'dirty' | 'saved'>('idle')
   const [copiedUrl, setCopiedUrl] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const [htmlCopy, setHtmlCopy] = useState<'idle' | 'copied' | 'failed'>('idle')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const saveTimer = useRef<number | null>(null)
@@ -221,16 +223,22 @@ export function Inspector({
         <span className="font-mono text-[11px] text-ink-faint">
           {saveState === 'dirty' ? 'saving…' : saveState === 'saved' ? 'saved ✓' : `last edit by ${frame.updatedBy}`}
         </span>
-        <Button
-          variant="bare-danger"
-          size="sm"
-          disabled={!!frame.locked}
-          title={frame.locked ? 'Unlock the frame to delete it' : undefined}
-          onClick={() => deleteFrameTracked(frame)}
-        >
-          Delete frame
-        </Button>
+        <span className="flex items-center gap-1">
+          <Button variant="bare" size="sm" onClick={() => setHistoryOpen(true)}>
+            History
+          </Button>
+          <Button
+            variant="bare-danger"
+            size="sm"
+            disabled={!!frame.locked}
+            title={frame.locked ? 'Unlock the frame to delete it' : undefined}
+            onClick={() => deleteFrameTracked(frame)}
+          >
+            Delete frame
+          </Button>
+        </span>
       </footer>
+      {historyOpen && <FrameHistoryModal frame={frame} onClose={() => setHistoryOpen(false)} />}
     </Panel>
   )
 }
