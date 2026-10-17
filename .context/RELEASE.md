@@ -75,6 +75,17 @@ also install it in Claude Desktop on macOS and Windows. Installation, build and 
 notes live in [`claude-extension/README.md`](../claude-extension/README.md). No directory
 submission or publication is performed by the build.
 
+## Codex desktop setup
+
+Connect AI → Codex can register Doop directly in the shared Codex config through
+`codex_add_mcp`. Browser sessions hand off to the installed app with a `doop://connect/codex`
+link; the app opens a review screen and writes only after the user clicks Add to Codex.
+The native capability marker gates older shells. Release the updated desktop binary
+and frontend together; no downloadable integration bundle is built. Codex still owns
+the separate OAuth approval. Config preservation, conflict handling and handoff checks
+are covered by Rust/frontend tests; desktop CI now runs the Rust tests on both platforms.
+See [`desktop/README.md`](../desktop/README.md#add-to-codex) for release smoke checks.
+
 ## Cursor marketplace plugin
 
 `cursor-plugin/` is a standalone Cursor plugin directory; `.cursor-plugin/marketplace.json` at

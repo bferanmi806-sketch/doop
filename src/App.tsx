@@ -7,6 +7,8 @@ import { CanvasPage } from './pages/CanvasPage'
 import { AuthPage } from './pages/AuthPage'
 import { DesktopHandoff } from './pages/DesktopHandoff'
 import { DesktopSignIn } from './pages/DesktopSignIn'
+import { DesktopCodexSetup } from './pages/DesktopCodexSetup'
+import { CODEX_SETUP_PATH } from './lib/codexConnection'
 import { OAuthConsent } from './pages/OAuthConsent'
 import { DESKTOP_HANDOFF_PATH, DESKTOP_SIGNIN_PATH } from './lib/desktopAuth'
 import { Admin } from './pages/Admin'
@@ -31,13 +33,14 @@ export function navigate(path: string) {
 }
 
 export function App() {
-  const [path, setPath] = useState(location.pathname)
+  const [route, setRoute] = useState(location.pathname + location.search)
+  const path = route.split('?')[0]!
   const { data: session, isPending } = authClient.useSession()
   const me = useMe(session?.user.id)
   const identifiedUserId = useRef<string | null>(null)
 
   useEffect(() => {
-    const onPop = () => setPath(location.pathname)
+    const onPop = () => setRoute(location.pathname + location.search)
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
@@ -140,6 +143,8 @@ export function App() {
   const canvasId = path.match(/^\/c\/([^/]+)/)?.[1]
   const page = canvasId ? (
     <CanvasPage canvasId={canvasId} key={canvasId} />
+  ) : path === CODEX_SETUP_PATH ? (
+    <DesktopCodexSetup key={route} />
   ) : path === DESKTOP_HANDOFF_PATH ? (
     <DesktopHandoff />
   ) : path === '/oauth/consent' ? (

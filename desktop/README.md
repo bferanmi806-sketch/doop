@@ -56,6 +56,43 @@ The native capability marker `__DOOP_CLAUDE_EXTENSION__` gates this flow so olde
 shells do not invoke an unknown command. Public HTTPS servers also offer a prefilled
 online connector link; local servers require a connection from the user's computer.
 
+## Add to Codex
+
+Connect AI → Codex → **Add to Codex** registers this instance's `/mcp` URL in
+`~/.codex/config.toml`. ChatGPT desktop's Codex tab and Codex CLI share this config.
+No CLI installation, command execution, or file download is needed for registration.
+Open a new Codex chat afterwards and authenticate Doop through the client's MCP settings;
+CLI users can run `codex mcp login doop`. OAuth credentials remain managed by Codex.
+
+In a browser, **Open Doop Desktop** sends `doop://connect/codex?origin=…&canvas=…`.
+Both launch-time and running-app links open the Codex setup screen. The link only
+opens that screen: the user clicks **Add to Codex** inside the app to write config.
+The requesting origin must match the desktop server (the production www alias is
+accepted), and the native command derives the MCP URL from its own webview rather
+than trusting the link. A self-hosted website therefore needs a matching desktop build.
+The originating canvas is retained for the suggested first prompt and the Done action.
+The standalone handoff screen does not show live agent arrival status because it is
+not subscribed to that canvas; the usual canvas Connect AI dialog keeps that status.
+
+The installer preserves comments and unrelated settings, keeps same-server credentials
+and tool policies, re-enables a disabled matching entry, and refuses to overwrite a
+different `doop` connection or malformed config. It writes atomically, follows existing
+config symlinks, and honors an existing absolute `CODEX_HOME` inherited by Doop Desktop.
+Terminal-only environment overrides and WSL configs may differ from the desktop process;
+use manual setup in that environment when needed. No shell environment is imported.
+
+`__DOOP_CODEX_SETUP__` gates the native command. Older shells show an update hint and
+manual commands. This requires a new desktop release as well as the hosted frontend.
+The separate ChatGPT browser setup remains manual and is labeled **Open ChatGPT setup**.
+
+Run `cargo test --locked` in `desktop/src-tauri` for config and filesystem tests.
+Frontend tests cover native success/error states, older shells, both deep-link delivery
+paths, server mismatches, and canvas context. Before releasing, smoke-test a packaged
+macOS and Windows app with a website handoff, approve Doop's OAuth in Codex, and start
+a fresh chat. WSL installation remains a manual CLI path.
+
+Reference: [OpenAI's MCP configuration docs](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
+
 ## Local Claude CLI
 
 Settings → Doop Agent includes **Claude Plan** in shells built with the

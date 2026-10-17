@@ -9,6 +9,7 @@ import { AgentIcon } from './AgentIcon'
 import { ClaudeDesktopInstall } from './ClaudeDesktopInstall'
 import { canAddToClaudeDesktop, claudeConnectorInstallUrl } from '../lib/claudeConnection'
 import { CursorInstall } from './CursorInstall'
+import { CodexInstall } from './CodexInstall'
 import { Button } from './ui/button'
 import { CodeBlock } from './ui/code-block'
 import { Dot } from './ui/dot'
@@ -43,8 +44,8 @@ const AGENTS: AgentOption[] = [
     icon: <AgentIcon name="claude" size={20} />,
   },
   { id: 'claude', name: 'Claude', blurb: 'Add Doop to Claude', icon: <AgentIcon name="claude" size={20} /> },
-  { id: 'chatgpt', name: 'ChatGPT', blurb: 'Add Doop to ChatGPT', icon: <AgentIcon name="gpt" size={20} /> },
-  { id: 'codex', name: 'Codex', blurb: 'Connect your coding agent', icon: <AgentIcon name="codex" size={20} /> },
+  { id: 'chatgpt', name: 'ChatGPT', blurb: 'Connect in your browser', icon: <AgentIcon name="gpt" size={20} /> },
+  { id: 'codex', name: 'Codex', blurb: 'ChatGPT desktop and Codex CLI', icon: <AgentIcon name="codex" size={20} /> },
   {
     id: 'cursor',
     name: 'Cursor',
@@ -63,14 +64,31 @@ const agentById = (id: AgentId): AgentOption => AGENTS.find((agent) => agent.id 
 
 /** `canvasId` is optional: opened from the home dashboard there is no canvas to
  *  suggest a prompt for, and no presence connection to watch for an arrival. */
-export function ConnectModal({ canvasId, onClose }: { canvasId?: string; onClose: () => void }) {
-  const [view, setView] = useState<View>('agents')
+export function ConnectModal({
+  canvasId,
+  onClose,
+  initialAgent,
+  showAgentStatus = true,
+}: {
+  canvasId?: string
+  onClose: () => void
+  initialAgent?: AgentId
+  /** Standalone setup can suggest a canvas without subscribing to its presence. */
+  showAgentStatus?: boolean
+}) {
+  const [view, setView] = useState<View>(initialAgent ?? 'agents')
   return (
     <Modal size="lg" className="flex flex-col overflow-hidden p-0 sm:p-0" onClose={onClose}>
       {view === 'agents' ? (
         <AgentPicker onPick={setView} />
       ) : (
-        <AgentSteps agent={view} canvasId={canvasId} onBack={() => setView('agents')} onClose={onClose} />
+        <AgentSteps
+          agent={view}
+          canvasId={canvasId}
+          showAgentStatus={showAgentStatus}
+          onBack={() => setView('agents')}
+          onClose={onClose}
+        />
       )}
     </Modal>
   )
@@ -130,6 +148,7 @@ function agentSteps(
   mcpUrl: string,
   prompt: string,
   claudeConnection: ClaudeConnection,
+  canvasId?: string,
 ): { lede: string; steps: Step[] } {
   const jsonConfig = JSON.stringify({ mcpServers: { doop: { type: 'http', url: mcpUrl } } }, null, 2)
   const pointAt: Step = {
@@ -269,7 +288,7 @@ function agentSteps(
                   rel="noopener noreferrer"
                   onClick={() => posthog.capture('chatgpt_connection_opened')}
                 >
-                  Add to ChatGPT
+                  Open ChatGPT setup
                 </a>
               </Button>
             ),
@@ -295,20 +314,17 @@ function agentSteps(
       }
     case 'codex':
       return {
-        lede: 'Three steps, about a minute. Codex then designs on this canvas as you.',
+        lede: 'Add Doop from the desktop app, sign in, and start designing with Codex.',
         steps: [
           {
-            title: 'Add Doop as an MCP server',
-            body: (
-              <>
-                Run this once in any terminal. It registers the <code>doop</code> server for Codex.
-              </>
-            ),
-            code: `codex mcp add doop --url ${mcpUrl}`,
+            title: 'Add Doop to Codex',
+            body: 'Doop Desktop configures Codex for you. This works with Codex CLI and the Codex tab in the ChatGPT desktop app.',
+            action: <CodexInstall mcpUrl={mcpUrl} canvasId={canvasId} />,
           },
           {
             title: 'Sign in from Codex',
-            body: 'Start Codex. The first time it reaches Doop a browser tab opens so you can approve the connection.',
+            body: 'Open a new Codex chat. If Doop needs authentication, sign in from its MCP settings. For Codex CLI, run the command below and approve the connection in your browser.',
+            code: 'codex mcp login doop',
           },
           pointAt,
         ],
@@ -361,11 +377,13 @@ function agentSteps(
 function AgentSteps({
   agent,
   canvasId,
+  showAgentStatus,
   onBack,
   onClose,
 }: {
   agent: AgentId
   canvasId?: string
+  showAgentStatus: boolean
   onBack: () => void
   onClose: () => void
 }) {
@@ -380,7 +398,7 @@ function AgentSteps({
   const prompt = canvasId
     ? `Work on Doop canvas ${canvasId}. Start with get_guide({ topic: "doop-instructions" }) and follow it.`
     : ''
-  const { lede, steps } = agentSteps(agent, mcpUrl, prompt, claudeConnection)
+  const { lede, steps } = agentSteps(agent, mcpUrl, prompt, claudeConnection, canvasId)
   return (
     <>
       <div className={body}>
@@ -460,7 +478,7 @@ function AgentSteps({
       </div>
 
       <ModalActions className={footer}>
-        {canvasId ? <AgentArrival name={option.name} /> : <ModalSpacer />}
+        {canvasId && showAgentStatus ? <AgentArrival name={option.name} /> : <ModalSpacer />}
         <button
           type="button"
           className="inline-flex items-center gap-1 rounded-sm px-2 py-2 text-xs font-medium text-ink-soft hover:text-ink"

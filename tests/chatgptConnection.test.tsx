@@ -43,9 +43,9 @@ afterEach(() => {
 it('opens the official ChatGPT setup and copies the production MCP URL without downloading a file', async () => {
   const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue()
   await openChatGPT('https://doop.design', 'canvas-1')
-  expect(link('Add to ChatGPT')?.href).toBe('https://chatgpt.com/plugins')
-  expect(link('Add to ChatGPT')?.target).toBe('_blank')
-  expect(link('Add to ChatGPT')?.rel).toBe('noopener noreferrer')
+  expect(link('Open ChatGPT setup')?.href).toBe('https://chatgpt.com/plugins')
+  expect(link('Open ChatGPT setup')?.target).toBe('_blank')
+  expect(link('Open ChatGPT setup')?.rel).toBe('noopener noreferrer')
   expect(text()).toContain('Add custom MCP server')
   expect(text()).toContain('Create as a plugin')
   expect(text()).toContain('OAuth')
@@ -71,7 +71,7 @@ it.each([
   'https://[::ffff:808:808]',
 ])('offers setup for the public self-hosted instance %s from the dashboard', async (origin) => {
   await openChatGPT(origin)
-  expect(link('Add to ChatGPT')).toBeDefined()
+  expect(link('Open ChatGPT setup')).toBeDefined()
   expect(text()).toContain(`${origin}/mcp`)
   expect(text()).not.toContain('https://doop.design/mcp')
   expect(text()).not.toContain('Work on Doop canvas')
@@ -100,7 +100,7 @@ it.each([
   'http://design.acme.com',
 ])('explains how to make %s reachable instead of suggesting a direct cloud connection', async (origin) => {
   await openChatGPT(origin, 'local-canvas')
-  expect(link('Add to ChatGPT')).toBeUndefined()
+  expect(link('Open ChatGPT setup')).toBeUndefined()
   expect(link('View ChatGPT setup guide')?.href).toBe('https://developers.openai.com/plugins/deploy/connect-chatgpt')
   expect(text()).toContain('ChatGPT cannot reach this address directly')
   expect(text()).toContain('OpenAI Secure MCP Tunnel')

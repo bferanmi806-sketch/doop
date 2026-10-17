@@ -4,6 +4,7 @@ import { setName } from '../lib/identity'
 import { beginBrowserSignIn, supportsBrowserSignIn } from '../lib/desktop'
 import type { DesktopSignInProvider, ProviderRedirects } from '../lib/desktopAuth'
 import { safeRelativeTarget } from '../lib/safeTarget'
+import { CODEX_SETUP_PATH } from '../lib/codexConnection'
 import { FIRST_CANVAS_PATH } from '../../shared/firstCanvas'
 import { isDesktopShell } from '../lib/shell'
 import { posthog } from '../lib/posthog'
@@ -37,7 +38,8 @@ async function accountExists(email: string): Promise<boolean> {
 }
 
 function interruptedTarget(): string | null {
-  if (location.pathname === '/oauth/consent') return location.pathname + location.search
+  if (location.pathname === '/oauth/consent' || location.pathname === CODEX_SETUP_PATH)
+    return location.pathname + location.search
   const params = new URLSearchParams(location.search)
   const target = safeRelativeTarget(params.get('redirect_to') || params.get('redirect_uri'))
   if (target) return target
