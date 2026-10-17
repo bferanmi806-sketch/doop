@@ -13,6 +13,22 @@ export interface Point {
 /** A pen drag sets a tangent vector; the incoming handle mirrors it. */
 export interface PathPoint extends Point {
   handle?: Point
+  handleIn?: Point
+  handleOut?: Point
+}
+
+/** A constant screen-space radius makes anchors equally easy to hit at any zoom. */
+export function nearestPathAnchor(points: Point[], at: Point, zoom: number, exclude = -1): number | null {
+  let nearest: number | null = null
+  let distance = 8
+  points.forEach((point, index) => {
+    const next = Math.hypot(point.x - at.x, point.y - at.y) * zoom
+    if (index !== exclude && (next < distance || (nearest === null && next <= distance))) {
+      nearest = index
+      distance = next
+    }
+  })
+  return nearest
 }
 
 export interface Drawing {
@@ -137,7 +153,7 @@ export function pathData(drawing: Drawing): string {
   for (let i = 1; i < points.length + (drawing.closed ? 1 : 0); i++) {
     const from = points[i - 1]!
     const to = points[i % points.length]!
-    if (from.handle || to.handle) {
+    if (from.handle || to.handle || from.handleOut || to.handleIn) {
       const [a, b] = controls(from, to)
       commands.push(`C ${at(a)} ${at(b)} ${at(to)}`)
     } else if (i < points.length) commands.push(`L ${at(to)}`)
@@ -148,8 +164,8 @@ export function pathData(drawing: Drawing): string {
 
 function controls(from: PathPoint, to: PathPoint): [Point, Point] {
   return [
-    { x: from.x + (from.handle?.x ?? 0), y: from.y + (from.handle?.y ?? 0) },
-    { x: to.x - (to.handle?.x ?? 0), y: to.y - (to.handle?.y ?? 0) },
+    { x: from.x + (from.handleOut?.x ?? from.handle?.x ?? 0), y: from.y + (from.handleOut?.y ?? from.handle?.y ?? 0) },
+    { x: to.x + (to.handleIn?.x ?? -(to.handle?.x ?? 0)), y: to.y + (to.handleIn?.y ?? -(to.handle?.y ?? 0)) },
   ]
 }
 

@@ -42,6 +42,22 @@
   frames through the existing frame API. Drawing inside a frame appends a positioned HTML/SVG
   layer. Standalone elements use frame persistence with a `data-doop-canvas-element` body marker
   for transparent canvas chrome; no separate shape schema or protocol is required.
+- The pen snaps to the nearest anchor on its unfinished path within eight screen pixels,
+  highlights the target, and previews a closed curve when approaching the first anchor.
+  Alt bypasses snapping. Double-clicking a native path opens `PathEditor.tsx`: anchors and
+  Bézier handles can be dragged, points can switch between corners and curves or be deleted,
+  and each completed edit is one undo step. Alt moves a handle independently; Shift constrains
+  its angle. `pathEditing.ts` reads existing line/cubic SVGs, preserves their affine transforms,
+  resizes standalone bounds, and refuses to overwrite a concurrently changed path. The editor
+  overlays the world canvas while the iframe hides the original through a transient marker.
+  It refreshes geometry from the latest store state after saves, undo/redo, and remote changes,
+  so an undo issued while a save finishes cannot leave stale anchors in the editor.
+  Selecting an anchor or handle does not edit it until the pointer moves two screen pixels.
+  Path saves send `expectedUpdatedAt` to the frame PATCH route. The server checks it synchronously
+  before writing and returns HTTP 409 with the current frame on a conflict; the editor reloads
+  that version without recording an undo step. Frame timestamps advance monotonically, even
+  for multiple writes in the same millisecond, so concurrent saves cannot share a version.
+  Delayed HTTP save responses cannot replace a newer frame received through the room.
 - Saves are serialized, tracked by undo/redo, and scoped to the originating canvas/page. Each
   completed gesture has its own undo entry. The Layers panel shows the drawing's `data-name`.
   Completed saves survive navigation; unfinished drafts are cancelled. Drawing shortcuts leave

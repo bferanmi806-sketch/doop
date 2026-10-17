@@ -570,7 +570,8 @@ class Store {
     )
       return undefined
     Object.assign(frame, patch)
-    frame.updatedAt = Date.now()
+    // Also serves as the optimistic-save version, including writes in the same millisecond.
+    frame.updatedAt = Math.max(Date.now(), frame.updatedAt + 1)
     frame.updatedBy = by
     const c = this.canvases.get(frame.canvasId)!
     c.updatedAt = frame.updatedAt

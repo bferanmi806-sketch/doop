@@ -1,8 +1,10 @@
-import { memo, useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import type { ElementComment, Frame } from '../../shared/types'
 import { useStore } from '../lib/store'
 import { isCanvasElement } from '../lib/drawing'
 import { useDrawingMove } from './DrawingMove'
+import { PathEditor } from './PathEditor'
+import { loadPathEdit, type PathEditSource } from '../lib/pathEditing'
 import { currentPageCanvas } from '../lib/pages'
 import { registerFrameWindow, unregisterFrameWindow } from '../lib/frameBridge'
 import { api } from '../lib/api'
@@ -141,6 +143,12 @@ interface HoverHit {
    this component — memo holds as long as the frame and raster are unchanged. */
 export const FrameView = memo(function FrameView({ frame, raster }: { frame: Frame; raster: number }) {
   const drawingMove = useDrawingMove(frame)
+  const [pathEdit, setPathEdit] = useState<PathEditSource | null>(null)
+  const editRequest = useRef(0)
+  const closePathEdit = useCallback(() => {
+    editRequest.current++
+    setPathEdit(null)
+  }, [])
   const selected = useStore((s) => s.selectedIds.includes(frame.id))
   /* space held: the shield stays up even in edit mode, so the press reaches
      the Stage and pans instead of vanishing into the editable iframe */
@@ -188,6 +196,7 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
     panelOnClick = false,
     skipDrawing = false,
   ): { move: (event: PointerEvent) => void; up: () => void } | undefined {
+    if (pathEdit && probeOnClick) return
     const s = useStore.getState()
     const action = resolvePointerAction({
       tool: s.tool,
@@ -215,11 +224,17 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
       mode === 'move' &&
       probeOnClick &&
       !skipDrawing &&
-      drawingMove.start(e, (press, move, released) => {
-        const drag = startDrag(press, mode, probeOnClick, panelOnClick, true)
-        if (move) drag?.move(move)
-        if (released) drag?.up()
-      })
+      drawingMove.start(
+        e,
+        (press, move, released) => {
+          const drag = startDrag(press, mode, probeOnClick, panelOnClick, true)
+          if (move) drag?.move(move)
+          if (released) drag?.up()
+        },
+        (selector) => {
+          void enterElementEdit({ selector })
+        },
+      )
     )
       return
     e.stopPropagation()
@@ -633,6 +648,33 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
   /* ---- inline text editing ---- */
   const canEdit = !!frame.html && !stream && !frame.locked && !/<script/i.test(frame.html)
 
+  async function enterElementEdit(where: Record<string, unknown>) {
+    if (!frame.html || stream || frame.locked || editing || pathEdit || useStore.getState().tool !== 'select') return
+    const request = ++editRequest.current
+    const canvasId = useStore.getState().canvas?.id
+    const pageId = useStore.getState().activePageId
+    const path = await loadPathEdit(frame, where)
+    const state = useStore.getState()
+    const live = state.canvas?.frames.find((f) => f.id === frame.id)
+    if (
+      request !== editRequest.current ||
+      state.canvas?.id !== canvasId ||
+      state.activePageId !== pageId ||
+      state.tool !== 'select' ||
+      !state.selectedIds.includes(frame.id) ||
+      live?.html !== frame.html ||
+      live.locked ||
+      live.hidden
+    )
+      return
+    if (path) {
+      select(frame.id)
+      closePopovers()
+      clearHover()
+      setPathEdit(path)
+    } else if (canEdit) enterEdit()
+  }
+
   function enterEdit() {
     select(frame.id)
     closePopovers()
@@ -820,7 +862,7 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
                  cursor under it. */
               'cursor-default',
               !isCanvasElement(frame.html) && (dragging ? 'shadow-pop' : 'shadow-card'),
-              selected && 'outline-2 outline-offset-1 outline-brand',
+              selected && !pathEdit && 'outline-2 outline-offset-1 outline-brand',
               editing && 'cursor-text outline-2 outline-offset-1 outline-dashed outline-brand',
               !stream &&
                 remoteEditor &&
@@ -829,11 +871,16 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
             )}
             style={duping || (dupKeyHeld && !editing) ? { cursor: DUP_CURSOR } : undefined}
             onPointerDown={(e) => startDrag(e, 'move', true)}
-            onDoubleClick={() => canEdit && !editing && tool === 'select' && enterEdit()}
+            onDoubleClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect()
+              const zoom = useStore.getState().viewport.zoom
+              void enterElementEdit({ x: (e.clientX - rect.left) / zoom, y: (e.clientY - rect.top) / zoom })
+            }}
             onPointerMove={(e) => {
               /* the Hand only pans, and a locked frame has nothing to pick: no
                  element outlines in either case */
-              if (editing || dragging || frame.locked || !frame.html || !runtimeReady || tool === 'hand') return
+              if (editing || pathEdit || dragging || frame.locked || !frame.html || !runtimeReady || tool === 'hand')
+                return
               /* screen px → design px: the frame lives inside the zoomed stage */
               const r = e.currentTarget.getBoundingClientRect()
               const zoom = useStore.getState().viewport.zoom
@@ -863,7 +910,7 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
             {/* shield keeps pointer events on the canvas, not the iframe;
             lifted while editing so clicks land in the editable document */}
             {(!editing || panMode || tool !== 'select') && <div className="absolute inset-0" />}
-            {hover && !editing && !dragging && (
+            {hover && !editing && !pathEdit && !dragging && (
               <div
                 className="pointer-events-none absolute z-[3] bg-[rgba(60,130,246,0.06)] shadow-[inset_0_0_0_calc(1.5px/var(--zoom,1))_#3c82f6]"
                 style={{ left: hover.rect.x, top: hover.rect.y, width: hover.rect.width, height: hover.rect.height }}
@@ -880,7 +927,7 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
                 </span>
               </div>
             )}
-            {probe && selected && !editing && !dragging && (
+            {probe && selected && !editing && !pathEdit && !dragging && (
               <div
                 className="pointer-events-none absolute z-[3] shadow-[inset_0_0_0_calc(1.5px/var(--zoom,1))_#3c82f6,0_0_0_calc(1.5px/var(--zoom,1))_rgba(60,130,246,0.35)]"
                 style={{ left: probe.rect.x, top: probe.rect.y, width: probe.rect.width, height: probe.rect.height }}
@@ -1056,7 +1103,7 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
             )
           })()}
 
-          {!frame.locked && (
+          {!frame.locked && !pathEdit && (
             <div
               className={cn(
                 'absolute -right-[7px] -bottom-[7px] h-3.5 w-3.5 cursor-nwse-resize rounded-[4px] border-[1.5px] border-ink bg-surface opacity-0 [transition:opacity_0.12s] group-hover:opacity-100',
@@ -1066,6 +1113,7 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
             />
           )}
           {drawingMove.preview}
+          {pathEdit && <PathEditor frame={frame} initial={pathEdit} onClose={closePathEdit} />}
         </div>
       </ContextMenuTrigger>
       <FrameContextMenu frame={frame} at={menuAt} />

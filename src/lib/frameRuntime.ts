@@ -15,7 +15,7 @@ export const FRAME_BOOTSTRAP = `<!doctype html>
      sheet, not a <style> tag — the morph would wipe a tag from <head>. */
   try {
     var vSheet = new CSSStyleSheet()
-    vSheet.replaceSync('html,body{overscroll-behavior-x:none}')
+    vSheet.replaceSync('html,body{overscroll-behavior-x:none}[data-v-path-hidden]{visibility:hidden!important}')
     document.adoptedStyleSheets = document.adoptedStyleSheets.concat(vSheet)
   } catch (e) {}
   function syncAttrs(from, to) {
@@ -95,6 +95,7 @@ export const FRAME_BOOTSTRAP = `<!doctype html>
       morphChildren(document.head, doc.head)
       morphChildren(document.body, doc.body)
       activateScripts()
+      syncPathVisibility()
     } catch (e) {
       if (doc) document.documentElement.innerHTML = doc.documentElement.innerHTML
     }
@@ -212,6 +213,7 @@ export const FRAME_BOOTSTRAP = `<!doctype html>
       marked[j].removeAttribute('data-v-active')
       marked[j].removeAttribute('data-v-hover')
     }
+    root.querySelectorAll('[data-v-path-hidden]').forEach(function (el) { el.removeAttribute('data-v-path-hidden') })
     root.style.removeProperty('zoom') // crisp-render zoom is ours, not the design's
     if (!root.getAttribute('style')) root.removeAttribute('style')
     return '<!doctype html>\\n' + root.outerHTML
@@ -347,6 +349,39 @@ export const FRAME_BOOTSTRAP = `<!doctype html>
       selector: cssPath(el), rect: rect,
       geometry: { width: width, height: height, offsetX: rect.x - untransformed.x,
         offsetY: rect.y - untransformed.y, styles: styles },
+    }
+  }
+
+  var pathEditingSelector = null
+  function syncPathVisibility() {
+    document.querySelectorAll('[data-v-path-hidden]').forEach(function (el) { el.removeAttribute('data-v-path-hidden') })
+    if (pathEditingSelector) {
+      var pathSvg = document.querySelector(pathEditingSelector)
+      if (pathSvg) pathSvg.setAttribute('data-v-path-hidden', '')
+    }
+  }
+  function pathInfo(d) {
+    var hit = d.selector ? document.querySelector(d.selector) : d.standalone ? document.body.firstElementChild : elementAt(d.x, d.y)
+    var svg = hit && hit.closest('svg[data-doop-drawing="path"]')
+    var path = svg && svg.querySelector('path')
+    // Native pen paths have one direct path child. Other SVG artwork keeps its normal editor.
+    if (!svg || svg.parentElement !== document.body || !path || path.parentElement !== svg || svg.querySelectorAll('path').length !== 1 || isLocked(svg)) return null
+    var matrix = path.getScreenCTM()
+    if (!matrix || Math.abs(matrix.a * matrix.d - matrix.b * matrix.c) < 1e-9) return null
+    var probe = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    probe.setAttribute('viewBox', '0 0 1 1')
+    probe.style.cssText = 'position:fixed!important;left:0!important;top:0!important;width:1px!important;height:1px!important;margin:0!important;padding:0!important;border:0!important;transform:none!important;translate:none!important;rotate:none!important;scale:none!important;visibility:hidden!important'
+    var layout
+    try {
+      document.body.appendChild(probe)
+      layout = probe.getScreenCTM().inverse().multiply(matrix)
+    } finally { probe.remove() }
+    var css = getComputedStyle(path)
+    return {
+      selector: cssPath(svg), data: path.getAttribute('d'),
+      matrix: [matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f].map(function (n) { return n / curZoom }),
+      layoutMatrix: [layout.a, layout.b, layout.c, layout.d, layout.e, layout.f],
+      paint: { fill: css.fill, stroke: css.stroke, strokeWidth: css.strokeWidth },
     }
   }
 
@@ -505,7 +540,10 @@ export const FRAME_BOOTSTRAP = `<!doctype html>
       var applied = applyStyle(d.selector, d.styles)
       parent.postMessage({ type: 'doop:style-result', reqId: d.reqId, ok: applied, info: applied ? inspect(d.selector) : null }, '*')
     }
-    if (d.type === 'doop:html' && typeof d.html === 'string' && !editing) render(d.html)
+    if (d.type === 'doop:html' && typeof d.html === 'string' && !editing) {
+      render(d.html)
+      if (d.reqId) parent.postMessage({ type: 'doop:html-result', reqId: d.reqId }, '*')
+    }
     if (d.type === 'doop:edit') setEdit(!!d.on)
     /* a lock set from the Layers panel lands on the live element too: while
        editing, the parent withholds html, and the next text save serializes
@@ -527,6 +565,14 @@ export const FRAME_BOOTSTRAP = `<!doctype html>
     }
     if (d.type === 'doop:drawing-hit') {
       parent.postMessage({ type: 'doop:drawing-hit-result', reqId: d.reqId, hit: drawingHit(d.x, d.y, d.standalone) }, '*')
+    }
+    if (d.type === 'doop:path') {
+      parent.postMessage({ type: 'doop:path-result', reqId: d.reqId, hit: pathInfo(d) }, '*')
+    }
+    if (d.type === 'doop:path-editing') {
+      pathEditingSelector = d.selector || null
+      syncPathVisibility()
+      parent.postMessage({ type: 'doop:path-editing-result', reqId: d.reqId }, '*')
     }
     if (d.type === 'doop:hover') {
       parent.postMessage({ type: 'doop:hover-result', reqId: d.reqId, hit: hoverProbe(d.x, d.y) }, '*')

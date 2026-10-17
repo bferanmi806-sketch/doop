@@ -1536,8 +1536,18 @@ app.post('/api/canvases/:id/frames', (req, res) => {
 })
 
 app.patch('/api/frames/:id', (req, res) => {
-  if (!requireFrame(req, res, req.params.id)) return
-  const { actor: _ignored, ...patch } = req.body ?? {}
+  const current = requireFrame(req, res, req.params.id)
+  if (!current) return
+  const { actor: _ignored, expectedUpdatedAt, ...patch } = req.body ?? {}
+  if (expectedUpdatedAt !== undefined) {
+    if (!Number.isSafeInteger(expectedUpdatedAt) || expectedUpdatedAt < 0)
+      return res.status(400).json({ error: 'expectedUpdatedAt must be a nonnegative integer' })
+    // The store check and update are synchronous: another request cannot write between them.
+    if (current.updatedAt !== expectedUpdatedAt)
+      return res
+        .status(409)
+        .json({ error: 'The frame changed while you were editing. Please try again.', frame: current })
+  }
   const actor = actions.resolveActor({ name: req.user!.name, kind: 'user' })
   if (
     patch.pageId !== undefined &&

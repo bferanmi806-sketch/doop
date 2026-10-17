@@ -24,6 +24,7 @@ describe.skipIf(!findBrowserPath())('drawing on the canvas', { timeout: 30_000 }
   let page: Page
   let saved: Frame[] = []
   let nextId = 0
+  let patchRequests = 0
   const errors: string[] = []
 
   beforeAll(async () => {
@@ -47,6 +48,7 @@ describe.skipIf(!findBrowserPath())('drawing on the canvas', { timeout: 30_000 }
         saved.push(frame)
         await req.respond({ status: 200, contentType: 'application/json', body: JSON.stringify(frame) })
       } else if (path.startsWith('/api/frames/') && req.method() === 'PATCH') {
+        patchRequests++
         const id = path.split('/').at(-1)
         const frame = { ...saved.find((f) => f.id === id), ...JSON.parse(req.postData()!) }
         saved = saved.map((f) => (f.id === id ? frame : f))
@@ -62,6 +64,7 @@ describe.skipIf(!findBrowserPath())('drawing on the canvas', { timeout: 30_000 }
     await page.mouse.reset()
     saved = []
     nextId = 0
+    patchRequests = 0
     await page.setViewport({ width: 1200, height: 800 })
     await page.goto(`${vite.resolvedUrls!.local[0]}tests/fixtures/drawing.html`)
     await page.waitForFunction(() => !!window.drawingHarness)
@@ -319,6 +322,215 @@ describe.skipIf(!findBrowserPath())('drawing on the canvas', { timeout: 30_000 }
     expect(restored.slice(0, 2).every((f) => !f.html.includes('data-doop-drawing'))).toBe(true)
     for (let i = 0; i < 3; i++) await page.evaluate(() => window.drawingHarness.redo())
     expect((await waitForFrames(3))[2]).toMatchObject({ x: 210, y: 250, width: 40, height: 40 })
+  })
+
+  it.each([0.5, 2, 3])('snaps the path preview and closes at the first anchor at zoom %s', async (zoom) => {
+    await page.evaluate((zoom) => window.drawingHarness.viewport({ x: 40, y: 20, zoom }), zoom)
+    await page.click('[aria-label="Vector path"]')
+    await page.mouse.click(220, 250)
+    await page.mouse.click(420, 250)
+    await page.mouse.click(420, 450)
+    await page.mouse.move(226, 250)
+    await page.waitForSelector('[data-path-snap="close"]')
+    expect(await page.$eval('[data-path-snap]', (el) => el.getBoundingClientRect().width)).toBeCloseTo(14, 1)
+    expect(await page.$eval('[data-path-preview] path', (el) => el.getAttribute('d'))).toMatch(/Z$/)
+    await page.mouse.move(230, 250)
+    expect(await page.$('[data-path-snap]')).toBeNull()
+    await page.mouse.click(226, 250)
+    const [path] = await waitForFrames(1)
+    expect(path!.html).toContain(' Z"')
+    expect(await page.$('[data-path-preview]')).toBeNull()
+  })
+
+  it('snaps to intermediate anchors and lets Alt place a point freely', async () => {
+    await page.click('[aria-label="Vector path"]')
+    await page.mouse.click(220, 250)
+    await page.mouse.click(420, 250)
+    await page.mouse.click(420, 450)
+    await page.mouse.move(426, 250)
+    await page.waitForSelector('[data-path-anchor="1"][data-snapped="true"]')
+    await page.mouse.click(426, 250)
+    await page.keyboard.down('Alt')
+    await page.mouse.move(226, 250)
+    expect(await page.$('[data-path-snap]')).toBeNull()
+    await page.mouse.click(226, 250)
+    await page.keyboard.up('Alt')
+    await page.keyboard.press('Enter')
+    expect((await waitForFrames(1))[0]!.html).toContain('M 2 2 L 102 2 L 102 102 L 102 2 L 5 2')
+  })
+
+  async function editorPoint(index: number, handle?: string) {
+    const selector = handle ? `[data-path-handle="${index}-${handle}"]` : `[data-path-edit-anchor="${index}"]`
+    await page.waitForSelector(selector)
+    return page.$eval(selector, (el) => {
+      const rect = el.getBoundingClientRect()
+      return [rect.x + rect.width / 2, rect.y + rect.height / 2] as [number, number]
+    })
+  }
+
+  async function waitForPathSave(before: string) {
+    await page.waitForFunction(
+      (before) =>
+        window.drawingHarness
+          .state()
+          .frames.map((f) => f.html)
+          .join() !== before,
+      {},
+      before,
+    )
+    await page.waitForFunction(() => !document.querySelector('[data-path-editor] button:disabled'))
+  }
+
+  it('edits anchors and handles, converts curves, deletes points, and undoes each change', async () => {
+    await page.click('[aria-label="Vector path"]')
+    await drag([220, 300], [220, 220])
+    await drag([420, 300], [420, 380])
+    await page.mouse.click(420, 450)
+    await page.keyboard.press('Enter')
+    await waitForFrames(1)
+    await visibleDrawing('Vector path')
+    await page.mouse.click(320, 300, { count: 2, delay: 60 })
+    const original = saved[0]!
+    const first = await editorPoint(0)
+    await drag(first, [first[0] - 60, first[1] + 30])
+    await waitForPathSave(original.html)
+    const moved = await editorPoint(0)
+    expect(moved[0]).toBeCloseTo(first[0] - 60, 1)
+    expect(moved[1]).toBeCloseTo(first[1] + 30, 1)
+    await page.evaluate(() => window.drawingHarness.undo())
+    await page.waitForFunction(() => !document.body.textContent?.includes('Saving path…'))
+    await page.waitForFunction(
+      (x) => Math.abs(document.querySelector('[data-path-edit-anchor="0"]')!.getBoundingClientRect().x + 9 - x) < 0.1,
+      {},
+      first[0],
+    )
+    await page.evaluate(() => window.drawingHarness.redo())
+    await page.waitForFunction(
+      (x) => Math.abs(document.querySelector('[data-path-edit-anchor="0"]')!.getBoundingClientRect().x + 9 - x) < 0.1,
+      {},
+      moved[0],
+    )
+    let before = saved.map((f) => f.html).join()
+    const handle = await editorPoint(0, 'handleOut')
+    await drag(handle, [handle[0] + 40, handle[1] + 20])
+    await waitForPathSave(before)
+    before = saved.map((f) => f.html).join()
+    await page.click('[data-path-editor] button', { count: 1 })
+    await waitForPathSave(before)
+    expect(await page.$('[data-path-handle="0-handleOut"]')).toBeNull()
+    await page.click('[data-path-editor] button')
+    await page.waitForSelector('[data-path-handle="0-handleOut"]')
+    await page.waitForFunction(() => !document.body.textContent?.includes('Saving path…'))
+    await page.screenshot({ path: '/tmp/doop-path-editing.png' })
+    await page.keyboard.press('Delete')
+    await page.waitForFunction(() => document.querySelectorAll('[data-path-edit-anchor]').length === 2)
+    await page.evaluate(() => window.drawingHarness.undo())
+    await page.waitForFunction(() => document.querySelectorAll('[data-path-edit-anchor]').length === 3)
+    await page.keyboard.press('Escape')
+    expect(await page.$('[data-path-editor]')).toBeNull()
+    expect(saved[0]!.html).not.toContain('data-v-path-hidden')
+  })
+
+  it('selects asymmetric handles and anchors without changing the path or saving', async () => {
+    await page.click('[aria-label="Vector path"]')
+    await drag([220, 300], [220, 220])
+    await drag([420, 300], [420, 380])
+    await page.mouse.click(560, 450)
+    await page.keyboard.press('Enter')
+    await waitForFrames(1)
+    await visibleDrawing('Vector path')
+    await page.mouse.click(320, 300, { count: 2, delay: 60 })
+    const opposite = await editorPoint(1, 'handleIn')
+    const handle = await editorPoint(1, 'handleOut')
+    const original = saved[0]!.html
+    await page.keyboard.down('Alt')
+    await drag(handle, [handle[0] + 40, handle[1] + 20])
+    await page.keyboard.up('Alt')
+    await waitForPathSave(original)
+    const incoming = await editorPoint(1, 'handleIn')
+    expect(incoming[0]).toBeCloseTo(opposite[0], 1)
+    expect(incoming[1]).toBeCloseTo(opposite[1], 1)
+    const before = saved[0]!.html
+    const requests = patchRequests
+    const preview = await page.$eval('[data-path-editor] path', (el) => el.getAttribute('d'))
+    await page.mouse.click(...incoming)
+    await page.mouse.click(...(await editorPoint(1, 'handleOut')))
+    await page.mouse.click(...(await editorPoint(1)))
+    expect(await page.$eval('[data-path-editor] path', (el) => el.getAttribute('d'))).toBe(preview)
+    await page.keyboard.press('Enter')
+    expect(await page.$('[data-path-editor]')).toBeNull()
+    expect(saved[0]!.html).toBe(before)
+    expect(patchRequests).toBe(requests)
+  })
+
+  it.each([false, true])(
+    'edits transformed paths without moving their other endpoint (standalone: %s)',
+    async (standalone) => {
+      const frame: Frame = {
+        id: 'curve',
+        updatedBy: 'User',
+        canvasId: 'c',
+        pageId: 'first',
+        name: 'Curve frame',
+        x: 30,
+        y: 30,
+        width: 400,
+        height: 300,
+        createdAt: 0,
+        updatedAt: 0,
+        html: '<svg id="pen" data-doop-drawing="path" viewBox="0 0 140 100" style="position:fixed;left:60px;top:60px;width:140px;height:100px;transform:rotate(20deg) scale(1.2)"><path d="M 10 50 C 30 0 80 100 120 50" stroke="black" fill="none" stroke-width="2" /></svg>',
+      }
+      if (standalone) frame.html = `<body data-doop-canvas-element="true">${frame.html}</body>`
+      await seedFrames([frame])
+      const rect = await visibleDrawing('Curve frame')
+      await page.mouse.click(rect.x + rect.width / 2, rect.y + rect.height / 2, { count: 2, delay: 60 })
+      const first = await editorPoint(0)
+      const last = await editorPoint(1)
+      await page.mouse.move(...first)
+      await page.mouse.down()
+      await page.mouse.move(first[0] - 30, first[1] + 40, { steps: 5 })
+      await page.keyboard.press('Escape')
+      await page.mouse.up()
+      expect(saved[0]!.html).toBe(frame.html)
+      expect(await editorPoint(0)).toEqual(first)
+      await drag(first, [first[0] - 30, first[1] + 40])
+      await page.waitForFunction((before) => window.drawingHarness.state().frames[0]!.html !== before, {}, frame.html)
+      await page.waitForFunction(() => !document.body.textContent?.includes('Saving path…'))
+      if (!standalone) expect(saved[0]).toMatchObject({ x: 30, y: 30, width: 400, height: 300 })
+      const after = await editorPoint(1)
+      expect(after[0]).toBeCloseTo(last[0], 1)
+      expect(after[1]).toBeCloseTo(last[1], 1)
+      await page.keyboard.press('Escape')
+    },
+  )
+
+  it('snaps edited anchors, allows Alt to bypass snapping, and cancels on pointer cancellation', async () => {
+    await page.click('[aria-label="Vector path"]')
+    await page.mouse.click(220, 300)
+    await page.mouse.click(420, 300)
+    await page.mouse.click(420, 450)
+    await page.keyboard.press('Enter')
+    await waitForFrames(1)
+    await visibleDrawing('Vector path')
+    await page.mouse.click(320, 350, { count: 2, delay: 60 })
+    const first = await editorPoint(0)
+    const target = await editorPoint(1)
+    await page.mouse.move(...first)
+    await page.mouse.down()
+    await page.mouse.move(target[0] + 6, target[1], { steps: 5 })
+    await page.waitForSelector('[data-path-edit-snap]')
+    expect(await editorPoint(0)).toEqual(target)
+    await page.evaluate(() => window.dispatchEvent(new PointerEvent('pointercancel', { pointerId: 1 })))
+    await page.mouse.up()
+    expect(await editorPoint(0)).toEqual(first)
+    const before = saved[0]!.html
+    await page.keyboard.down('Alt')
+    await drag(first, [target[0] + 6, target[1]])
+    await page.keyboard.up('Alt')
+    await waitForPathSave(before)
+    expect((await editorPoint(0))[0]).toBeCloseTo(target[0] + 6, 1)
+    await page.evaluate(() => window.drawingHarness.page('second'))
+    expect(await page.$('[data-path-editor]')).toBeNull()
   })
 
   it('cancels interrupted gestures and lets Space pan without drawing', async () => {

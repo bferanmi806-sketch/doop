@@ -7,6 +7,7 @@ import {
   defaultDrawing,
   drawingBounds,
   drawingTarget,
+  nearestPathAnchor,
   pathData,
   pathDrawing,
   saveDrawing,
@@ -30,7 +31,7 @@ export function useCanvasDrawing(stage: RefObject<HTMLDivElement>) {
   const draftRef = useRef<Draft | null>(null)
   const cleanup = useRef<(() => void) | null>(null)
   const lastPathPress = useRef(0)
-  const [hover, setHover] = useState<Point | null>(null)
+  const [hover, setHover] = useState<(Point & { unsnapped?: boolean }) | null>(null)
   const setDraft = useCallback((value: Draft | null) => {
     draftRef.current = value
     renderDraft(value)
@@ -67,7 +68,9 @@ export function useCanvasDrawing(stage: RefObject<HTMLDivElement>) {
       const current = draftRef.current
       if (!current) return
       if (e.isComposing || (isTypingTarget(e.target) && !e.target.matches('textarea[data-drawing-input]'))) return
-      if (e.key === 'Escape') {
+      if (e.key === 'Alt') {
+        setHover((at) => (at ? { ...at, unsnapped: true } : null))
+      } else if (e.key === 'Escape') {
         e.preventDefault()
         e.stopImmediatePropagation()
         cancel()
@@ -91,11 +94,16 @@ export function useCanvasDrawing(stage: RefObject<HTMLDivElement>) {
       // Keep a text draft if focus moved to another application.
       if (!draftRef.current?.typing) cancel()
     }
+    function onKeyUp(e: KeyboardEvent) {
+      if (e.key === 'Alt') setHover((at) => (at ? { ...at, unsnapped: false } : null))
+    }
     window.addEventListener('keydown', onKey, true)
+    window.addEventListener('keyup', onKeyUp, true)
     window.addEventListener('blur', onBlur)
     return () => {
       unsub()
       window.removeEventListener('keydown', onKey, true)
+      window.removeEventListener('keyup', onKeyUp, true)
       window.removeEventListener('blur', onBlur)
       cleanup.current?.()
     }
@@ -143,9 +151,11 @@ export function useCanvasDrawing(stage: RefObject<HTMLDivElement>) {
     if (tool === 'path') {
       const points = draftRef.current?.drawing.points ?? []
       const zoom = s.viewport.zoom
-      const closing = points.length >= 3 && Math.hypot(start.x - points[0]!.x, start.y - points[0]!.y) * zoom < 8
+      const snapped = e.altKey ? null : nearestPathAnchor(points, start, zoom)
+      const placed = snapped === null ? start : { x: points[snapped]!.x, y: points[snapped]!.y }
+      const closing = points.length >= 2 && snapped === 0
       const last = points.at(-1)
-      const repeated = last && Math.hypot(start.x - last.x, start.y - last.y) * zoom <= 2
+      const repeated = last && Math.hypot(placed.x - last.x, placed.y - last.y) * zoom <= 2
       // Preventing pointerdown's default suppresses native dblclick in some
       // browsers. Recognize the second press here, including a double tap.
       if (repeated && points.length >= 2 && e.timeStamp - lastPathPress.current < 400) {
@@ -154,7 +164,7 @@ export function useCanvasDrawing(stage: RefObject<HTMLDivElement>) {
       }
       lastPathPress.current = e.timeStamp
       if (repeated && !closing) return
-      const anchors = closing ? points : [...points, start]
+      const anchors = closing ? points : [...points, placed]
       const index = closing ? 0 : anchors.length - 1
       const anchor = anchors[index]!
       setDraft({ target, drawing: pathDrawing(anchors, closing) })
@@ -261,7 +271,7 @@ export function useCanvasDrawing(stage: RefObject<HTMLDivElement>) {
     onPointerDown,
     onPointerMove: (e: ReactPointerEvent) => {
       if (draftRef.current?.drawing.tool === 'path' && !cleanup.current && !useStore.getState().panMode)
-        setHover(toWorld(e.clientX, e.clientY))
+        setHover({ ...toWorld(e.clientX, e.clientY), unsnapped: e.altKey })
     },
     onDoubleClick: (e: React.MouseEvent) => {
       if (draftRef.current?.drawing.tool !== 'path') return
@@ -282,10 +292,11 @@ function DrawingPreview({
   onFinish,
 }: {
   draft: Draft
-  hover: Point | null
+  hover: (Point & { unsnapped?: boolean }) | null
   onText: (text: string, height: number) => void
   onFinish: () => void
 }) {
+  const zoom = useStore((s) => s.viewport.zoom)
   const d = draft.drawing
   if (draft.typing)
     return (
@@ -310,9 +321,13 @@ function DrawingPreview({
     )
   if (d.tool === 'path') {
     const points = d.points ?? []
-    const preview = pathDrawing(hover && !d.closed ? [...points, hover] : points, d.closed)
+    const snapped = hover && !hover.unsnapped ? nearestPathAnchor(points, hover, zoom) : null
+    const closing = snapped === 0 && points.length >= 2
+    const at = snapped === null ? hover : { x: points[snapped]!.x, y: points[snapped]!.y }
+    const preview = pathDrawing(at && !d.closed && !closing ? [...points, at] : points, d.closed || closing)
     return (
       <svg
+        data-path-preview
         className="pointer-events-none absolute z-20 overflow-visible"
         style={{ left: preview.x, top: preview.y }}
         width={preview.width}
@@ -343,14 +358,27 @@ function DrawingPreview({
         {points.map((p, i) => (
           <circle
             key={i}
+            data-path-anchor={i}
+            data-snapped={snapped === i ? 'true' : undefined}
             cx={p.x - preview.x}
             cy={p.y - preview.y}
             r="calc(3px / var(--zoom, 1))"
-            fill="white"
+            fill={snapped === i ? 'var(--brand)' : 'white'}
             stroke="var(--brand)"
             strokeWidth="calc(1px / var(--zoom, 1))"
           />
         ))}
+        {snapped !== null && (
+          <circle
+            data-path-snap={closing ? 'close' : 'anchor'}
+            cx={points[snapped]!.x - preview.x}
+            cy={points[snapped]!.y - preview.y}
+            r="calc(7px / var(--zoom, 1))"
+            fill="none"
+            stroke="var(--brand)"
+            strokeWidth="calc(1px / var(--zoom, 1))"
+          />
+        )}
       </svg>
     )
   }

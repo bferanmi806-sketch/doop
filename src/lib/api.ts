@@ -411,8 +411,11 @@ export const api = {
         actor: actor(),
       }),
     }),
-  updateFrame: (frameId: string, patch: Partial<Frame>) =>
-    req<Frame>('/api/frames/' + frameId, { method: 'PATCH', body: JSON.stringify({ ...patch, actor: actor() }) }),
+  updateFrame: (frameId: string, patch: Partial<Frame>, expectedUpdatedAt?: number) =>
+    req<Frame>('/api/frames/' + frameId, {
+      method: 'PATCH',
+      body: JSON.stringify({ ...patch, expectedUpdatedAt, actor: actor() }),
+    }),
   deleteFrame: (frameId: string) =>
     req('/api/frames/' + frameId, { method: 'DELETE', body: JSON.stringify({ actor: actor() }) }),
   /* design history: the states earlier edits replaced, newest first (no HTML) */

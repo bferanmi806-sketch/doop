@@ -29,9 +29,10 @@ type Fallback = (press: Press, move: PointerEvent | null, released: boolean) => 
 export function useDrawingMove(frame: Frame) {
   const [preview, setPreview] = useState<Preview | null>(null)
   const cleanup = useRef<(() => void) | null>(null)
+  const lastClick = useRef<{ selector: string; at: number; x: number; y: number } | null>(null)
   useEffect(() => () => cleanup.current?.(), [])
 
-  function start(e: Press, fallback: Fallback): boolean {
+  function start(e: Press, fallback: Fallback, onDoubleClick?: (selector: string) => void): boolean {
     if (e.shiftKey || e.altKey || !e.isPrimary || !frame.html.includes('data-doop-drawing')) return false
     const s = useStore.getState()
     if (s.selectedIds.includes(frame.id) && s.selectedIds.length > 1) return false
@@ -103,6 +104,18 @@ export function useDrawingMove(frame: Frame) {
       const complete = moved && !gesture.pinching && !closed
       cancel()
       if (complete && rect) void moveDrawing(frame, standalone ? undefined : hit.selector, rect, target?.id, hit)
+      const previous = lastClick.current
+      lastClick.current = complete ? null : { selector: hit.selector, at: ev.timeStamp, x: ev.clientX, y: ev.clientY }
+      if (
+        !complete &&
+        !gesture.pinching &&
+        previous?.selector === hit.selector &&
+        ev.timeStamp - previous.at < 400 &&
+        Math.hypot(ev.clientX - previous.x, ev.clientY - previous.y) < 4
+      ) {
+        lastClick.current = null
+        onDoubleClick?.(hit.selector)
+      }
     }
     function onCancel(ev: PointerEvent) {
       if (ev.pointerId === pointerId) cancel()
