@@ -11,6 +11,7 @@ import {
   Activity,
   Bell,
   ChatBubble,
+  ChatLines,
   Building,
   CreditCard,
   Lock,
@@ -89,6 +90,7 @@ export const ImportIcon = icon(Import)
 export const PulseIcon = icon(Activity)
 export const BellIcon = icon(Bell)
 export const ChatIcon = icon(ChatBubble)
+export const CommentIcon = icon(ChatLines)
 export const SparkIcon = icon(SparkSolid)
 export const SearchIcon = icon(Search)
 export const PlusIcon = icon(Plus)

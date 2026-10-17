@@ -232,10 +232,7 @@ async function runAgent(canvasId: string, agentName: string, stalled: Set<string
       'The Doop Agent needs a connected account — connect your ChatGPT subscription or an OpenAI, OpenRouter, Gemini or Claude API key in Settings, then retry.'
     for (const f of actions.takeFeedbackFor(canvasId, role.name, payer)) actions.failTaskFeedback(f.id, reason)
     for (const c of actions.takeAgentCommentsFor(canvasId, role.name, payer)) actions.failComment(c.id, reason)
-    for (const c of actions.takeQueuedCardsFor(canvasId, role.name, payer)) {
-      actions.chatReplyForCard(canvasId, c.id, actor, reason)
-      actions.failCard(canvasId, c.id, reason)
-    }
+    for (const c of actions.takeQueuedCardsFor(canvasId, role.name, payer)) actions.failCard(canvasId, c.id, reason)
     stalled.add(payer)
     return 'no-model'
   }
@@ -702,12 +699,8 @@ async function runAgent(canvasId: string, agentName: string, stalled: Set<string
     if (finished && !blockedWebsiteAccess && !noMutation && !unverifiedMutation) {
       for (const f of claimed) actions.completeTaskFeedback(f.id)
       for (const c of comments) actions.resolveComment(c.id, role.name)
-      /* a card moves to the next agent in its pipeline, or finishes here —
-         and one that was asked for in the chat gets its answer there */
-      for (const c of cards) {
-        actions.chatReplyForCard(canvasId, c.id, actor, summary || 'Done.')
-        actions.advanceCard(canvasId, c.id, actor)
-      }
+      /* a card moves to the next agent in its pipeline, or finishes here */
+      for (const c of cards) actions.advanceCard(canvasId, c.id, actor)
     } else {
       let reason: string
       if (staleAccount) {
@@ -732,7 +725,6 @@ async function runAgent(canvasId: string, agentName: string, stalled: Set<string
       for (const f of claimed) actions.failTaskFeedback(f.id, reason)
       for (const c of comments) actions.failComment(c.id, reason)
       for (const c of cards) {
-        actions.chatReplyForCard(canvasId, c.id, actor, reason)
         actions.failCard(canvasId, c.id, reason)
       }
     }

@@ -12,7 +12,6 @@ import type {
   AgentTask,
   CardScope,
   Canvas,
-  ChatMessage,
   DesignDecision,
   ElementComment,
   Frame,
@@ -377,7 +376,6 @@ export function deleteCanvas(canvasId: string) {
   swallow(db.delete(t.tasks).where(eq(t.tasks.canvasId, canvasId)))
   swallow(db.delete(t.feedback).where(eq(t.feedback.canvasId, canvasId)))
   swallow(db.delete(t.comments).where(eq(t.comments.canvasId, canvasId)))
-  swallow(db.delete(t.chatMessages).where(eq(t.chatMessages.canvasId, canvasId)))
   swallow(db.delete(t.activity).where(eq(t.activity.canvasId, canvasId)))
   swallow(db.delete(t.guidelines).where(eq(t.guidelines.canvasId, canvasId)))
   swallow(db.delete(t.guidelineVersions).where(eq(t.guidelineVersions.canvasId, canvasId)))
@@ -547,31 +545,6 @@ export function saveComment(c: ElementComment) {
   )
 }
 
-export function saveChat(m: ChatMessage) {
-  swallow(
-    db.insert(t.chatMessages).values({
-      id: m.id,
-      canvasId: m.canvasId,
-      fromName: m.from,
-      fromKind: m.fromKind,
-      fromUserId: m.fromUserId ?? null,
-      color: m.color,
-      text: m.text,
-      at: m.at,
-      mentions: m.mentions?.length ? m.mentions.join(',') : null,
-      taskId: m.taskId ?? null,
-      replyToId: m.replyToId ?? null,
-    }),
-  )
-}
-
-/** Messages that fell off the in-memory cap leave the table too, so the
- *  history stays bounded on disk and boot never reads more than it keeps. */
-export function deleteChat(ids: string[]) {
-  if (ids.length === 0) return
-  swallow(db.delete(t.chatMessages).where(inArray(t.chatMessages.id, ids)))
-}
-
 export function saveActivity(canvasId: string, item: ActivityItem) {
   swallow(
     db.insert(t.activity).values({
@@ -609,15 +582,12 @@ export interface Hydrated {
   tasks: Map<string, AgentTask[]> // canvasId -> newest first
   feedback: Map<string, TaskFeedback[]>
   comments: Map<string, ElementComment[]>
-  chat: Map<string, ChatMessage[]>
   activity: Map<string, ActivityItem[]>
   decisions: Map<string, DesignDecision[]>
   proposals: Map<string, MemoryProposal[]>
 }
 
 const LOG_CAP = 100
-/** the chat keeps more history than the other logs — it is the conversation */
-export const CHAT_LOG_CAP = 300
 
 export async function hydrate(): Promise<Hydrated> {
   const [
@@ -626,7 +596,6 @@ export async function hydrate(): Promise<Hydrated> {
     taskRows,
     feedbackRows,
     commentRows,
-    chatRows,
     activityRows,
     guidelineRows,
     referenceRows,
@@ -639,7 +608,6 @@ export async function hydrate(): Promise<Hydrated> {
     db.select().from(t.tasks).orderBy(desc(t.tasks.startedAt)),
     db.select().from(t.feedback).orderBy(desc(t.feedback.at)),
     db.select().from(t.comments).orderBy(desc(t.comments.at)),
-    db.select().from(t.chatMessages).orderBy(desc(t.chatMessages.at)),
     db.select().from(t.activity).orderBy(desc(t.activity.at)),
     db.select().from(t.guidelines).orderBy(t.guidelines.name),
     db.select().from(t.memoryReferences).orderBy(desc(t.memoryReferences.pinnedAt)),
@@ -810,26 +778,6 @@ export async function hydrate(): Promise<Hydrated> {
     comments.set(row.canvasId, list)
   }
 
-  const chat = new Map<string, ChatMessage[]>()
-  for (const row of chatRows) {
-    const list = chat.get(row.canvasId) ?? []
-    if (list.length >= CHAT_LOG_CAP) continue
-    list.push({
-      id: row.id,
-      canvasId: row.canvasId,
-      from: row.fromName,
-      fromKind: row.fromKind === 'agent' ? 'agent' : 'user',
-      ...(row.fromUserId != null ? { fromUserId: row.fromUserId } : {}),
-      color: row.color,
-      text: row.text,
-      at: row.at,
-      ...(row.mentions ? { mentions: row.mentions.split(',') } : {}),
-      ...(row.taskId != null ? { taskId: row.taskId } : {}),
-      ...(row.replyToId != null ? { replyToId: row.replyToId } : {}),
-    })
-    chat.set(row.canvasId, list)
-  }
-
   const activity = new Map<string, ActivityItem[]>()
   for (const row of activityRows) {
     const list = activity.get(row.canvasId) ?? []
@@ -883,7 +831,7 @@ export async function hydrate(): Promise<Hydrated> {
     proposals.set(row.canvasId, list)
   }
 
-  return { canvases, tasks, feedback, comments, chat, activity, decisions, proposals }
+  return { canvases, tasks, feedback, comments, activity, decisions, proposals }
 }
 
 /** One-time import of the pre-DB data/store.json so existing canvases survive. */

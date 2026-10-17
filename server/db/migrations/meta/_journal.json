@@ -204,6 +204,13 @@
       "when": 1792114589970,
       "tag": "0029_frame_hidden",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1792195710192,
+      "tag": "0030_drop_chat_messages",
+      "breakpoints": true
     }
   ]
 }

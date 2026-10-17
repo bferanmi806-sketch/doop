@@ -6,3 +6,15 @@ export const MOD_KEY = /mac/i.test(navigator.platform) ? '⌘' : 'Ctrl+'
 export function isHideUiShortcut(e: Pick<KeyboardEvent, 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey'>) {
   return e.key === '.' && (e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey
 }
+
+/** An Enter that only confirms an IME composition (Chinese, Japanese,
+ *  Korean input) — the text is not committed yet, so an Enter-to-send field
+ *  must let it through instead of posting. Safari ends the composition
+ *  before this key event fires, leaving keyCode 229 as the only tell. */
+export function isComposingEnter(e: {
+  key: string
+  keyCode?: number
+  nativeEvent?: { isComposing?: boolean }
+}): boolean {
+  return e.key === 'Enter' && (e.nativeEvent?.isComposing === true || e.keyCode === 229)
+}

@@ -13,9 +13,9 @@ import { PanelCollapseRightIcon } from './ui/icons'
 import { Input } from './ui/input'
 import { Dot } from './ui/dot'
 import { isResidentLimit } from './TeamAllowance'
-import { ChatPanel } from './ChatPanel'
+import { CommentsPanel } from './CommentsPanel'
 import { taskFrameId } from '../lib/taskFrame'
-import { useChatUnread } from '../lib/chatUnread'
+import { useOpenThreadCount } from '../lib/comments'
 
 const emptyNote = 'px-4 py-6 text-center text-[13px] text-ink-faint'
 
@@ -46,7 +46,7 @@ export function ActivityPanel({
   const tab = useStore((s) => s.panelTab)
   const setTab = useStore((s) => s.setPanelTab)
   const [, tick] = useState(0)
-  const unread = useChatUnread()
+  const openThreads = useOpenThreadCount()
 
   /* refresh relative timestamps and running durations */
   useEffect(() => {
@@ -61,15 +61,15 @@ export function ActivityPanel({
           <PanelTabs>
             <PanelTab value="tasks">Agents</PanelTab>
             <PanelTab
-              value="chat"
+              value="comments"
               className="relative"
-              title={unread ? `Chat · ${unread} new` : 'Talk to the room — @mention an agent to hand it a task'}
+              title={openThreads ? `Comments · ${openThreads} open` : 'Comments — every thread pinned on this page'}
             >
-              Chat
-              {/* new messages while another tab is open: a count on the tab itself */}
-              {unread > 0 && (
+              Comments
+              {/* open threads on this page: a count on the tab itself */}
+              {openThreads > 0 && (
                 <span className="absolute -top-1 -right-1.5 grid h-[14px] min-w-[14px] place-items-center rounded-lg bg-accent-ink px-[3px] font-mono text-[8px] font-medium normal-case tracking-normal text-white">
-                  {unread > 99 ? '99+' : unread}
+                  {openThreads > 99 ? '99+' : openThreads}
                 </span>
               )}
             </PanelTab>
@@ -96,8 +96,8 @@ export function ActivityPanel({
         <PanelTabPanel value="tasks">
           <TaskList />
         </PanelTabPanel>
-        <PanelTabPanel value="chat">
-          <ChatPanel active={tab === 'chat'} />
+        <PanelTabPanel value="comments">
+          <CommentsPanel />
         </PanelTabPanel>
         <PanelTabPanel value="activity">
           <ActivityList />

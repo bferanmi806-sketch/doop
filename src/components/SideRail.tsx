@@ -1,10 +1,10 @@
 import type { ComponentProps } from 'react'
 import { useStore, type PanelTab } from '../lib/store'
-import { useChatUnread } from '../lib/chatUnread'
+import { useOpenThreadCount } from '../lib/comments'
 import { cn } from '@/lib/utils'
 import { Button } from './ui/button'
 import { Tooltip } from './ui/tooltip'
-import { BookmarkIcon, ChatIcon, PanelExpandRightIcon, PulseIcon, SparkIcon } from './ui/icons'
+import { BookmarkIcon, CommentIcon, PanelExpandRightIcon, PulseIcon, SparkIcon } from './ui/icons'
 
 /** The collapsed side panel: a column of icon buttons pinned to the top-right
  *  of the canvas while the panel is closed. Each opens the panel on its tab;
@@ -15,7 +15,7 @@ export function SideRail({ onOpen }: { onOpen: () => void }) {
   const setTab = useStore((s) => s.setPanelTab)
   const working = useStore((s) => s.tasks.filter((t) => t.agentName && !t.endedAt && !t.failedAt).length)
   const proposalPending = useStore((s) => s.proposals.some((p) => p.status === 'pending'))
-  const unread = useChatUnread()
+  const openThreads = useOpenThreadCount()
 
   function show(next: PanelTab) {
     setTab(next)
@@ -44,14 +44,14 @@ export function SideRail({ onOpen }: { onOpen: () => void }) {
         )}
       </RailControl>
       <RailControl
-        label={unread ? `Chat · ${unread} new` : 'Chat'}
-        className={cn(unread > 0 && 'text-ink')}
-        onClick={() => show('chat')}
+        label={openThreads ? `Comments · ${openThreads} open` : 'Comments'}
+        className={cn(openThreads > 0 && 'text-ink')}
+        onClick={() => show('comments')}
       >
-        <ChatIcon />
-        {unread > 0 && (
+        <CommentIcon />
+        {openThreads > 0 && (
           <span className="absolute -top-0.5 -right-0.5 grid h-[15px] min-w-[15px] place-items-center rounded-lg border-2 border-surface bg-accent-ink px-[3px] font-mono text-[8px] font-medium text-white">
-            {unread > 99 ? '99+' : unread}
+            {openThreads > 99 ? '99+' : openThreads}
           </span>
         )}
       </RailControl>

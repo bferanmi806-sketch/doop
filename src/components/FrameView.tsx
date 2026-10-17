@@ -439,6 +439,24 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
     }
   }
 
+  /* the Comments panel asked for one of this frame's pins to open: the
+     request is consumed once the thread is up, so a remount (a page switch
+     back) never reopens it */
+  const threadRequest = useStore((s) => s.threadRequest)
+  const requestedThread = threadRequest && comments.some((c) => c.id === threadRequest.id) ? threadRequest : null
+  const [seenThreadRequest, setSeenThreadRequest] = useState<typeof requestedThread>(null)
+  if (requestedThread !== seenThreadRequest) {
+    setSeenThreadRequest(requestedThread)
+    if (requestedThread) {
+      setProbe(null)
+      setComposing(false)
+      setOpenThread(requestedThread.id)
+    }
+  }
+  useEffect(() => {
+    if (requestedThread) useStore.getState().clearThreadRequest()
+  }, [requestedThread])
+
   /* the outlined element is shared with the Layers panel through the store:
      what is probed here is picked (which also opens its properties panel,
      the same as a click on its Layers row), and a row picked there is

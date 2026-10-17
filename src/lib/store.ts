@@ -4,7 +4,6 @@ import type {
   ActivityItem,
   AgentTask,
   Canvas,
-  ChatMessage,
   DesignDecision,
   ElementComment,
   Frame,
@@ -23,17 +22,7 @@ export interface Viewport {
   zoom: number
 }
 
-export type PanelTab = 'tasks' | 'chat' | 'activity' | 'memory'
-
-const chatSeenKey = (canvasId: string) => `doop:chatSeen:${canvasId}`
-
-function loadChatSeen(canvasId: string): number {
-  try {
-    return Number(localStorage.getItem(chatSeenKey(canvasId)) ?? 0) || 0
-  } catch {
-    return 0
-  }
-}
+export type PanelTab = 'tasks' | 'comments' | 'activity' | 'memory'
 
 interface State {
   canvas: Canvas | null
@@ -46,11 +35,6 @@ interface State {
   feedback: TaskFeedback[]
   /** element-anchored comments (newest first) */
   comments: ElementComment[]
-  /** the canvas chat (newest first) */
-  chat: ChatMessage[]
-  /** when this browser last had the chat open on this canvas — everything
-   *  newer from someone else counts as unread on the rail */
-  chatSeenAt: number
   /** design decisions captured into Memory (newest first) */
   decisions: DesignDecision[]
   /** distiller rule proposals (newest first) */
@@ -113,6 +97,9 @@ interface State {
   /** a request for the Stage to glide the camera to a frame — the prompt bar
    *  raises it so a first deliverable streams in on-screen, never off-canvas */
   flyTo: { frameId: string; at: number } | { point: { x: number; y: number }; at: number } | null
+  /** a request for the frame holding this comment thread to open its pin —
+   *  the Comments panel raises it; the FrameView that owns the root consumes it */
+  threadRequest: { id: string; at: number } | null
   /** clientId of the peer whose camera this one is tracking (Figma-style
    *  follow); any camera move of our own lets go */
   following: string | null
@@ -143,10 +130,6 @@ interface State {
   upsertFeedback(fb: TaskFeedback): void
   setComments(comments: ElementComment[]): void
   upsertComment(c: ElementComment): void
-  setChat(messages: ChatMessage[]): void
-  pushChat(message: ChatMessage): void
-  /** the chat is on screen: nothing is unread any more */
-  markChatSeen(): void
   upsertFrame(f: Frame): void
   patchFrameLocal(frameId: string, patch: Partial<Frame>): void
   removeFrame(frameId: string): void
@@ -168,6 +151,10 @@ interface State {
   requestFlyTo(frameId: string): void
   /** glide the camera to a world point at the current zoom (a peer's cursor) */
   requestFlyToPoint(x: number, y: number): void
+  /** open the pin of this comment thread on its frame (the Comments panel) */
+  requestOpenThread(commentId: string): void
+  /** the owning frame has opened the thread */
+  clearThreadRequest(): void
   select(id: string | null): void
   /** ⇧-click: add the frame to the selection, or drop it if already in */
   toggleSelect(id: string): void
@@ -212,14 +199,13 @@ export const useStore = create<State>((set, get) => ({
   tasks: [],
   feedback: [],
   comments: [],
-  chat: [],
-  chatSeenAt: 0,
   decisions: [],
   proposals: [],
   panelTab: 'tasks',
   limitWall: false,
   allowanceVersion: 0,
   flyTo: null,
+  threadRequest: null,
   following: null,
   selectedIds: [],
   selectedId: null,
@@ -347,22 +333,6 @@ export const useStore = create<State>((set, get) => ({
     }),
   setFeedback: (feedback) => set({ feedback }),
   setComments: (comments) => set({ comments }),
-  setChat: (chat) => set((s) => ({ chat, chatSeenAt: s.canvas ? loadChatSeen(s.canvas.id) : 0 })),
-  pushChat: (message) =>
-    set((s) => (s.chat.some((m) => m.id === message.id) ? {} : { chat: [message, ...s.chat].slice(0, 300) })),
-  markChatSeen: () =>
-    set((s) => {
-      const latest = s.chat[0]?.at ?? 0
-      if (latest <= s.chatSeenAt) return {}
-      if (s.canvas) {
-        try {
-          localStorage.setItem(chatSeenKey(s.canvas.id), String(latest))
-        } catch {
-          /* private mode: the badge just comes back next visit */
-        }
-      }
-      return { chatSeenAt: latest }
-    }),
   upsertComment: (c) =>
     set((s) => {
       const comments = s.comments.some((x) => x.id === c.id)
@@ -486,6 +456,8 @@ export const useStore = create<State>((set, get) => ({
     set({ flyTo: { frameId, at: Date.now() } })
   },
   requestFlyToPoint: (x, y) => set({ flyTo: { point: { x, y }, at: Date.now() } }),
+  requestOpenThread: (id) => set({ threadRequest: { id, at: Date.now() } }),
+  clearThreadRequest: () => set({ threadRequest: null }),
   /* selecting a different frame (or deselecting) closes the Inspector — the
      panel must not follow surface clicks, paste, or undo onto another frame.
      Re-selecting the same frame keeps an open panel open. */
