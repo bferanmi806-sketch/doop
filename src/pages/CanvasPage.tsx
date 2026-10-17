@@ -47,7 +47,7 @@ import {
   pasteImagesCentered,
 } from '../lib/frameClipboard'
 import { clearHistory, redo, undo } from '../lib/history'
-import { deleteSelection, toggleSelectionHidden } from '../lib/layerEdits'
+import { deleteSelection, toggleLockSelection, toggleSelectionHidden } from '../lib/layerEdits'
 import { authClient } from '../lib/auth'
 import { posthog } from '../lib/posthog'
 import { useIsMobile } from '../hooks/use-mobile'
@@ -215,6 +215,11 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
          frames — as the eye in the Layers panel would */
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === 'h') {
         if (toggleSelectionHidden()) e.preventDefault()
+        return
+      }
+      /* ⌘⇧L locks or unlocks what is selected: the picked layer, else the frames */
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === 'l') {
+        if (toggleLockSelection()) e.preventDefault()
         return
       }
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {

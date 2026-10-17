@@ -166,6 +166,8 @@ export const frames = pgTable(
     demo: boolean('demo'),
     /** hidden from the stage via the Layers panel; null = shown */
     hidden: boolean('hidden'),
+    /** Figma-style lock; null = unlocked */
+    locked: boolean('locked'),
   },
   (t) => [index('frames_canvas_idx').on(t.canvasId)],
 )

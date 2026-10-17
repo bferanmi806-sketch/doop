@@ -20,6 +20,10 @@ export interface Frame {
   /** hidden from the stage (the eye in the Layers panel); the frame keeps
    *  its row, its HTML and its exports — only the canvas stops drawing it */
   hidden?: boolean
+  /** Figma-style lock: the frame cannot be selected, moved, resized or
+   *  deleted from the stage until it is unlocked (Layers panel, Inspector,
+   *  ⌘⇧L, or an agent via update_frame) */
+  locked?: boolean
 }
 
 export interface CanvasMeta {

@@ -1197,6 +1197,7 @@ export function createFrame(
     html?: string
     demo?: boolean
     hidden?: boolean
+    locked?: boolean
   },
   actor: Actor,
 ): Frame | undefined {
@@ -1219,7 +1220,7 @@ export function createFrame(
 
 export function updateFrame(
   frameId: string,
-  patch: Partial<Pick<Frame, 'name' | 'pageId' | 'x' | 'y' | 'width' | 'height' | 'html' | 'hidden'>>,
+  patch: Partial<Pick<Frame, 'name' | 'pageId' | 'x' | 'y' | 'width' | 'height' | 'html' | 'hidden' | 'locked'>>,
   actor: Actor,
 ): Frame | undefined {
   const before = store.getFrame(frameId)
@@ -1228,6 +1229,7 @@ export function updateFrame(
   const prevName = before.name
   const prevHtml = before.html
   const prevHidden = !!before.hidden
+  const prevLocked = !!before.locked
   const frame = store.updateFrame(frameId, patch, actor.name)
   if (!frame) return undefined
 
@@ -1268,6 +1270,10 @@ export function updateFrame(
     } else if (patch.hidden !== undefined && !!patch.hidden !== prevHidden) {
       logActivity(frame.canvasId, actor, `${frame.hidden ? 'hid' : 'showed'} frame “${frame.name}”`, frame.id)
     }
+  }
+  /* a lock change is its own line, whatever else the same update carried */
+  if (patch.locked !== undefined && !!patch.locked !== prevLocked) {
+    logActivity(frame.canvasId, actor, `${frame.locked ? 'locked' : 'unlocked'} “${frame.name}”`, frame.id)
   }
 
   touch(frame.canvasId, actor, frame.id)

@@ -24,7 +24,16 @@ import {
   type DropTarget,
   type LayerNode,
 } from '../lib/layers'
-import { deleteLayer, dropLayer, duplicateLayer, setFrameHidden, setLayerHidden, shiftLayer } from '../lib/layerEdits'
+import {
+  deleteLayer,
+  dropLayer,
+  duplicateLayer,
+  setFrameHidden,
+  setFramesLocked,
+  setLayerHidden,
+  setLayerLocked,
+  shiftLayer,
+} from '../lib/layerEdits'
 import { MOD_KEY } from '../lib/keys'
 import { cn } from '@/lib/utils'
 import { AgentIcon } from './AgentIcon'
@@ -50,6 +59,7 @@ import {
   EyeIcon,
   FrameIcon,
   LayersIcon,
+  LockIcon,
   PanelCollapseIcon,
   PanelExpandIcon,
   PlusIcon,
@@ -312,8 +322,10 @@ export function LayersPanel({ onAddFrame }: { onAddFrame: () => void }) {
         /* a held key repeats: once the element is gone the frame row would
            be next, so only the first press deletes */
         if (e.repeat) break
-        if (row?.kind === 'frame') deleteFramesTracked([row.frame])
-        else if (row) deleteLayer(row.frame, row.node.selector)
+        /* a locked frame stays (deleteLayer refuses a locked element itself) */
+        if (row?.kind === 'frame') {
+          if (!row.frame.locked) deleteFramesTracked([row.frame])
+        } else if (row) deleteLayer(row.frame, row.node.selector)
         break
       default:
         return
@@ -533,6 +545,8 @@ function FrameRow({
             hidden={!!frame.hidden}
             dimmed={!!frame.hidden}
             onToggleHidden={() => setFrameHidden(frame, !frame.hidden)}
+            locked={!!frame.locked}
+            onToggleLocked={() => setFramesLocked([frame], !frame.locked)}
             onClick={onActivate}
             onDoubleClick={() => useStore.getState().requestFlyTo(frame.id)}
             onContextMenu={() => {
@@ -599,6 +613,8 @@ function NodeRow({
           hidden={node.hidden}
           dimmed={row.dim || node.hidden}
           onToggleHidden={() => setLayerHidden(frame, node.selector, !node.hidden)}
+          locked={node.locked}
+          onToggleLocked={() => setLayerLocked(frame, node.selector, !node.locked)}
           className={cn(dragging && 'opacity-40')}
           onClick={onActivate}
           onContextMenu={onActivate}
@@ -633,7 +649,12 @@ function NodeRow({
           <MenuHint>⌥↓</MenuHint>
         </ContextMenuItem>
         <ContextMenuSeparator />
-        <ContextMenuItem tone="danger" onSelect={() => deleteLayer(frame, node.selector)}>
+        <ContextMenuItem onSelect={() => setLayerLocked(frame, node.selector, !node.locked)}>
+          {node.locked ? 'Unlock' : 'Lock'}
+          <MenuHint>⌘⇧L</MenuHint>
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem tone="danger" disabled={node.locked} onSelect={() => deleteLayer(frame, node.selector)}>
           Delete element
           <MenuHint>⌫</MenuHint>
         </ContextMenuItem>
@@ -662,6 +683,10 @@ type RowProps = Omit<HTMLAttributes<HTMLDivElement>, 'onClick'> & {
   dimmed?: boolean
   /** the eye at the row's right end; it shows on hover, and stays while hidden */
   onToggleHidden?: () => void
+  /** locked by its own lock: the solid lock stays, hover or not */
+  locked?: boolean
+  /** the lock next to the eye; it shows on hover, and stays while locked */
+  onToggleLocked?: () => void
   onClick: () => void
 }
 
@@ -679,6 +704,8 @@ function Row({
   hidden,
   dimmed,
   onToggleHidden,
+  locked,
+  onToggleLocked,
   onClick,
   ...rest
 }: RowProps) {
@@ -731,35 +758,73 @@ function Row({
         {detail && <span className={cn('text-ink-faint', selected && 'text-white/85')}>{detail}</span>}
       </span>
       {trailing && <span className="flex flex-none items-center gap-1">{trailing}</span>}
-      {onToggleHidden && (
-        <Tooltip label={hidden ? 'Show' : 'Hide'} side="left">
-          <button
-            type="button"
-            aria-label={hidden ? 'Show' : 'Hide'}
-            aria-pressed={hidden}
-            className={cn(
-              'grid size-5 flex-none place-items-center rounded-[5px] text-ink-faint opacity-0 hover:bg-ink/10 hover:text-ink focus-visible:opacity-100 group-hover:opacity-100',
-              hidden && 'opacity-100',
-              selected && 'text-white/85 hover:bg-white/15 hover:text-white',
-            )}
-            /* the eye is its own control: no select, no drag, no fly-to —
-               and ↵/space on it must press the button, not reach the tree,
-               whose ↵ handler would cancel the press and fly to the frame */
-            onPointerDown={(e) => e.stopPropagation()}
-            onDoubleClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') e.stopPropagation()
-            }}
-            onClick={(e) => {
-              e.stopPropagation()
-              onToggleHidden()
-            }}
-          >
-            {hidden ? <EyeClosedIcon width={13} height={13} /> : <EyeIcon width={13} height={13} />}
-          </button>
-        </Tooltip>
+      {(onToggleHidden || onToggleLocked) && (
+        <span className="flex flex-none items-center gap-0.5">
+          {onToggleHidden && (
+            <RowToggle
+              label={hidden ? 'Show' : 'Hide'}
+              on={!!hidden}
+              selected={selected}
+              onToggle={onToggleHidden}
+              icon={hidden ? <EyeClosedIcon width={13} height={13} /> : <EyeIcon width={13} height={13} />}
+            />
+          )}
+          {onToggleLocked && (
+            <RowToggle
+              label={locked ? 'Unlock' : 'Lock'}
+              on={!!locked}
+              selected={selected}
+              onToggle={onToggleLocked}
+              icon={<LockIcon width={12} height={12} />}
+            />
+          )}
+        </span>
       )}
     </div>
+  )
+}
+
+/** A row-end control (the eye, the lock): faint on hover, solid while on.
+ *  It is its own control: no select, no drag, no fly-to — and ↵/space on it
+ *  must press the button, not reach the tree, whose ↵ handler would cancel
+ *  the press and fly to the frame. */
+function RowToggle({
+  label,
+  on,
+  selected,
+  icon,
+  onToggle,
+}: {
+  label: string
+  on: boolean
+  selected: boolean
+  icon: ReactNode
+  onToggle: () => void
+}) {
+  return (
+    <Tooltip label={label} side="left">
+      <button
+        type="button"
+        aria-label={label}
+        aria-pressed={on}
+        className={cn(
+          'grid size-5 flex-none place-items-center rounded-[5px] text-ink-faint opacity-0 hover:bg-ink/10 hover:text-ink focus-visible:opacity-100 group-hover:opacity-100',
+          on && 'opacity-100',
+          selected && 'text-white/85 hover:bg-white/15 hover:text-white',
+        )}
+        onPointerDown={(e) => e.stopPropagation()}
+        onDoubleClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') e.stopPropagation()
+        }}
+        onClick={(e) => {
+          e.stopPropagation()
+          onToggle()
+        }}
+      >
+        {icon}
+      </button>
+    </Tooltip>
   )
 }
 

@@ -81,6 +81,7 @@ export async function saveCanvasCopy(c: Canvas): Promise<void> {
           updatedBy: frame.updatedBy,
           demo: frame.demo ?? null,
           hidden: frame.hidden ?? null,
+          locked: frame.locked ?? null,
         })),
       )
     }
@@ -340,6 +341,7 @@ async function writeFrame(f: Frame) {
     updatedBy: f.updatedBy,
     demo: f.demo ?? null,
     hidden: f.hidden ?? null,
+    locked: f.locked ?? null,
   }
   const { id, createdAt, ...set } = row
   await db.insert(t.frames).values(row).onConflictDoUpdate({ target: t.frames.id, set })
@@ -637,9 +639,13 @@ export async function hydrate(): Promise<Hydrated> {
     if (c) (c.memberIds ??= []).push(m.userId)
   }
   for (const f of frameRows)
-    byId
-      .get(f.canvasId)
-      ?.frames.push({ ...f, pageId: f.pageId ?? undefined, demo: f.demo ?? undefined, hidden: f.hidden ?? undefined })
+    byId.get(f.canvasId)?.frames.push({
+      ...f,
+      pageId: f.pageId ?? undefined,
+      demo: f.demo ?? undefined,
+      hidden: f.hidden ?? undefined,
+      locked: f.locked ?? undefined,
+    })
   for (const c of canvases) c.frames.sort((a, b) => a.createdAt - b.createdAt)
   for (const r of referenceRows) {
     const c = byId.get(r.canvasId)

@@ -3,7 +3,7 @@ import type { Frame } from '../../shared/types'
 import { errorMessage } from '../lib/api'
 import { copyFrames, duplicateFrames, hasFrameClip, pasteFrameAtScreen } from '../lib/frameClipboard'
 import { deleteFramesTracked } from '../lib/history'
-import { setFramesHidden } from '../lib/layerEdits'
+import { setFramesHidden, setFramesLocked } from '../lib/layerEdits'
 import { useStore } from '../lib/store'
 import { MOD_KEY } from '../lib/keys'
 import { ContextMenuContent, ContextMenuItem, ContextMenuSeparator } from './ui/context-menu'
@@ -36,8 +36,16 @@ export function FrameContextMenu({ frame, at }: { frame: Frame; at: MutableRefOb
     const ids = s.selectedIds.includes(frame.id) ? s.selectedIds : [frame.id]
     return s.canvas?.frames.filter((f) => ids.includes(f.id)) ?? [frame]
   }
+  /* Lock reads as one state for the group: it unlocks only once every frame
+     in it is locked, otherwise it locks the rest (as ⌘⇧L does) */
+  const allLocked = useStore((s) => {
+    const ids = s.selectedIds.includes(frame.id) ? s.selectedIds : [frame.id]
+    const group = s.canvas?.frames.filter((f) => ids.includes(f.id)) ?? [frame]
+    return group.every((f) => f.locked)
+  })
   function deleteSelection() {
-    deleteFramesTracked(groupFrames())
+    /* locked frames stay, as they do on ⌫ */
+    deleteFramesTracked(groupFrames().filter((f) => !f.locked))
   }
   return (
     <>
@@ -75,7 +83,13 @@ export function FrameContextMenu({ frame, at }: { frame: Frame; at: MutableRefOb
         <ContextMenuItem onSelect={() => void copyImageUrl(frame)}>Copy image URL</ContextMenuItem>
         <ContextMenuItem onSelect={() => setShowExport(true)}>Export…</ContextMenuItem>
         <ContextMenuSeparator />
-        <ContextMenuItem tone="danger" onSelect={deleteSelection}>
+        <ContextMenuItem onSelect={() => setFramesLocked(groupFrames(), !allLocked)}>
+          {allLocked ? 'Unlock' : 'Lock'}
+          {groupSize > 1 ? ` ${groupSize} frames` : ''}
+          <MenuHint>{MOD_KEY}⇧L</MenuHint>
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem tone="danger" disabled={allLocked} onSelect={deleteSelection}>
           {groupSize > 1 ? `Delete ${groupSize} frames` : 'Delete frame'}
           <MenuHint>⌫</MenuHint>
         </ContextMenuItem>

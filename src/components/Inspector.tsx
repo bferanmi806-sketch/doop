@@ -4,7 +4,9 @@ import { useStore } from '../lib/store'
 import { api } from '../lib/api'
 import { downloadFrameExport } from '../lib/frameExport'
 import { deleteFrameTracked, recordUpdate } from '../lib/history'
+import { setFramesLocked } from '../lib/layerEdits'
 import { cn } from '@/lib/utils'
+import { LockIcon } from './ui/icons'
 import { Panel, PanelClose, PanelDisclosure, PanelHeader } from './ui/panel'
 import { Collapsible, CollapsibleContent } from './ui/collapsible'
 import { Button } from './ui/button'
@@ -109,6 +111,18 @@ export function Inspector({
         Frame
         <PanelClose onClick={() => select(null)} />
       </PanelHeader>
+      {frame.locked && (
+        <div className="flex items-center justify-between gap-2 border-b border-line-soft bg-paper px-4 py-2">
+          <span className="flex items-center gap-1.5 text-[12px] font-semibold text-ink-soft">
+            <LockIcon width={12} height={12} />
+            Locked
+            <span className="font-normal text-ink-faint">— can’t be moved, resized or deleted on the canvas</span>
+          </span>
+          <Button size="sm" className="shrink-0" onClick={() => setFramesLocked([frame], false)}>
+            Unlock
+          </Button>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-2.5 border-b border-line-soft px-4 py-3.5">
         <Field label="Name" className="col-span-full">
           <NumberlessInput
@@ -207,7 +221,13 @@ export function Inspector({
         <span className="font-mono text-[11px] text-ink-faint">
           {saveState === 'dirty' ? 'saving…' : saveState === 'saved' ? 'saved ✓' : `last edit by ${frame.updatedBy}`}
         </span>
-        <Button variant="bare-danger" size="sm" onClick={() => deleteFrameTracked(frame)}>
+        <Button
+          variant="bare-danger"
+          size="sm"
+          disabled={!!frame.locked}
+          title={frame.locked ? 'Unlock the frame to delete it' : undefined}
+          onClick={() => deleteFrameTracked(frame)}
+        >
           Delete frame
         </Button>
       </footer>

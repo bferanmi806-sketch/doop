@@ -191,6 +191,7 @@ function frameSummary(f: {
   html: string
   demo?: boolean
   hidden?: boolean
+  locked?: boolean
 }) {
   return {
     id: f.id,
@@ -198,6 +199,7 @@ function frameSummary(f: {
     name: f.name,
     ...(f.demo ? { demo: true } : {}),
     ...(f.hidden ? { hidden: true } : {}),
+    ...(f.locked ? { locked: true } : {}),
     x: f.x,
     y: f.y,
     width: f.width,
@@ -1585,7 +1587,8 @@ export function buildMcpServer(owner?: string, ownerId?: string): McpServer {
     {
       title: 'Rename, move or resize a frame',
       _meta: previewToolMeta('Updating the frame…', 'Frame updated'),
-      description: 'Update frame metadata: rename it, move/resize it, or move it to another page using pageId.',
+      description:
+        'Update frame metadata: rename it, move/resize it, or move it to another page using pageId. Set locked to true to lock the frame on the canvas (humans cannot select, move, resize or delete it from the stage until it is unlocked) or false to unlock it.',
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       inputSchema: {
         frame_id: z.string(),
@@ -1595,6 +1598,7 @@ export function buildMcpServer(owner?: string, ownerId?: string): McpServer {
         y: z.number().optional(),
         width: z.number().optional(),
         height: z.number().optional(),
+        locked: z.boolean().optional(),
         agent_name: agentName,
       },
     },

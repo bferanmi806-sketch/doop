@@ -556,7 +556,11 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
   }, [onAddFrame])
 
   function onPointerDown(e: React.PointerEvent) {
-    const isBackground = e.target === e.currentTarget || (e.target as HTMLElement).classList.contains('world')
+    const target = e.target as HTMLElement
+    /* a locked frame lets the press through (FrameView.startDrag), and the
+       stage treats it as empty canvas: a click clears, a drag marquees */
+    const isBackground =
+      e.target === e.currentTarget || target.classList.contains('world') || !!target.closest('[data-frame-locked]')
     const s = useStore.getState()
     const action = resolvePointerAction({
       tool: s.tool,
@@ -619,11 +623,13 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
       }
       setMarquee(rect)
       const frames = currentPageCanvas()?.frames ?? []
-      /* a hidden frame is not on the stage to be lassoed */
+      /* a hidden frame is not on the stage to be lassoed, and a locked one is
+         not the marquee's to take */
       const hits = frames
         .filter(
           (f) =>
             !f.hidden &&
+            !f.locked &&
             f.x < rect.x + rect.width &&
             f.x + f.width > rect.x &&
             f.y < rect.y + rect.height &&

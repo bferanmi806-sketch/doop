@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils'
 import { Button } from './ui/button'
 import { Textarea } from './ui/textarea'
 import { Tooltip } from './ui/tooltip'
-import { EyeClosedIcon, GithubIcon, SyncIcon } from './ui/icons'
+import { EyeClosedIcon, GithubIcon, LockIcon, SyncIcon } from './ui/icons'
 import { isSyncedFrame } from '../lib/sync'
 import { isGithubFrame, isGithubPlaceholder } from '../lib/github'
 import { AgentIcon } from './AgentIcon'
@@ -196,7 +196,9 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
       if (probeOnClick) probeAt(e.nativeEvent.offsetX, e.nativeEvent.offsetY, 'comment')
       return
     }
-    if (action !== 'frame-drag') return
+    /* a locked frame is not the stage's to select, move or resize: the press
+       falls through to the Stage, which treats it as empty canvas */
+    if (action !== 'frame-drag' || frame.locked) return
     e.stopPropagation()
     e.preventDefault()
     /* ⌥⇧-drag duplicates: the moment the drag is real, leave a copy of the
@@ -231,11 +233,12 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
     let moved = false
     let dupDropped = false
     if (duplicating) setDuping(true)
-    /* a move carries every selected frame along; a resize is this frame only */
+    /* a move carries every selected frame along (locked ones stay put — a
+       Layers-panel selection may hold one); a resize is this frame only */
     const frames = currentPageCanvas()?.frames ?? []
     const selectedIds = mode === 'move' ? useStore.getState().selectedIds : [frame.id]
     const group = frames
-      .filter((f) => selectedIds.includes(f.id))
+      .filter((f) => selectedIds.includes(f.id) && !f.locked)
       .map((f) => ({ id: f.id, orig: { x: f.x, y: f.y, width: f.width, height: f.height } }))
     const groupIds = new Set(group.map((g) => g.id))
 
@@ -602,7 +605,7 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
   }, [selected]) // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ---- inline text editing ---- */
-  const canEdit = !!frame.html && !stream && !/<script/i.test(frame.html)
+  const canEdit = !!frame.html && !stream && !frame.locked && !/<script/i.test(frame.html)
 
   function enterEdit() {
     select(frame.id)
@@ -657,6 +660,12 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
     // eslint-disable-next-line react-hooks/set-state-in-effect -- see above
     if (!selected && editing) exitEdit()
   }, [selected]) // eslint-disable-line react-hooks/exhaustive-deps
+  /* so does a lock arriving from a collaborator (or an agent) mid-session:
+     what was typed so far is flushed by the exit, nothing more lands */
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- external-system sync, as above
+    if (frame.locked && editing) exitEdit()
+  }, [frame.locked]) // eslint-disable-line react-hooks/exhaustive-deps
 
   /* When zoomed past 100%, render the iframe k× larger and counter-scale it,
      with a matching CSS zoom inside — same layout, k× the raster density, so
@@ -684,6 +693,8 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
     >
       <ContextMenuTrigger asChild>
         <div
+          /* the Stage reads this: a press on a locked frame is a press on the canvas */
+          data-frame-locked={frame.locked ? '' : undefined}
           className={cn(
             'group absolute',
             stream &&
@@ -720,6 +731,13 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
             style={duping || dupKeyHeld ? { cursor: DUP_CURSOR } : undefined}
             onPointerDown={(e) => startDrag(e, 'move', false, true)}
           >
+            {frame.locked && (
+              <Tooltip label="Locked — unlock it from the Layers panel or the Inspector" side="top" align="start">
+                <span className="flex shrink-0 items-center text-ink-faint">
+                  <LockIcon width={11} height={11} />
+                </span>
+              </Tooltip>
+            )}
             {isSyncedFrame(frame.html) && (
               <Tooltip label="Synced from a live app" side="top" align="start">
                 <span className="flex shrink-0 items-center text-brand">
@@ -784,8 +802,9 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
             onPointerDown={(e) => startDrag(e, 'move', true)}
             onDoubleClick={() => canEdit && !editing && tool === 'select' && enterEdit()}
             onPointerMove={(e) => {
-              /* the Hand only pans: no element outlines under it */
-              if (editing || dragging || !frame.html || !runtimeReady || tool === 'hand') return
+              /* the Hand only pans, and a locked frame has nothing to pick: no
+                 element outlines in either case */
+              if (editing || dragging || frame.locked || !frame.html || !runtimeReady || tool === 'hand') return
               /* screen px → design px: the frame lives inside the zoomed stage */
               const r = e.currentTarget.getBoundingClientRect()
               const zoom = useStore.getState().viewport.zoom
@@ -1023,13 +1042,15 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
             )
           })()}
 
-          <div
-            className={cn(
-              'absolute -right-[7px] -bottom-[7px] h-3.5 w-3.5 cursor-nwse-resize rounded-[4px] border-[1.5px] border-ink bg-surface opacity-0 [transition:opacity_0.12s] group-hover:opacity-100',
-              selected && 'opacity-100',
-            )}
-            onPointerDown={(e) => startDrag(e, 'resize')}
-          />
+          {!frame.locked && (
+            <div
+              className={cn(
+                'absolute -right-[7px] -bottom-[7px] h-3.5 w-3.5 cursor-nwse-resize rounded-[4px] border-[1.5px] border-ink bg-surface opacity-0 [transition:opacity_0.12s] group-hover:opacity-100',
+                selected && 'opacity-100',
+              )}
+              onPointerDown={(e) => startDrag(e, 'resize')}
+            />
+          )}
         </div>
       </ContextMenuTrigger>
       <FrameContextMenu frame={frame} at={menuAt} />

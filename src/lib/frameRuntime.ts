@@ -122,9 +122,17 @@ export const FRAME_BOOTSTRAP = `<!doctype html>
     return false
   }
 
+  /* a locked element, or anything inside a locked box, is off limits to the
+     stage: not hovered, not picked, not edited (src/lib/layers.ts LOCK_ATTR) */
+  var LOCKED = '[data-doop-locked]'
+  function isLocked(el) {
+    return !!(el && el.closest && el.closest(LOCKED))
+  }
+
   /* nearest ancestor (incl. self) that directly contains visible text */
   function candidate(start) {
     var el = start && start.nodeType === 3 ? start.parentElement : start
+    if (isLocked(el)) return null
     while (el && el !== document.body && el !== document.documentElement) {
       if (hasOwnText(el)) return el
       el = el.parentElement
@@ -308,10 +316,21 @@ export const FRAME_BOOTSTRAP = `<!doctype html>
     }
   }
 
+  /* the topmost unlocked element under a design-space point: a click on a
+     locked element falls through to whatever sits beneath it, as in Figma */
+  function elementAt(x, y) {
+    var stack = document.elementsFromPoint(x * curZoom, y * curZoom)
+    for (var i = 0; i < stack.length; i++) {
+      var el = stack[i]
+      if (el === document.documentElement || el === document.body) return null
+      if (!isLocked(el)) return el
+    }
+    return null
+  }
+
   function probe(x, y) {
-    var el = document.elementFromPoint(x * curZoom, y * curZoom)
-    if (!el || el === document.documentElement || el === document.body) return null
-    return hitInfo(el)
+    var el = elementAt(x, y)
+    return el ? hitInfo(el) : null
   }
 
   /* the Layers panel selects by selector rather than by point */
@@ -325,9 +344,8 @@ export const FRAME_BOOTSTRAP = `<!doctype html>
   /* hover inspection: like probe but fired on every (throttled) pointer move,
      so it skips the outerHTML/selector work and returns just tag + rect */
   function hoverProbe(x, y) {
-    var el = document.elementFromPoint(x * curZoom, y * curZoom)
-    if (!el || el === document.documentElement || el === document.body) return null
-    return { tag: el.tagName.toLowerCase(), rect: designRect(el) }
+    var el = elementAt(x, y)
+    return el ? { tag: el.tagName.toLowerCase(), rect: designRect(el) } : null
   }
 
   /* full source of one element, with runtime markers stripped */
@@ -426,7 +444,7 @@ export const FRAME_BOOTSTRAP = `<!doctype html>
   function applyStyle(selector, styles) {
     var el = null
     try { el = selector ? document.querySelector(selector) : null } catch (e) { /* bad selector */ }
-    if (!el) return false
+    if (!el || isLocked(el)) return false
     for (var k in styles) {
       if (!Object.prototype.hasOwnProperty.call(styles, k)) continue
       if (styles[k] === null || styles[k] === '') el.style.removeProperty(k)
@@ -454,6 +472,21 @@ export const FRAME_BOOTSTRAP = `<!doctype html>
     }
     if (d.type === 'doop:html' && typeof d.html === 'string' && !editing) render(d.html)
     if (d.type === 'doop:edit') setEdit(!!d.on)
+    /* a lock set from the Layers panel lands on the live element too: while
+       editing, the parent withholds html, and the next text save serializes
+       this document — the attribute has to be here or the save drops it. A
+       lock over the element being typed in ends that edit. */
+    if (d.type === 'doop:lock') {
+      var lockEl = null
+      try { lockEl = d.selector ? document.querySelector(d.selector) : null } catch (e) { /* bad selector */ }
+      if (lockEl) {
+        if (d.locked) {
+          lockEl.setAttribute('data-doop-locked', 'true')
+          if (activeEl && lockEl.contains(activeEl)) deactivate()
+        } else lockEl.removeAttribute('data-doop-locked')
+      }
+      parent.postMessage({ type: 'doop:lock-result', reqId: d.reqId, ok: !!lockEl }, '*')
+    }
     if (d.type === 'doop:probe') {
       parent.postMessage({ type: 'doop:probe-result', reqId: d.reqId, hit: probe(d.x, d.y) }, '*')
     }
