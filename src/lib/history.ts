@@ -24,8 +24,10 @@ type Entry =
   | { type: 'create'; frameId: string; snapshot: Snapshot }
   | { type: 'delete'; frameId: string; snapshot: Snapshot }
   /* one multi-frame action (a group move, a group delete): undone and
-     redone as a unit */
-  | { type: 'group'; entries: Entry[] }
+     redone as a unit. An `ordered` group's members depend on each other (a
+     page and the frames on it), so they run one after another: forward on
+     redo, backwards on undo. */
+  | { type: 'group'; entries: Entry[]; ordered?: boolean }
 
 const MAX = 100
 /* consecutive edits to the same fields land as one entry within this window
@@ -133,6 +135,35 @@ export function recordCreate(frame: Frame) {
   push({ type: 'create', frameId: frame.id, snapshot: snapshot(frame) })
 }
 
+/** A page duplicated together with its frames: one undo step that removes
+ *  the frames before the page (a page with frames cannot be deleted) and
+ *  brings the page back before the frames on redo. */
+export function recordPageCopy(
+  canvasId: string,
+  before: CanvasPageInfo[],
+  after: CanvasPageInfo[],
+  activeBefore: string | null,
+  activeAfter: string | null,
+  frames: Frame[],
+) {
+  if (samePages(before, after)) return
+  push({
+    type: 'group',
+    ordered: true,
+    entries: [
+      {
+        type: 'pages',
+        canvasId,
+        before: before.map((p) => ({ ...p })),
+        after: after.map((p) => ({ ...p })),
+        activeBefore,
+        activeAfter,
+      },
+      ...frames.map((f): Entry => ({ type: 'create', frameId: f.id, snapshot: snapshot(f) })),
+    ],
+  })
+}
+
 /** Several frames created together (a multi-frame paste): one undo step. */
 export function recordCreates(frames: Frame[]) {
   if (!frames.length) return
@@ -187,6 +218,70 @@ function selectionIds(e: Entry, direction: 'undo' | 'redo'): string[] {
   return recreated ? [e.frameId] : []
 }
 
+/* A step whose prerequisite failed is not lost: `remaining` goes back on the
+   stack it came from for another try, `applied` (what did land before the
+   failure) on the opposite stack so it stays reversible. */
+class PrerequisiteFailed extends Error {
+  constructor(
+    readonly remaining: Entry,
+    readonly applied: Entry | null,
+    cause: unknown,
+  ) {
+    super(cause instanceof Error ? cause.message : 'Could not apply the page change', { cause })
+  }
+}
+
+/* The canvas a page change belongs to: a pages entry's own, or the one its
+   ordered group leads with. */
+function pagesCanvasId(e: Entry): string | undefined {
+  if (e.type === 'pages') return e.canvasId
+  const [first] = e.type === 'group' ? e.entries : []
+  return first ? pagesCanvasId(first) : undefined
+}
+
+/* The members of a group that took effect, in the group's order. */
+async function settle(entries: Entry[], direction: 'undo' | 'redo'): Promise<Entry[]> {
+  const results = await Promise.allSettled(entries.map((child) => apply(child, direction)))
+  const ok = results.flatMap((r) => (r.status === 'fulfilled' && r.value ? [r.value] : []))
+  const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected')
+  if (failed) console.error(`${direction} failed for ${entries.length - ok.length} frame(s)`, failed.reason)
+  return ok
+}
+
+function groupOf(entries: Entry[], ordered: boolean): Entry | null {
+  const [first, ...rest] = entries
+  if (!first) return null
+  return rest.length ? { type: 'group', entries, ...(ordered ? { ordered: true } : {}) } : first
+}
+
+/* An ordered group's first member is the prerequisite of the rest (the page
+   the frames live on). Redo applies it first and goes no further when it
+   fails, so no frame is recreated on the wrong page. Undo removes the frames
+   first; a page that then cannot be removed keeps the still-present frames
+   with it for the next try. */
+async function applyOrdered(entries: Entry[], direction: 'undo' | 'redo'): Promise<Entry | null> {
+  const [prerequisite, ...dependents] = entries
+  if (!prerequisite) return null
+  if (direction === 'redo') {
+    let first: Entry | null
+    try {
+      first = await apply(prerequisite, 'redo')
+    } catch (err) {
+      throw new PrerequisiteFailed(groupOf(entries, true)!, null, err)
+    }
+    const ok = await settle(dependents, 'redo')
+    return groupOf(first ? [first, ...ok] : ok, true)
+  }
+  const ok = await settle(dependents, 'undo')
+  try {
+    const first = await apply(prerequisite, 'undo')
+    return groupOf(first ? [first, ...ok] : ok, true)
+  } catch (err) {
+    const left = dependents.filter((child) => !ok.includes(child))
+    throw new PrerequisiteFailed(groupOf([prerequisite, ...left], true)!, groupOf(ok, false), err)
+  }
+}
+
 /* Apply an entry and report which of its members took effect. A group's
    frames are independent, so every member is attempted even if one fails;
    the survivors are what the opposite stack gets, so a partially failed
@@ -194,13 +289,8 @@ function selectionIds(e: Entry, direction: 'undo' | 'redo'): string[] {
    failed single entry is: the frame is gone or the canvas moved on. */
 async function apply(e: Entry, direction: 'undo' | 'redo'): Promise<Entry | null> {
   if (e.type === 'group') {
-    const results = await Promise.allSettled(e.entries.map((child) => apply(child, direction)))
-    const ok = results.flatMap((r) => (r.status === 'fulfilled' && r.value ? [r.value] : []))
-    const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected')
-    if (failed) console.error(`${direction} failed for ${e.entries.length - ok.length} frame(s)`, failed.reason)
-    const [first, ...rest] = ok
-    if (!first) return null
-    return rest.length ? { type: 'group', entries: ok } : first
+    if (e.ordered) return applyOrdered(e.entries, direction)
+    return groupOf(await settle(e.entries, direction), false)
   }
   const forward = direction === 'redo'
   if (e.type === 'pages') {
@@ -268,10 +358,18 @@ async function step(direction: 'undo' | 'redo') {
       posthog.capture(direction === 'undo' ? 'canvas_undo' : 'canvas_redo')
     }
   } catch (err) {
-    if (entry?.type === 'pages' && useStore.getState().canvas?.id === entry.canvasId) {
+    /* a page change that did not land stays on its stack for another try */
+    const retry =
+      err instanceof PrerequisiteFailed
+        ? err
+        : entry?.type === 'pages'
+          ? new PrerequisiteFailed(entry, null, err)
+          : null
+    if (retry && pagesCanvasId(retry.remaining) === useStore.getState().canvas?.id) {
       const from = direction === 'undo' ? undoStack : redoStack
-      from.push(entry)
-      useStore.getState().pushNotice(err instanceof Error ? err.message : 'Could not undo page change')
+      from.push(retry.remaining)
+      if (retry.applied) (direction === 'undo' ? redoStack : undoStack).push(retry.applied)
+      useStore.getState().pushNotice(retry.message)
     }
     /* the frame is gone or the canvas moved on — drop the entry */
     console.error(`${direction} failed`, err)

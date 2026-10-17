@@ -13,7 +13,7 @@ import { eq, inArray } from 'drizzle-orm'
 import { toNodeHandler, fromNodeHeaders } from 'better-auth/node'
 import { oAuthDiscoveryMetadata } from 'better-auth/plugins'
 import { WebSocketServer, WebSocket } from 'ws'
-import { store } from './store.ts'
+import { PageLimitError, store } from './store.ts'
 import { getImage } from './previews.ts'
 import * as actions from './actions.ts'
 import { liveActivitiesRouter, logLiveActivityRequests, startLiveActivityDelivery } from './liveActivities.ts'
@@ -1490,6 +1490,23 @@ app.put('/api/canvases/:id/pages', (req, res) => {
   const actor = actions.resolveActor({ name: req.user!.name, kind: 'user' })
   broadcast(canvas.id, { type: 'canvas:pages', pages: clean, actor })
   res.json(clean)
+})
+
+app.post('/api/canvases/:id/pages/:pageId/duplicate', async (req, res) => {
+  const canvas = requireCanvas(req, res, req.params.id)
+  if (!canvas) return
+  if (!canvasPages(canvas).some((page) => page.id === req.params.pageId))
+    return res.status(404).json({ error: 'page not found' })
+  const actor = actions.resolveActor({ name: req.user!.name, kind: 'user' })
+  try {
+    const copy = await actions.duplicatePage(canvas.id, req.params.pageId, actor)
+    if (!copy) return res.status(404).json({ error: 'page not found' })
+    res.json({ page: copy.page, pages: copy.pages, frames: copy.frames })
+  } catch (e) {
+    if (e instanceof PageLimitError) return res.status(400).json({ error: e.message })
+    console.error('[pages] duplicate failed', e)
+    res.status(500).json({ error: 'Could not duplicate the page. Please try again.' })
+  }
 })
 
 app.post('/api/canvases/:id/frames', (req, res) => {

@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid'
 import { canvasPages } from '../../shared/pages'
 import type { CanvasPageInfo } from '../../shared/types'
 import { useStore } from '../lib/store'
-import { savePages, moveFramesToPage } from '../lib/pageEdits'
+import { savePages, moveFramesToPage, duplicatePage } from '../lib/pageEdits'
 import { ApiError } from '../lib/api'
 import { Button } from './ui/button'
 import { PlusIcon } from './ui/icons'
@@ -90,6 +90,25 @@ export function PagesPanel({ fill = false }: { fill?: boolean }) {
       { signal: controller.signal },
     )
     window.addEventListener('pointercancel', cleanup, { signal: controller.signal })
+  }
+
+  async function duplicate(pageId: string) {
+    if (!canvas || busy) return
+    setBusy(true)
+    try {
+      await duplicatePage(canvas, pageId)
+    } catch (error) {
+      if (useStore.getState().canvas?.id !== canvas.id) return
+      useStore
+        .getState()
+        .pushNotice(
+          error instanceof ApiError && typeof error.body.error === 'string'
+            ? error.body.error
+            : 'Could not duplicate the page',
+        )
+    } finally {
+      setBusy(false)
+    }
   }
 
   async function moveSelection(pageId: string) {
@@ -203,6 +222,9 @@ export function PagesPanel({ fill = false }: { fill?: boolean }) {
               }}
             >
               Rename
+            </ContextMenuItem>
+            <ContextMenuItem disabled={busy || pages.length >= 100} onSelect={() => void duplicate(page.id)}>
+              Duplicate page
             </ContextMenuItem>
             <ContextMenuItem
               tone="danger"

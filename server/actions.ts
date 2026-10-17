@@ -1274,6 +1274,20 @@ export function setCanvasPages(canvasId: string, pages: import('../shared/types.
   broadcast(canvasId, { type: 'canvas:pages', pages, actor })
 }
 
+/** Copy a page with its frames; peers get the page list and each new frame. */
+export async function duplicatePage(canvasId: string, pageId: string, actor: Actor) {
+  const copy = await store.duplicatePage(canvasId, pageId, actor.name)
+  if (!copy) return undefined
+  broadcast(canvasId, { type: 'canvas:pages', pages: copy.pages, actor })
+  for (const frame of copy.frames) {
+    broadcast(canvasId, { type: 'frame:created', frame, actor })
+    emitCanvasEvent(canvasId, { type: 'frame.created', frame, actor })
+  }
+  logActivity(canvasId, actor, `duplicated page “${copy.source.name}” as “${copy.page.name}”`)
+  touch(canvasId, actor)
+  return copy
+}
+
 export function createFrame(
   canvasId: string,
   input: {

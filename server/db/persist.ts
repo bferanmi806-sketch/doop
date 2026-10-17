@@ -277,6 +277,37 @@ export function saveProposal(canvasId: string, p: MemoryProposal) {
 const frameTimers = new Map<string, NodeJS.Timeout>()
 const FRAME_DEBOUNCE_MS = 400
 
+/** Persist a duplicated page as one unit: the canvas's new page list and
+ * every copied frame land together or not at all, so a copy is never half
+ * there after a crash. Like saveCanvasCopy, success means durable. */
+export async function savePageCopy(c: Canvas, frames: Frame[]): Promise<void> {
+  await db.transaction(async (tx) => {
+    await tx.update(t.canvases).set(canvasColumns(c)).where(eq(t.canvases.id, c.id))
+    if (!frames.length) return
+    await tx.insert(t.frames).values(
+      frames.map((frame) => ({
+        id: frame.id,
+        canvasId: frame.canvasId,
+        pageId: frame.pageId ?? null,
+        name: frame.name,
+        x: frame.x,
+        y: frame.y,
+        width: frame.width,
+        height: frame.height,
+        html: frame.html,
+        createdAt: frame.createdAt,
+        updatedAt: frame.updatedAt,
+        updatedBy: frame.updatedBy,
+        demo: frame.demo ?? null,
+      })),
+    )
+    const refs = frames.flatMap((frame) =>
+      [...extractAssetIds(frame.html)].map((assetId) => ({ assetId, frameId: frame.id })),
+    )
+    if (refs.length) await tx.insert(t.assetRefs).values(refs)
+  })
+}
+
 export function saveFrame(f: Frame, immediate = false) {
   const existing = frameTimers.get(f.id)
   if (existing) clearTimeout(existing)
