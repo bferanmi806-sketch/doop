@@ -16,7 +16,7 @@ import { gesture } from '../lib/gesture'
 import { hasFrameClip, pasteFrameAtScreen } from '../lib/frameClipboard'
 import { MenuHint } from './ui/menu'
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from './ui/context-menu'
-import { Toolbar, ToolbarButton, ToolbarDivider } from './ui/toolbar'
+import { Toolbar, ToolbarButton } from './ui/toolbar'
 import { ZoomControls } from './ZoomControls'
 import { Tooltip } from './ui/tooltip'
 import { CommentIcon, CursorIcon, HandIcon } from './ui/icons'
@@ -738,10 +738,6 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
               </ToolbarButton>
             </Tooltip>
           ))}
-          <ToolbarDivider />
-          <Tooltip label="New frame (F)">
-            <ToolbarButton onClick={onAddFrame}>+ Frame</ToolbarButton>
-          </Tooltip>
         </Toolbar>
 
         <ZoomControls
