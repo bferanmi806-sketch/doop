@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { nanoid } from 'nanoid'
 import { canvasPages } from '../../shared/pages'
 import type { CanvasPageInfo } from '../../shared/types'
@@ -9,8 +9,25 @@ import { Button } from './ui/button'
 import { PlusIcon } from './ui/icons'
 import { cn } from '../lib/utils'
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from './ui/context-menu'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible'
 
-export function PagesPanel({ fill = false }: { fill?: boolean }) {
+/** The section heading shared with the Layers panel's "Frames" row: the two
+ *  must read as one family (a browser test checks their typography). */
+export const sectionHeading = 'font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-ink-faint'
+const sectionBtn = 'size-5 rounded-[5px] text-ink-faint hover:bg-paper-deep hover:text-ink'
+
+export function PagesPanel({
+  fill = false,
+  collapsible = false,
+  actions,
+}: {
+  fill?: boolean
+  /** Figma-style: the "Pages" heading folds the list, as the top section of
+   *  the Layers panel */
+  collapsible?: boolean
+  /** extra controls at the heading's right end (the panel's collapse button) */
+  actions?: ReactNode
+}) {
   const canvas = useStore((s) => s.canvas)
   const activePageId = useStore((s) => s.activePageId)
   const selectedIds = useStore((s) => s.selectedIds)
@@ -18,6 +35,7 @@ export function PagesPanel({ fill = false }: { fill?: boolean }) {
   const [renaming, setRenaming] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [drag, setDrag] = useState<{ id: string; targetId: string | null; after: boolean } | null>(null)
+  const [open, setOpen] = useState(true)
   const didDrag = useRef(false)
   const stopDrag = useRef<(() => void) | null>(null)
   useEffect(() => () => stopDrag.current?.(), [])
@@ -124,26 +142,24 @@ export function PagesPanel({ fill = false }: { fill?: boolean }) {
     }
   }
 
-  return (
-    <div
-      className={cn('overflow-y-auto px-3 py-2', fill ? 'min-h-0 flex-1' : 'max-h-[35vh] border-b border-line-soft')}
+  const addPage = (
+    <Button
+      variant="bare"
+      size="icon-sm"
+      className={sectionBtn}
+      aria-label="Add page"
+      disabled={busy}
+      onClick={() => {
+        const page = { id: nanoid(10), name: `Page ${pages.length + 1}` }
+        void save([...pages, page], page.id)
+      }}
     >
-      <div className="flex items-center justify-between py-1 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-ink-faint">
-        <span data-slot="page-section-heading">Pages</span>
-        <Button
-          variant="bare"
-          size="icon-sm"
-          className="size-5 rounded-[5px] text-ink-faint hover:bg-paper-deep hover:text-ink"
-          aria-label="Add page"
-          disabled={busy}
-          onClick={() => {
-            const page = { id: nanoid(10), name: `Page ${pages.length + 1}` }
-            void save([...pages, page], page.id)
-          }}
-        >
-          <PlusIcon width={12} height={12} />
-        </Button>
-      </div>
+      <PlusIcon width={12} height={12} />
+    </Button>
+  )
+
+  const list = (
+    <>
       {pages.map((page) => (
         <ContextMenu key={page.id}>
           <ContextMenuTrigger asChild>
@@ -256,6 +272,46 @@ export function PagesPanel({ fill = false }: { fill?: boolean }) {
             ))}
         </select>
       )}
+    </>
+  )
+
+  if (collapsible) {
+    return (
+      <Collapsible
+        open={open}
+        onOpenChange={setOpen}
+        className="flex min-h-0 flex-none flex-col border-b border-line-soft"
+      >
+        <div className={cn('flex items-center justify-between py-1.5 pr-2 pl-2.5', sectionHeading)}>
+          <CollapsibleTrigger
+            className="flex-row-reverse justify-end gap-1 rounded-[5px] px-1 py-0.5 hover:bg-paper-deep hover:text-ink"
+            aria-label={open ? 'Fold pages' : 'Unfold pages'}
+          >
+            <span data-slot="page-section-heading" className={sectionHeading}>
+              Pages
+            </span>
+          </CollapsibleTrigger>
+          <span className="flex items-center gap-0.5">
+            {addPage}
+            {actions}
+          </span>
+        </div>
+        <CollapsibleContent className="max-h-[35vh] overflow-y-auto px-3 pb-2">{list}</CollapsibleContent>
+      </Collapsible>
+    )
+  }
+
+  return (
+    <div
+      className={cn('overflow-y-auto px-3 py-2', fill ? 'min-h-0 flex-1' : 'max-h-[35vh] border-b border-line-soft')}
+    >
+      <div className={cn('flex items-center justify-between py-1', sectionHeading)}>
+        <span data-slot="page-section-heading" className={sectionHeading}>
+          Pages
+        </span>
+        {addPage}
+      </div>
+      {list}
     </div>
   )
 }

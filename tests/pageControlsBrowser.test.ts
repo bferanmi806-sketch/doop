@@ -47,7 +47,7 @@ describe.skipIf(!findBrowserPath())('page list controls and keyboard history', (
       return canvas.id
     })
     await page.goto(`${origin}/c/${canvasId}`)
-    await page.waitForSelector('[role="tab"][data-state="active"]')
+    await page.waitForSelector('[data-slot="frame-section-heading"]')
   }, 60_000)
   afterAll(async () => {
     await page?.close()
@@ -71,10 +71,11 @@ describe.skipIf(!findBrowserPath())('page list controls and keyboard history', (
       return [style.fontFamily, style.fontSize, style.fontWeight, style.letterSpacing, style.textTransform]
     }
     const frameTypography = await page.$eval('[data-slot="frame-section-heading"]', typography)
-    expect(await page.$('[data-page-id]')).toBeNull()
-    await page.click('[role="tab"][data-state="inactive"]')
+    /* pages sit above the frames, Figma-style, with the search underneath both */
+    expect(await page.$$('[data-page-id]')).toHaveLength(1)
     await page.waitForSelector('button[aria-label="Add page"]')
-    expect(await page.$('input[placeholder="Search layers"]')).toBeNull()
+    expect(await page.$('input[placeholder="Search layers"]')).not.toBeNull()
+    expect(await page.$('[data-slot="frame-section-heading"]')).not.toBeNull()
     expect(await page.$eval('button[aria-label="Add page"] svg', (el) => el.outerHTML)).toBe(framePlus)
     expect(await page.$eval('[data-slot="page-section-heading"]', typography)).toEqual(frameTypography)
     await page.click('button[aria-label="Add page"]')
@@ -116,7 +117,6 @@ describe.skipIf(!findBrowserPath())('page list controls and keyboard history', (
       '[data-page-id] button[aria-current="page"]',
       (button) => getComputedStyle(button.parentElement!).backgroundColor,
     )
-    await page.click('[role="tab"][data-state="inactive"]')
     await page.click('button[aria-label="New frame"]')
     await page.waitForSelector('iframe[data-doop-frame]')
     expect(selectedColor).toBe(
@@ -124,7 +124,6 @@ describe.skipIf(!findBrowserPath())('page list controls and keyboard history', (
     )
     await page.keyboard.press('Delete')
     await page.waitForFunction(() => document.querySelectorAll('iframe[data-doop-frame]').length === 0)
-    await page.click('[role="tab"][data-state="inactive"]')
     await page.screenshot({ path: '/tmp/doop-pages-controls.png' })
     await page.click('[data-page-id] button[aria-current="page"]', { button: 'right' })
     await page.waitForSelector('[role="menuitem"]')
