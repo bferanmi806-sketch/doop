@@ -39,8 +39,14 @@ function deepLinkedThread(): string | null {
 
 /* Counter-scale contract: chrome that keeps constant on-screen size divides
    by the `--zoom` variable the Stage publishes (capped at 2.4× when zoomed
-   far out). Preserve these expressions exactly. */
+   far out, so a pin or label never dwarfs the frame it sits on). Preserve
+   these expressions exactly. */
 const COUNTER_SCALE = '[transform:scale(min(calc(1/var(--zoom,1)),2.4))]'
+/* The comment UI (pins, the element toolbar, the composer, an open thread)
+   is not capped: it is screen UI the user reads and types in, so it keeps
+   its size at every zoom, the way Figma's comment pins do. */
+const POPOVER_SCALE = '[transform:scale(calc(1/var(--zoom,1)))_translateY(calc(-100%_-_8px))]'
+const PIN_SCALE = '[transform:translate(-50%,-50%)_scale(calc(1/var(--zoom,1)))]'
 
 /* the inverse of COUNTER_SCALE: a box this wide, once counter-scaled, spans
    exactly the frame's width on screen */
@@ -906,7 +912,8 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
                     <div
                       key={c.id}
                       className={cn(
-                        'pointer-events-auto absolute z-[4] grid h-[26px] w-[26px] cursor-pointer place-items-center rounded-[50%_50%_50%_4px] border-2 border-white text-[13px] text-white [transform:translate(-50%,-50%)_scale(min(calc(1/var(--zoom,1)),2.4))] animate-[chip-in_0.25s_ease]',
+                        'pointer-events-auto absolute z-[4] grid h-[26px] w-[26px] cursor-pointer place-items-center rounded-[50%_50%_50%_4px] border-2 border-white text-[13px] text-white animate-[chip-in_0.25s_ease]',
+                        PIN_SCALE,
                         agentItem?.failedAt
                           ? 'bg-accent-ink! font-extrabold shadow-[0_0_0_3px_rgba(208,52,31,0.2),var(--shadow-card)]'
                           : 'shadow-card',
@@ -962,7 +969,7 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
 
                 {anchor && selected && (
                   <div
-                    className="pointer-events-auto absolute z-[7] origin-top-left [transform:scale(min(calc(1/var(--zoom,1)),2.4))_translateY(calc(-100%_-_8px))]"
+                    className={cn('pointer-events-auto absolute z-[7] origin-top-left', POPOVER_SCALE)}
                     style={{
                       left: Math.min(Math.max(anchor.rect.x, 4), Math.max(4, frame.width - 60)),
                       top: Math.max(anchor.rect.y, 2),
