@@ -83,6 +83,40 @@ function PanelTab({ className, ...props }: React.ComponentProps<typeof TabsPrimi
   )
 }
 
+/** A tab with an icon, and a label that unfolds beside it while the tab is the
+ *  active one (pen.dev's strip). The label stays in the DOM when folded, so
+ *  the tab keeps its accessible name; `title` covers the sighted hover. */
+const PanelIconTab = React.forwardRef<
+  HTMLButtonElement,
+  React.ComponentProps<typeof TabsPrimitive.Trigger> & {
+    icon: React.ReactNode
+    /** a count pinned to the tab's corner, outside the folding label */
+    badge?: React.ReactNode
+  }
+>(function PanelIconTab({ className, icon, badge, children, ...props }, ref) {
+  return (
+    <TabsPrimitive.Trigger
+      ref={ref}
+      data-slot="panel-icon-tab"
+      className={cn(
+        'group relative inline-flex h-7 shrink-0 items-center rounded-md px-1.5 font-sans text-[12.5px] font-medium normal-case tracking-normal text-ink-faint transition-colors hover:bg-paper-deep/60 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ink data-[state=active]:bg-paper-deep data-[state=active]:text-ink',
+        className,
+      )}
+      {...props}
+    >
+      <span className="grid size-4 shrink-0 place-items-center [&>svg]:size-4">{icon}</span>
+      {/* a 0fr → 1fr grid track is the one width animation CSS can run without
+          knowing the label's width */}
+      <span className="grid grid-cols-[0fr] opacity-0 transition-[grid-template-columns,opacity] duration-200 ease-out group-data-[state=active]:grid-cols-[1fr] group-data-[state=active]:opacity-100 motion-reduce:transition-none">
+        <span className="min-w-0 overflow-hidden">
+          <span className="block whitespace-nowrap pl-1.5 pr-1">{children}</span>
+        </span>
+      </span>
+      {badge}
+    </TabsPrimitive.Trigger>
+  )
+})
+
 function PanelTabPanel({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.Content>) {
   return (
     <TabsPrimitive.Content
@@ -138,6 +172,7 @@ export {
   PanelTabsRoot,
   PanelTabs,
   PanelTab,
+  PanelIconTab,
   PanelTabPanel,
   PanelClose,
   PanelDisclosure,

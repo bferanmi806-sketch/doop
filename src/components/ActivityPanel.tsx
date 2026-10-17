@@ -6,10 +6,10 @@ import { timeAgo } from '../lib/time'
 import { cn } from '@/lib/utils'
 import { AgentIcon } from './AgentIcon'
 import { MemoryPanel } from './MemoryPanel'
-import { Panel, PanelBody, PanelHeader, PanelTab, PanelTabPanel, PanelTabs, PanelTabsRoot } from './ui/panel'
+import { Panel, PanelBody, PanelHeader, PanelIconTab, PanelTabPanel, PanelTabs, PanelTabsRoot } from './ui/panel'
 import { Button } from './ui/button'
 import { Tooltip } from './ui/tooltip'
-import { PanelCollapseRightIcon } from './ui/icons'
+import { BookmarkIcon, CommentIcon, PanelCollapseRightIcon, PulseIcon, SparkIcon } from './ui/icons'
 import { Input } from './ui/input'
 import { Dot } from './ui/dot'
 import { isResidentLimit } from './TeamAllowance'
@@ -19,6 +19,10 @@ import { taskFrameId } from '../lib/taskFrame'
 import { useOpenThreadCount } from '../lib/comments'
 
 const emptyNote = 'px-4 py-6 text-center text-[13px] text-ink-faint'
+
+/* Radix mounts a tab's content on switch, so this plays once per switch */
+const tabEnter =
+  'data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:slide-in-from-right-1 data-[state=active]:duration-200 motion-reduce:animate-none'
 
 /* feedback and retries are metered like any other resident task — a 403
    here means the free tier ran out, so raise the connect wall */
@@ -62,27 +66,34 @@ export function ActivityPanel({
       <PanelTabsRoot value={tab} onValueChange={(next) => setTab(next as typeof tab)}>
         <PanelHeader>
           <PanelTabs>
-            <PanelTab value="tasks">Agents</PanelTab>
-            <PanelTab
+            <PanelIconTab value="tasks" icon={<SparkIcon />} title="Agents">
+              Agents
+            </PanelIconTab>
+            <PanelIconTab
               value="comments"
-              className="relative"
+              icon={<CommentIcon />}
               title={openThreads ? `Comments · ${openThreads} open` : 'Comments — every thread pinned on this page'}
+              /* open threads on this page: a count on the tab itself */
+              badge={
+                openThreads > 0 && (
+                  <span className="absolute -top-1 -right-1 grid h-[14px] min-w-[14px] place-items-center rounded-lg bg-accent-ink px-[3px] font-mono text-[8px] font-medium text-white">
+                    {openThreads > 99 ? '99+' : openThreads}
+                  </span>
+                )
+              }
             >
               Comments
-              {/* open threads on this page: a count on the tab itself */}
-              {openThreads > 0 && (
-                <span className="absolute -top-1 -right-1.5 grid h-[14px] min-w-[14px] place-items-center rounded-lg bg-accent-ink px-[3px] font-mono text-[8px] font-medium normal-case tracking-normal text-white">
-                  {openThreads > 99 ? '99+' : openThreads}
-                </span>
-              )}
-            </PanelTab>
-            <PanelTab value="activity">Activity</PanelTab>
-            <PanelTab
+            </PanelIconTab>
+            <PanelIconTab value="activity" icon={<PulseIcon />} title="Activity">
+              Activity
+            </PanelIconTab>
+            <PanelIconTab
               value="memory"
+              icon={<BookmarkIcon />}
               title="Design memory — references, rules and decisions every agent on this canvas designs with"
             >
               Memory
-            </PanelTab>
+            </PanelIconTab>
           </PanelTabs>
           <Tooltip label="Collapse panel" side="bottom" align="end">
             <Button
@@ -98,17 +109,17 @@ export function ActivityPanel({
         </PanelHeader>
         {/* the Agents tab is a column: what the agents are doing scrolls above,
             the prompt composer is docked underneath */}
-        <PanelTabPanel value="tasks">
+        <PanelTabPanel value="tasks" className={tabEnter}>
           <TaskList />
           <PromptBar canvasId={canvasId} />
         </PanelTabPanel>
-        <PanelTabPanel value="comments">
+        <PanelTabPanel value="comments" className={tabEnter}>
           <CommentsPanel />
         </PanelTabPanel>
-        <PanelTabPanel value="activity">
+        <PanelTabPanel value="activity" className={tabEnter}>
           <ActivityList />
         </PanelTabPanel>
-        <PanelTabPanel value="memory">
+        <PanelTabPanel value="memory" className={tabEnter}>
           <MemoryPanel />
         </PanelTabPanel>
       </PanelTabsRoot>
