@@ -120,20 +120,52 @@ describe.skipIf(!findBrowserPath())('drawing on the canvas', { timeout: 30_000 }
     const handle = await page.waitForSelector(`iframe[title="${title}"]`)
     const iframe = (await handle!.contentFrame())!
     await iframe.waitForSelector(selector)
-    const outer = await handle!.evaluate((el) => {
-      const box = el.getBoundingClientRect()
-      return { x: box.x, y: box.y, scale: box.width / Number.parseFloat(getComputedStyle(el).width) }
-    })
-    const inner = await iframe.$eval(selector, (el) => {
-      const box = el.getBoundingClientRect()
-      return { x: box.x, y: box.y, width: box.width, height: box.height }
-    })
-    return {
-      x: outer.x + inner.x * outer.scale,
-      y: outer.y + inner.y * outer.scale,
-      width: inner.width * outer.scale,
-      height: inner.height * outer.scale,
-    }
+    const readOuter = () =>
+      handle!.evaluate((el) => {
+        const box = el.getBoundingClientRect()
+        const css = getComputedStyle(el)
+        return {
+          x: box.x,
+          y: box.y,
+          scale: box.width / Number.parseFloat(css.width),
+          raster: 1 / new DOMMatrixReadOnly(css.transform).a,
+        }
+      })
+    let result: { x: number; y: number; width: number; height: number } | null = null
+    // Stage changes the outer raster scale before the iframe receives its zoom
+    // message. Never combine bounds from opposite sides of that transition.
+    await expect
+      .poll(
+        async () => {
+          const outer = await readOuter()
+          const inner = await iframe.$eval(selector, (el) => {
+            const box = el.getBoundingClientRect()
+            return {
+              x: box.x,
+              y: box.y,
+              width: box.width,
+              height: box.height,
+              zoom: Number.parseFloat(getComputedStyle(document.documentElement).zoom),
+            }
+          })
+          const after = await readOuter()
+          if (
+            Math.abs(outer.raster - inner.zoom) > 0.0001 ||
+            (['x', 'y', 'scale', 'raster'] as const).some((key) => outer[key] !== after[key])
+          )
+            return false
+          result = {
+            x: outer.x + inner.x * outer.scale,
+            y: outer.y + inner.y * outer.scale,
+            width: inner.width * outer.scale,
+            height: inner.height * outer.scale,
+          }
+          return true
+        },
+        { timeout: 10_000 },
+      )
+      .toBe(true)
+    return result!
   }
 
   it('draws a frame with reverse drag at a panned/zoomed viewport, then adds editable shapes inside it', async () => {
@@ -464,6 +496,31 @@ describe.skipIf(!findBrowserPath())('drawing on the canvas', { timeout: 30_000 }
       await page.screenshot({ path: '/tmp/doop-transformed-drawing.png' })
     },
   )
+
+  it('measures drawing geometry consistently while iframe rasterization catches up with zoom', async () => {
+    await page.click('[aria-label="Frame"]')
+    await drag([200, 200], [600, 600])
+    await waitForFrames(1)
+    await page.click('[aria-label="Circle"]')
+    await drag([250, 300], [330, 380])
+    await waitForFrames(1)
+    await page.waitForFunction(() => window.drawingHarness.state().frames[0]?.html.includes('data-doop-drawing'))
+    const initial = await visibleDrawing('Frame')
+    const iframe = (await (await page.$('iframe[title="Frame"]'))!.contentFrame())!
+    await page.evaluate(() => window.drawingHarness.viewport({ x: 40, y: 20, zoom: 3 }))
+    await iframe.waitForFunction(() => document.documentElement.style.zoom === '3')
+    // Hold the iframe at its previous zoom to reproduce the interval between
+    // the parent's raster update and the iframe applying the matching zoom.
+    await iframe.evaluate(() => {
+      document.documentElement.style.zoom = '2'
+      setTimeout(() => {
+        document.documentElement.style.zoom = '3'
+      }, 500)
+    })
+    const zoomed = await visibleDrawing('Frame')
+    expect(zoomed.width).toBeCloseTo(initial.width * 1.5, 1)
+    expect(zoomed.height).toBeCloseTo(initial.height * 1.5, 1)
+  })
 
   it('grabs the visibly top drawing through stacking contexts instead of reverse DOM order', async () => {
     const source: Frame = {
