@@ -454,7 +454,7 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
           <Board canvasId={canvasId} />
         ) : (
           <>
-            <Stage onAddFrame={addFrame} />
+            <Stage onAddFrame={addFrame} sidePanelOpen={showActivity} />
             {/* `contents` so the overlays keep positioning against the stage box */}
             <div className={uiHidden ? 'hidden' : 'contents'}>
               <div

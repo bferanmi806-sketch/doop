@@ -16,10 +16,26 @@ import { gesture } from '../lib/gesture'
 import { hasFrameClip, pasteFrameAtScreen } from '../lib/frameClipboard'
 import { MenuHint } from './ui/menu'
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from './ui/context-menu'
-import { Toolbar, ToolbarButton, ToolbarDivider, ToolbarValue } from './ui/toolbar'
+import { Toolbar, ToolbarButton } from './ui/toolbar'
+import { ZoomControls } from './ZoomControls'
 
 const MIN_ZOOM = 0.08
 const MAX_ZOOM = 3
+
+/* zoom to an absolute level pivoting on the view center — the world point in
+   the middle of the stage stays in the middle */
+function zoomCentered(el: HTMLElement, next: number) {
+  const cx = el.clientWidth / 2
+  const cy = el.clientHeight / 2
+  const vp = useStore.getState().viewport
+  const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next))
+  const scale = zoom / vp.zoom
+  useStore.getState().setViewport({
+    x: cx - (cx - vp.x) * scale,
+    y: cy - (cy - vp.y) * scale,
+    zoom,
+  })
+}
 
 const sendCursor = throttle((x: number, y: number) => sendWs({ type: 'cursor', x, y }), 50)
 /* the camera is shared so others can follow it — same cadence as the cursor */
@@ -37,7 +53,7 @@ const sendViewport = throttle(
   50,
 )
 
-export function Stage({ onAddFrame }: { onAddFrame: () => void }) {
+export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; sidePanelOpen: boolean }) {
   const ref = useRef<HTMLDivElement>(null)
   const worldRef = useRef<HTMLDivElement>(null)
   const gridRef = useRef<HTMLDivElement>(null)
@@ -47,7 +63,7 @@ export function Stage({ onAddFrame }: { onAddFrame: () => void }) {
   const activePageId = useStore((s) => s.activePageId)
   const select = useStore((s) => s.select)
   const panMode = useStore((s) => s.panMode)
-  /* ⌘. — the zoom toolbar goes with the rest of the chrome */
+  /* ⌘. — the frame toolbar and the zoom pill go with the rest of the chrome */
   const uiHidden = useStore((s) => s.uiHidden)
   const [panning, setPanning] = useState(false)
   /* the selection rectangle being dragged out, in world coordinates */
@@ -63,7 +79,7 @@ export function Stage({ onAddFrame }: { onAddFrame: () => void }) {
   /* Viewport → DOM without React: no component subscribes to the viewport, so
      pan/zoom never renders anything. A store subscription writes the world
      transform, the grid layer, the --zoom variable (which counter-scales
-     labels/pins/cursors from CSS), and the toolbar % directly. */
+     labels/pins/cursors from CSS), and the zoom pill's % directly. */
   useLayoutEffect(() => {
     function apply(vp: { x: number; y: number; zoom: number }) {
       const world = worldRef.current
@@ -245,32 +261,49 @@ export function Stage({ onAddFrame }: { onAddFrame: () => void }) {
     [setViewport, select],
   )
 
+  /* fit a set of frames (with their name labels above) into the view; an
+     empty set resets to the origin at 100% */
+  const fitFrames = useCallback(
+    (frames: { x: number; y: number; width: number; height: number }[]) => {
+      const el = ref.current
+      if (!el) return
+      const boxes = frames.map((f) => ({ x: f.x, y: f.y - 30, w: f.width, h: f.height + 30 }))
+      if (!boxes.length) {
+        setViewport({ x: 80, y: 80, zoom: 1 })
+        return
+      }
+      const minX = Math.min(...boxes.map((b) => b.x))
+      const minY = Math.min(...boxes.map((b) => b.y))
+      const maxX = Math.max(...boxes.map((b) => b.x + b.w))
+      const maxY = Math.max(...boxes.map((b) => b.y + b.h))
+      const pad = 80
+      const w = el.clientWidth
+      const h = el.clientHeight
+      const zoom = Math.min(
+        MAX_ZOOM,
+        Math.max(MIN_ZOOM, Math.min((w - pad * 2) / (maxX - minX), (h - pad * 2) / (maxY - minY), 1.25)),
+      )
+      setViewport({
+        x: (w - (maxX - minX) * zoom) / 2 - minX * zoom,
+        y: (h - (maxY - minY) * zoom) / 2 - minY * zoom,
+        zoom,
+      })
+    },
+    [setViewport],
+  )
+
   const fit = useCallback(() => {
-    const el = ref.current
     const c = currentPageCanvas()
-    if (!el || !c) return
-    const boxes = c.frames.map((f) => ({ x: f.x, y: f.y - 30, w: f.width, h: f.height + 30 }))
-    if (!boxes.length) {
-      setViewport({ x: 80, y: 80, zoom: 1 })
-      return
-    }
-    const minX = Math.min(...boxes.map((b) => b.x))
-    const minY = Math.min(...boxes.map((b) => b.y))
-    const maxX = Math.max(...boxes.map((b) => b.x + b.w))
-    const maxY = Math.max(...boxes.map((b) => b.y + b.h))
-    const pad = 80
-    const w = el.clientWidth
-    const h = el.clientHeight
-    const zoom = Math.min(
-      MAX_ZOOM,
-      Math.max(MIN_ZOOM, Math.min((w - pad * 2) / (maxX - minX), (h - pad * 2) / (maxY - minY), 1.25)),
-    )
-    setViewport({
-      x: (w - (maxX - minX) * zoom) / 2 - minX * zoom,
-      y: (h - (maxY - minY) * zoom) / 2 - minY * zoom,
-      zoom,
-    })
-  }, [setViewport])
+    if (c) fitFrames(c.frames)
+  }, [fitFrames])
+
+  /* zoom to the selected frames — with nothing selected there is nothing to
+     fit, so the view stays put */
+  const fitSelection = useCallback(() => {
+    const { selectedIds } = useStore.getState()
+    const frames = currentPageCanvas()?.frames.filter((f) => selectedIds.includes(f.id)) ?? []
+    if (frames.length) fitFrames(frames)
+  }, [fitFrames])
 
   useEffect(() => {
     fitted.current = focusedPage.current === activePageId
@@ -417,38 +450,35 @@ export function Stage({ onAddFrame }: { onAddFrame: () => void }) {
   }, [])
 
   /* ⌘0 → 100%, ⌘+ / ⌘− → step zoom, all pivoting on the view center —
-     preventDefault keeps the browser's own page zoom out of it */
+     preventDefault keeps the browser's own page zoom out of it. ⇧1 / ⇧2 fit
+     everything / the selection, as in Figma. */
   useEffect(() => {
-    function zoomTo(next: number) {
-      const el = ref.current
-      if (!el) return
-      const cx = el.clientWidth / 2
-      const cy = el.clientHeight / 2
-      const vp = useStore.getState().viewport
-      const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next))
-      const scale = zoom / vp.zoom
-      useStore.getState().setViewport({
-        x: cx - (cx - vp.x) * scale,
-        y: cy - (cy - vp.y) * scale,
-        zoom,
-      })
-    }
     function onKey(e: KeyboardEvent) {
-      if (!(e.metaKey || e.ctrlKey) || e.altKey) return
       const t = e.target as HTMLElement
       if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable) return
+      if (e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        /* by code: ⇧1 types '!' on most layouts, so the key name is no use */
+        if (e.code !== 'Digit1' && e.code !== 'Digit2') return
+        e.preventDefault()
+        if (e.code === 'Digit1') fit()
+        else fitSelection()
+        return
+      }
+      if (!(e.metaKey || e.ctrlKey) || e.altKey) return
       if (e.key !== '0' && e.key !== '=' && e.key !== '+' && e.key !== '-') return
       /* '+' arrives as ⇧= on most layouts; any other shifted combo isn't ours */
       if (e.shiftKey && e.key !== '+') return
+      const el = ref.current
+      if (!el) return
       e.preventDefault()
       const zoom = useStore.getState().viewport.zoom
-      if (e.key === '0') zoomTo(1)
-      else if (e.key === '-') zoomTo(zoom / 1.25)
-      else zoomTo(zoom * 1.25)
+      if (e.key === '0') zoomCentered(el, 1)
+      else if (e.key === '-') zoomCentered(el, zoom / 1.25)
+      else zoomCentered(el, zoom * 1.25)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [fit, fitSelection])
 
   function toWorld(clientX: number, clientY: number) {
     const rect = ref.current!.getBoundingClientRect()
@@ -640,36 +670,27 @@ export function Stage({ onAddFrame }: { onAddFrame: () => void }) {
 
         <Toolbar
           className={cn(
-            'absolute bottom-[calc(8px+env(safe-area-inset-bottom))] left-1/2 z-[35] -translate-x-1/2 sm:bottom-4',
+            'absolute bottom-[calc(8px+env(safe-area-inset-bottom))] left-1/2 z-[35] -translate-x-1/2 transition-[left] duration-150 ease-[ease] sm:bottom-4',
+            /* on a narrow desktop window the open side panel (312px incl. its
+               margin) leaves no room between the zoom pill and the window's
+               center: center on the canvas area left of the panel instead */
+            sidePanelOpen && 'md:max-[1000px]:left-[calc((100%-312px)/2)]',
             uiHidden && 'hidden',
           )}
         >
           <ToolbarButton onClick={onAddFrame}>+ Frame</ToolbarButton>
-          <ToolbarDivider />
-          <ToolbarButton
-            aria-label="Zoom out"
-            onClick={() => {
-              const vp = useStore.getState().viewport
-              const el = ref.current!
-              zoomAround(el, vp, 1 / 1.25)
-            }}
-          >
-            −
-          </ToolbarButton>
-          <ToolbarValue ref={zoomLabelRef}>100%</ToolbarValue>
-          <ToolbarButton
-            aria-label="Zoom in"
-            onClick={() => {
-              const vp = useStore.getState().viewport
-              const el = ref.current!
-              zoomAround(el, vp, 1.25)
-            }}
-          >
-            +
-          </ToolbarButton>
-          <ToolbarDivider />
-          <ToolbarButton onClick={fit}>Fit</ToolbarButton>
         </Toolbar>
+
+        <ZoomControls
+          labelRef={zoomLabelRef}
+          sidePanelOpen={sidePanelOpen}
+          hidden={uiHidden}
+          onZoomIn={() => ref.current && zoomCentered(ref.current, useStore.getState().viewport.zoom * 1.25)}
+          onZoomOut={() => ref.current && zoomCentered(ref.current, useStore.getState().viewport.zoom / 1.25)}
+          onZoomTo={(zoom) => ref.current && zoomCentered(ref.current, zoom)}
+          onFit={fit}
+          onFitSelection={fitSelection}
+        />
 
         {canvas && (
           <ContextMenuContent>
@@ -686,12 +707,4 @@ export function Stage({ onAddFrame }: { onAddFrame: () => void }) {
       </ContextMenu>
     </>
   )
-
-  function zoomAround(el: HTMLDivElement, vp: { x: number; y: number; zoom: number }, factor: number) {
-    const px = el.clientWidth / 2
-    const py = el.clientHeight / 2
-    const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, vp.zoom * factor))
-    const scale = zoom / vp.zoom
-    setViewport({ x: px - (px - vp.x) * scale, y: py - (py - vp.y) * scale, zoom })
-  }
 }

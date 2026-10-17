@@ -19,9 +19,15 @@ function Toolbar({ className, ...props }: React.ComponentProps<'div'>) {
   )
 }
 
-function ToolbarButton({ className, ...props }: React.ComponentProps<'button'>) {
+/** Forwards its ref so it can anchor a Radix popper (`DropdownMenuTrigger
+ *  asChild`, `Tooltip`): without the ref the menu never gets positioned. */
+const ToolbarButton = React.forwardRef<HTMLButtonElement, React.ComponentProps<'button'>>(function ToolbarButton(
+  { className, ...props },
+  ref,
+) {
   return (
     <button
+      ref={ref}
       type="button"
       data-slot="toolbar-button"
       className={cn(
@@ -31,7 +37,7 @@ function ToolbarButton({ className, ...props }: React.ComponentProps<'button'>) 
       {...props}
     />
   )
-}
+})
 
 function ToolbarDivider({ className, ...props }: React.ComponentProps<'div'>) {
   return <div data-slot="toolbar-divider" className={cn('mx-1 h-5 w-px bg-line', className)} {...props} />
