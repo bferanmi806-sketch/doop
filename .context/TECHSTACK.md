@@ -45,8 +45,10 @@
 - The pen snaps to the nearest anchor on its unfinished path within eight screen pixels,
   highlights the target, and previews a closed curve when approaching the first anchor.
   Alt bypasses snapping. Double-clicking a native path opens `PathEditor.tsx`: anchors and
-  Bézier handles can be dragged, points can switch between corners and curves or be deleted,
-  and each completed edit is one undo step. Alt moves a handle independently; Shift constrains
+  Bézier handles can be dragged, and points can switch between corners and curves or be deleted.
+  Drawing and editing use 0.75px guide strokes, 5px anchor markers and 4px handle markers at every
+  zoom. Invisible 18px editing targets keep the smaller markers easy to grab.
+  Each completed edit is one undo step. Alt moves a handle independently; Shift constrains
   its angle. `pathEditing.ts` reads existing line/cubic SVGs, preserves their affine transforms,
   resizes standalone bounds, and refuses to overwrite a concurrently changed path. The editor
   overlays the world canvas while the iframe hides the original through a transient marker.

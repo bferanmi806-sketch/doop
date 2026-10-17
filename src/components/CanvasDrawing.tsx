@@ -337,7 +337,7 @@ function DrawingPreview({
         {points
           .filter((p) => p.handle)
           .map((p, i) => (
-            <g key={`handle-${i}`} stroke="var(--brand)" strokeWidth="calc(1px / var(--zoom, 1))">
+            <g key={`handle-${i}`} stroke="var(--brand)" strokeWidth="calc(0.75px / var(--zoom, 1))">
               <line
                 x1={p.x - p.handle!.x - preview.x}
                 y1={p.y - p.handle!.y - preview.y}
@@ -349,7 +349,7 @@ function DrawingPreview({
                   key={side}
                   cx={p.x + side * p.handle!.x - preview.x}
                   cy={p.y + side * p.handle!.y - preview.y}
-                  r="calc(2.5px / var(--zoom, 1))"
+                  r="calc(2px / var(--zoom, 1))"
                   fill="var(--brand)"
                 />
               ))}
@@ -362,10 +362,10 @@ function DrawingPreview({
             data-snapped={snapped === i ? 'true' : undefined}
             cx={p.x - preview.x}
             cy={p.y - preview.y}
-            r="calc(3px / var(--zoom, 1))"
+            r="calc(2.5px / var(--zoom, 1))"
             fill={snapped === i ? 'var(--brand)' : 'white'}
             stroke="var(--brand)"
-            strokeWidth="calc(1px / var(--zoom, 1))"
+            strokeWidth="calc(0.75px / var(--zoom, 1))"
           />
         ))}
         {snapped !== null && (
@@ -376,7 +376,7 @@ function DrawingPreview({
             r="calc(7px / var(--zoom, 1))"
             fill="none"
             stroke="var(--brand)"
-            strokeWidth="calc(1px / var(--zoom, 1))"
+            strokeWidth="calc(0.75px / var(--zoom, 1))"
           />
         )}
       </svg>

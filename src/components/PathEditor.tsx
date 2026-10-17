@@ -291,14 +291,14 @@ export function PathEditor({
                   const end = mapPathPoint({ x: point.x + vector.x, y: point.y + vector.y }, matrix)
                   return (
                     <g key={handle}>
-                      <line x1={at.x} y1={at.y} x2={end.x} y2={end.y} stroke="var(--brand)" strokeWidth={1 / zoom} />
+                      <line x1={at.x} y1={at.y} x2={end.x} y2={end.y} stroke="var(--brand)" strokeWidth={0.75 / zoom} />
                       <circle
                         cx={end.x}
                         cy={end.y}
-                        r={3 / zoom}
+                        r={2 / zoom}
                         fill="white"
                         stroke="var(--brand)"
-                        strokeWidth={1 / zoom}
+                        strokeWidth={0.75 / zoom}
                       />
                       <circle
                         data-path-handle={`${index}-${handle}`}
@@ -316,10 +316,10 @@ export function PathEditor({
                 <circle
                   cx={at.x}
                   cy={at.y}
-                  r={4 / zoom}
+                  r={2.5 / zoom}
                   fill={selected === index ? 'var(--brand)' : 'white'}
                   stroke="var(--brand)"
-                  strokeWidth={1 / zoom}
+                  strokeWidth={0.75 / zoom}
                 />
                 <circle
                   data-path-edit-anchor={index}
@@ -340,10 +340,10 @@ export function PathEditor({
                     data-path-edit-snap
                     cx={at.x}
                     cy={at.y}
-                    r={8 / zoom}
+                    r={7 / zoom}
                     fill="none"
                     stroke="var(--brand)"
-                    strokeWidth={1 / zoom}
+                    strokeWidth={0.75 / zoom}
                   />
                 )}
               </g>
