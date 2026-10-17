@@ -726,7 +726,7 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
         >
           <div
             className={cn(
-              'absolute -top-[26px] left-0 flex origin-bottom-left cursor-grab select-none items-center gap-2 overflow-hidden whitespace-nowrap text-[12px] font-semibold text-ink-soft',
+              'absolute -top-[26px] left-0 flex origin-bottom-left cursor-default select-none items-center gap-2 overflow-hidden whitespace-nowrap text-[12px] font-semibold text-ink-soft',
               /* the label is counter-scaled from its bottom-left corner, so
                  its box must be pre-shrunk by the same factor: a full-width
                  box scaled by 1/zoom would reach far past the frame's right
@@ -793,8 +793,11 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
           <div
             className={cn(
               'absolute inset-0 overflow-hidden rounded-[6px] border border-line bg-white',
-              /* the Comment tool targets an element, so it shows a crosshair */
-              tool === 'comment' ? 'cursor-crosshair' : 'cursor-grab',
+              /* Select keeps the arrow, like Figma: the frame is a thing to
+                 point at, not a handle. The Comment tool targets an element,
+                 so it shows a crosshair; the Hand tool's grab comes from the
+                 Stage, which overrides every cursor under it. */
+              tool === 'comment' ? 'cursor-crosshair' : 'cursor-default',
               dragging ? 'shadow-pop' : 'shadow-card',
               selected && 'outline-2 outline-offset-1 outline-brand',
               editing && 'cursor-text outline-2 outline-offset-1 outline-dashed outline-brand',
@@ -802,7 +805,6 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
                 remoteEditor &&
                 'outline-2 outline-offset-1 outline-solid outline-[var(--editing-color,var(--brand))]',
               stream && 'border-transparent outline-none',
-              dragging && 'cursor-grabbing',
             )}
             style={duping || (dupKeyHeld && !editing) ? { cursor: DUP_CURSOR } : undefined}
             onPointerDown={(e) => startDrag(e, 'move', true)}
