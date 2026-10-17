@@ -19,7 +19,11 @@
         comments: (comments) => useStore.getState().setComments(comments),
         viewport: (viewport) => useStore.getState().setViewport(viewport),
         page: (id) => useStore.getState().setActivePage(id),
-        state: () => ({ frames: useStore.getState().canvas?.frames, tool: useStore.getState().tool }),
+        state: () => ({
+          frames: useStore.getState().canvas?.frames,
+          tool: useStore.getState().tool,
+          selectedElement: useStore.getState().selectedElement,
+        }),
         undo,
         redo,
       }

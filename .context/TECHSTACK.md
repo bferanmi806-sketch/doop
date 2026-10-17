@@ -38,7 +38,7 @@
 - `src/lib/tools.ts` defines bottom-toolbar tools and shortcuts. `Stage.tsx` delegates drawing
   gestures and world-space previews to `CanvasDrawing.tsx`; Space/middle-button panning takes
   precedence over drawing.
-- `src/lib/drawing.ts` creates rectangles, circles, straight-line SVG paths, text and empty
+- `src/lib/drawing.ts` creates rectangles, circles, straight and cubic Bézier SVG paths, text and empty
   frames through the existing frame API. Drawing inside a frame appends a positioned HTML/SVG
   layer. Standalone elements use frame persistence with a `data-doop-canvas-element` body marker
   for transparent canvas chrome; no separate shape schema or protocol is required.
@@ -46,9 +46,19 @@
   completed gesture has its own undo entry. The Layers panel shows the drawing's `data-name`.
   Completed saves survive navigation; unfinished drafts are cancelled. Drawing shortcuts leave
   native fields and rich-text editors alone, except for the drawing textarea's save/cancel keys.
+- `DrawingMove.tsx` renders an unclipped drag preview and highlights the destination frame.
+  The iframe runtime hit-tests the pointer in browser paint order and measures CSS layout
+  size separately from transformed bounds. Pending pointer events are buffered until its
+  reply, so fast drags and cancellation remain reliable. `src/lib/drawingMove.ts` preserves markup and translates coordinates when
+  moving drawings into, between, and out of frames. Transfers save the destination before
+  removing the source and use one undo entry; a failed prerequisite leaves the original intact.
+  Rollback keeps a detached copy if its content, name, geometry, page, or flags changed after creation.
 - `tests/drawing.test.ts` covers geometry, serialization and persistence; `drawingBrowser.test.ts`
-  exercises the toolbar and gestures in Chromium, including double-click paths, mobile input,
-  and coexistence with canvas comment pins and reply fields.
+  exercises the toolbar and gestures in Chromium, including Bézier paths, frame transfers,
+  cancellation, mobile input, and coexistence with canvas comment pins and reply fields.
+  `tests/drawingMove.test.ts` covers transfer persistence, locks, failed saves and rollbacks,
+  creation queued with transfers, and undo/redo. Browser regressions cover transformed shapes,
+  stacking contexts, covered shapes, and delayed hit-test replies.
 
 ## 5. Security and Secrets
 

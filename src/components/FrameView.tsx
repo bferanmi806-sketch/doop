@@ -2,6 +2,7 @@ import { memo, useEffect, useRef, useState } from 'react'
 import type { ElementComment, Frame } from '../../shared/types'
 import { useStore } from '../lib/store'
 import { isCanvasElement } from '../lib/drawing'
+import { useDrawingMove } from './DrawingMove'
 import { currentPageCanvas } from '../lib/pages'
 import { registerFrameWindow, unregisterFrameWindow } from '../lib/frameBridge'
 import { api } from '../lib/api'
@@ -139,6 +140,7 @@ interface HoverHit {
    `--zoom` CSS variable the Stage sets, so a viewport change never re-renders
    this component — memo holds as long as the frame and raster are unchanged. */
 export const FrameView = memo(function FrameView({ frame, raster }: { frame: Frame; raster: number }) {
+  const drawingMove = useDrawingMove(frame)
   const selected = useStore((s) => s.selectedIds.includes(frame.id))
   /* space held: the shield stays up even in edit mode, so the press reaches
      the Stage and pans instead of vanishing into the editable iframe */
@@ -179,7 +181,13 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
     send(f)
   }
 
-  function startDrag(e: React.PointerEvent, mode: 'move' | 'resize', probeOnClick = false, panelOnClick = false) {
+  function startDrag(
+    e: React.PointerEvent<HTMLDivElement>,
+    mode: 'move' | 'resize',
+    probeOnClick = false,
+    panelOnClick = false,
+    skipDrawing = false,
+  ): { move: (event: PointerEvent) => void; up: () => void } | undefined {
     const s = useStore.getState()
     const action = resolvePointerAction({
       tool: s.tool,
@@ -203,6 +211,17 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
     /* a locked frame is not the stage's to select, move or resize: the press
        falls through to the Stage, which treats it as empty canvas */
     if (action !== 'frame-drag' || frame.locked) return
+    if (
+      mode === 'move' &&
+      probeOnClick &&
+      !skipDrawing &&
+      drawingMove.start(e, (press, move, released) => {
+        const drag = startDrag(press, mode, probeOnClick, panelOnClick, true)
+        if (move) drag?.move(move)
+        if (released) drag?.up()
+      })
+    )
+      return
     e.stopPropagation()
     e.preventDefault()
     /* ⌥⇧-drag duplicates: the moment the drag is real, leave a copy of the
@@ -333,6 +352,7 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
+    return { move: onMove, up: onUp }
   }
 
   const html = useThrottledValue(frame.html, 150)
@@ -514,7 +534,9 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
   const selectReq = useRef(0)
   const selectSel = useRef<string | null>(null)
   useEffect(() => {
-    if (!runtimeReady || !wantedSel || wantedSel === probeSel) return
+    // A new drawing can be selected before throttled HTML reaches the iframe.
+    // Wait for that document before asking it to locate the new layer.
+    if (!runtimeReady || !wantedSel || wantedSel === probeSel || html !== frame.html) return
     /* a surface click clears the probe, and the effect above has just cleared
        the store to match — but this render still carries the old selector.
        Re-selecting it here would resurrect the previous element and (via the
@@ -530,7 +552,7 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
       { type: 'doop:select', reqId: selectReq.current, selector: wantedSel },
       '*',
     )
-  }, [runtimeReady, wantedSel, probeSel, frame.id])
+  }, [runtimeReady, wantedSel, probeSel, frame.id, html, frame.html])
 
   useEffect(() => {
     function onMsg(ev: MessageEvent) {
@@ -1043,6 +1065,7 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
               onPointerDown={(e) => startDrag(e, 'resize')}
             />
           )}
+          {drawingMove.preview}
         </div>
       </ContextMenuTrigger>
       <FrameContextMenu frame={frame} at={menuAt} />

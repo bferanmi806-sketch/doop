@@ -316,6 +316,40 @@ export const FRAME_BOOTSTRAP = `<!doctype html>
     }
   }
 
+  /* Ask the browser which element is actually on top, including stacking
+     contexts, clipping, and transformed hit regions. Keep layout dimensions
+     separate from the rendered rectangle so a move does not apply scale twice. */
+  function drawingHit(x, y, standalone) {
+    var top = elementAt(x, y)
+    var el = standalone ? document.body.firstElementChild : top && top.closest('[data-doop-drawing]')
+    if (!el || !el.matches('[data-doop-drawing]') || isLocked(el)) return null
+    var rect = designRect(el)
+    var css = getComputedStyle(el)
+    var width = parseFloat(css.width)
+    var height = parseFloat(css.height)
+    if (!isFinite(width) || !isFinite(height)) return null
+    var styles = {}
+    var properties = ['transform', 'transform-origin', 'translate', 'rotate', 'scale', 'box-sizing']
+    properties.forEach(function (key) { styles[key] = css.getPropertyValue(key) })
+    var originalStyle = el.getAttribute('style')
+    var untransformed
+    try {
+      // This measurement is synchronous; the temporary styles never paint.
+      ;['transform', 'translate', 'rotate', 'scale', 'transition'].forEach(function (key) {
+        el.style.setProperty(key, 'none', 'important')
+      })
+      untransformed = designRect(el)
+    } finally {
+      if (originalStyle === null) el.removeAttribute('style')
+      else el.setAttribute('style', originalStyle)
+    }
+    return {
+      selector: cssPath(el), rect: rect,
+      geometry: { width: width, height: height, offsetX: rect.x - untransformed.x,
+        offsetY: rect.y - untransformed.y, styles: styles },
+    }
+  }
+
   /* the topmost unlocked element under a design-space point: a click on a
      locked element falls through to whatever sits beneath it, as in Figma */
   function elementAt(x, y) {
@@ -330,6 +364,7 @@ export const FRAME_BOOTSTRAP = `<!doctype html>
 
   function probe(x, y) {
     var el = elementAt(x, y)
+    if (el) el = el.closest('[data-doop-drawing]') || el
     return el ? hitInfo(el) : null
   }
 
@@ -489,6 +524,9 @@ export const FRAME_BOOTSTRAP = `<!doctype html>
     }
     if (d.type === 'doop:probe') {
       parent.postMessage({ type: 'doop:probe-result', reqId: d.reqId, hit: probe(d.x, d.y) }, '*')
+    }
+    if (d.type === 'doop:drawing-hit') {
+      parent.postMessage({ type: 'doop:drawing-hit-result', reqId: d.reqId, hit: drawingHit(d.x, d.y, d.standalone) }, '*')
     }
     if (d.type === 'doop:hover') {
       parent.postMessage({ type: 'doop:hover-result', reqId: d.reqId, hit: hoverProbe(d.x, d.y) }, '*')

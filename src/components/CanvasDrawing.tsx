@@ -143,10 +143,7 @@ export function useCanvasDrawing(stage: RefObject<HTMLDivElement>) {
     if (tool === 'path') {
       const points = draftRef.current?.drawing.points ?? []
       const zoom = s.viewport.zoom
-      if (points.length >= 3 && Math.hypot(start.x - points[0]!.x, start.y - points[0]!.y) * zoom < 8) {
-        finish(true)
-        return
-      }
+      const closing = points.length >= 3 && Math.hypot(start.x - points[0]!.x, start.y - points[0]!.y) * zoom < 8
       const last = points.at(-1)
       const repeated = last && Math.hypot(start.x - last.x, start.y - last.y) * zoom <= 2
       // Preventing pointerdown's default suppresses native dblclick in some
@@ -156,8 +153,53 @@ export function useCanvasDrawing(stage: RefObject<HTMLDivElement>) {
         return
       }
       lastPathPress.current = e.timeStamp
-      if (!repeated) setDraft({ target, drawing: pathDrawing([...points, start]) })
-      setHover(start)
+      if (repeated && !closing) return
+      const anchors = closing ? points : [...points, start]
+      const index = closing ? 0 : anchors.length - 1
+      const anchor = anchors[index]!
+      setDraft({ target, drawing: pathDrawing(anchors, closing) })
+      setHover(null)
+      const el = e.currentTarget
+      const pointerId = e.pointerId
+      el.setPointerCapture(pointerId)
+      function moveHandle(ev: PointerEvent) {
+        if (ev.pointerId !== pointerId) return
+        if (gesture.pinching) return cancel()
+        const at = toWorld(ev.clientX, ev.clientY)
+        let dx = at.x - start.x
+        let dy = at.y - start.y
+        if (Math.hypot(dx, dy) * useStore.getState().viewport.zoom < 3) return
+        if (ev.shiftKey) {
+          const angle = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) * (Math.PI / 4)
+          const length = Math.hypot(dx, dy)
+          dx = Math.cos(angle) * length
+          dy = Math.sin(angle) * length
+        }
+        lastPathPress.current = 0
+        const next = anchors.map((p, i) => (i === index ? { ...anchor, handle: { x: dx, y: dy } } : p))
+        setDraft({ target: target!, drawing: pathDrawing(next, closing) })
+      }
+      function upHandle(ev: PointerEvent) {
+        if (ev.pointerId !== pointerId) return
+        cleanup.current?.()
+        cleanup.current = null
+        if (gesture.pinching) return cancel()
+        if (closing) finish(true)
+      }
+      function cancelHandle(ev: PointerEvent) {
+        if (ev.pointerId === pointerId) cancel()
+      }
+      cleanup.current = () => {
+        window.removeEventListener('pointermove', moveHandle)
+        window.removeEventListener('pointerup', upHandle)
+        window.removeEventListener('pointercancel', cancelHandle)
+        el.removeEventListener('lostpointercapture', cancelHandle)
+        if (el.hasPointerCapture(pointerId)) el.releasePointerCapture(pointerId)
+      }
+      window.addEventListener('pointermove', moveHandle)
+      window.addEventListener('pointerup', upHandle)
+      window.addEventListener('pointercancel', cancelHandle)
+      el.addEventListener('lostpointercapture', cancelHandle)
       return
     }
     cancel()
@@ -218,7 +260,7 @@ export function useCanvasDrawing(stage: RefObject<HTMLDivElement>) {
     cancel,
     onPointerDown,
     onPointerMove: (e: ReactPointerEvent) => {
-      if (draftRef.current?.drawing.tool === 'path' && !useStore.getState().panMode)
+      if (draftRef.current?.drawing.tool === 'path' && !cleanup.current && !useStore.getState().panMode)
         setHover(toWorld(e.clientX, e.clientY))
     },
     onDoubleClick: (e: React.MouseEvent) => {
@@ -268,7 +310,7 @@ function DrawingPreview({
     )
   if (d.tool === 'path') {
     const points = d.points ?? []
-    const preview = pathDrawing(hover ? [...points, hover] : points)
+    const preview = pathDrawing(hover && !d.closed ? [...points, hover] : points, d.closed)
     return (
       <svg
         className="pointer-events-none absolute z-20 overflow-visible"
@@ -277,6 +319,27 @@ function DrawingPreview({
         height={preview.height}
       >
         <path d={pathData(preview)} fill="none" stroke={DRAWING_INK} strokeWidth={2} strokeLinejoin="round" />
+        {points
+          .filter((p) => p.handle)
+          .map((p, i) => (
+            <g key={`handle-${i}`} stroke="var(--brand)" strokeWidth="calc(1px / var(--zoom, 1))">
+              <line
+                x1={p.x - p.handle!.x - preview.x}
+                y1={p.y - p.handle!.y - preview.y}
+                x2={p.x + p.handle!.x - preview.x}
+                y2={p.y + p.handle!.y - preview.y}
+              />
+              {[-1, 1].map((side) => (
+                <circle
+                  key={side}
+                  cx={p.x + side * p.handle!.x - preview.x}
+                  cy={p.y + side * p.handle!.y - preview.y}
+                  r="calc(2.5px / var(--zoom, 1))"
+                  fill="var(--brand)"
+                />
+              ))}
+            </g>
+          ))}
         {points.map((p, i) => (
           <circle
             key={i}

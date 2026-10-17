@@ -99,6 +99,19 @@ describe('drawing geometry and markup', () => {
     expect(isCanvasElement(html)).toBe(true)
     expect(isCanvasElement(drawingDocument({ ...box, tool: 'frame' }))).toBe(false)
   })
+
+  it('bounds cubic curves by their extrema and includes curved closing segments', () => {
+    const curve = pathDrawing([
+      { x: 100, y: 100, handle: { x: 0, y: -100 } },
+      { x: 200, y: 100, handle: { x: 0, y: 100 } },
+    ])
+    expect(curve).toMatchObject({ x: 98, y: 23, width: 104, height: 79 })
+    expect(pathData(curve)).toBe('M 2 77 C 2 -23 102 -23 102 77')
+    const closed = pathDrawing(curve.points!, true)
+    expect(closed).toMatchObject({ x: 98, y: 23, width: 104, height: 154 })
+    expect(pathData(closed)).toBe('M 2 77 C 2 -23 102 -23 102 77 C 102 177 2 177 2 77 Z')
+    expect(doc(drawingDocument(curve)).querySelector('path')!.getAttribute('d')).toBe(pathData(curve))
+  })
 })
 
 describe('saving and targeting drawings', () => {
@@ -158,6 +171,17 @@ describe('saving and targeting drawings', () => {
     expect(api.updateFrame).not.toHaveBeenCalled()
     expect(api.createFrame).not.toHaveBeenCalled()
     expect(useStore.getState().notice?.text).toContain('deleted, locked, or hidden')
+  })
+
+  it('keeps Bézier tangents unchanged when translating a path into a frame', async () => {
+    const curve = pathDrawing([
+      { x: 120, y: 80, handle: { x: 40, y: -60 } },
+      { x: 280, y: 160, handle: { x: 20, y: 40 } },
+    ])
+    await saveDrawing(curve, { ...target, frameId: 'f' })
+    const saved = doc(useStore.getState().canvas!.frames[0]!.html)
+    expect(saved.querySelector('path')!.getAttribute('d')).toBe(pathData(curve))
+    expect(saved.querySelector<SVGSVGElement>('svg')!.style.left).toBe(`${curve.x - frame.x}px`)
   })
 
   it('saves completed queued drawings on their original page after navigation without stealing selection', async () => {

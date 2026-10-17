@@ -822,7 +822,7 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
             >
               <span>
                 {tool === 'path'
-                  ? 'Click to add points · Enter to finish'
+                  ? 'Click for corners · Drag for curves · Enter to finish'
                   : tool === 'text'
                     ? `Click or drag, then type · ${MOD_KEY}Enter to save`
                     : tool === 'circle'

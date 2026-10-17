@@ -26,6 +26,9 @@ type Entry =
   | { type: 'update'; frameId: string; before: Patch; after: Patch; at: number }
   | { type: 'create'; frameId: string; snapshot: Snapshot }
   | { type: 'delete'; frameId: string; snapshot: Snapshot }
+  /* Destination first, then source removal; reverse that order on undo so
+     a failed request can never remove the only copy of a drawing. */
+  | { type: 'transfer'; canvasId: string; entries: Entry[] }
   /* one multi-frame action (a group move, a group delete): undone and
      redone as a unit. An `ordered` group's members depend on each other (a
      page and the frames on it), so they run one after another: forward on
@@ -139,6 +142,19 @@ export function recordCreate(frame: Frame) {
   push({ type: 'create', frameId: frame.id, snapshot: snapshot(frame) })
 }
 
+export function recordDrawingTransfer(
+  destination: { before: Frame | null; after: Frame },
+  source: { before: Frame; after: Frame | null },
+) {
+  const added: Entry = destination.before
+    ? updateEntry(destination.after.id, { html: destination.before.html }, { html: destination.after.html })!
+    : { type: 'create', frameId: destination.after.id, snapshot: snapshot(destination.after) }
+  const removed: Entry = source.after
+    ? updateEntry(source.before.id, { html: source.before.html }, { html: source.after.html })!
+    : { type: 'delete', frameId: source.before.id, snapshot: snapshot(source.before) }
+  push({ type: 'transfer', canvasId: source.before.canvasId, entries: [added, removed] })
+}
+
 /** A page duplicated together with its frames: one undo step that removes
  *  the frames before the page (a page with frames cannot be deleted) and
  *  brings the page back before the frames on redo. */
@@ -194,7 +210,7 @@ export function deleteFramesTracked(frames: Frame[]) {
    other entry that pointed at the old id must follow it */
 function remapId(oldId: string, newId: string) {
   const visit = (e: Entry) => {
-    if (e.type === 'group') e.entries.forEach(visit)
+    if (e.type === 'group' || e.type === 'transfer') e.entries.forEach(visit)
     else if (e.type !== 'pages' && e.frameId === oldId) e.frameId = newId
   }
   for (const e of [...undoStack, ...redoStack]) visit(e)
@@ -215,7 +231,7 @@ async function recreate(e: { frameId: string; snapshot: Snapshot }) {
 /* Recreated frames and frames moved between pages become the selection,
    so undo/redo displays the page where the affected designs now live. */
 function selectionIds(e: Entry, direction: 'undo' | 'redo'): string[] {
-  if (e.type === 'group') return e.entries.flatMap((child) => selectionIds(child, direction))
+  if (e.type === 'group' || e.type === 'transfer') return e.entries.flatMap((child) => selectionIds(child, direction))
   if (e.type === 'pages') return []
   if (e.type === 'update' && 'pageId' in (direction === 'redo' ? e.after : e.before)) return [e.frameId]
   const recreated = e.type === (direction === 'redo' ? 'create' : 'delete')
@@ -230,6 +246,7 @@ class PrerequisiteFailed extends Error {
     readonly remaining: Entry,
     readonly applied: Entry | null,
     cause: unknown,
+    readonly canvasId?: string,
   ) {
     super(cause instanceof Error ? cause.message : 'Could not apply the page change', { cause })
   }
@@ -292,6 +309,22 @@ async function applyOrdered(entries: Entry[], direction: 'undo' | 'redo'): Promi
    group can still be reversed. Failed members are dropped, exactly as a
    failed single entry is: the frame is gone or the canvas moved on. */
 async function apply(e: Entry, direction: 'undo' | 'redo'): Promise<Entry | null> {
+  if (e.type === 'transfer') {
+    const entries = direction === 'redo' ? e.entries : [...e.entries].reverse()
+    const applied: Entry[] = []
+    for (const child of entries) {
+      try {
+        await apply(child, direction)
+        applied.push(child)
+      } catch (err) {
+        // Leave a partially applied transfer reversible and retryable. Never
+        // remove the source when saving/recreating its destination failed.
+        const remaining = { ...e, entries: e.entries.filter((entry) => !applied.includes(entry)) }
+        throw new PrerequisiteFailed(remaining, groupOf(applied, false), err, e.canvasId)
+      }
+    }
+    return e
+  }
   if (e.type === 'group') {
     if (e.ordered) return applyOrdered(e.entries, direction)
     return groupOf(await settle(e.entries, direction), false)
@@ -340,6 +373,7 @@ async function apply(e: Entry, direction: 'undo' | 'redo'): Promise<Entry | null
     await recreate(e)
   } else {
     await api.deleteFrame(e.frameId)
+    useStore.getState().removeFrame(e.frameId)
   }
   return e
 }
@@ -369,7 +403,7 @@ async function step(direction: 'undo' | 'redo') {
         : entry?.type === 'pages'
           ? new PrerequisiteFailed(entry, null, err)
           : null
-    if (retry && pagesCanvasId(retry.remaining) === useStore.getState().canvas?.id) {
+    if (retry && (retry.canvasId ?? pagesCanvasId(retry.remaining)) === useStore.getState().canvas?.id) {
       const from = direction === 'undo' ? undoStack : redoStack
       from.push(retry.remaining)
       if (retry.applied) (direction === 'undo' ? redoStack : undoStack).push(retry.applied)

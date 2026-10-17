@@ -10,13 +10,18 @@ export interface Point {
   y: number
 }
 
+/** A pen drag sets a tangent vector; the incoming handle mirrors it. */
+export interface PathPoint extends Point {
+  handle?: Point
+}
+
 export interface Drawing {
   tool: DrawingTool
   x: number
   y: number
   width: number
   height: number
-  points?: Point[]
+  points?: PathPoint[]
   closed?: boolean
   text?: string
 }
@@ -80,26 +85,72 @@ export function defaultDrawing(tool: DrawingTool, at: Point): Drawing {
 }
 
 /** A little padding keeps horizontal/vertical paths and their stroke visible. */
-export function pathDrawing(points: Point[], closed = false): Drawing {
-  const x = Math.min(...points.map((p) => p.x)) - 2
-  const y = Math.min(...points.map((p) => p.y)) - 2
+export function pathDrawing(points: PathPoint[], closed = false): Drawing {
+  const bounds: Point[] = [...points]
+  for (let i = 1; i < points.length + (closed ? 1 : 0); i++) {
+    const from = points[i - 1]!
+    const to = points[i % points.length]!
+    const [a, b] = controls(from, to)
+    for (const axis of ['x', 'y'] as const) {
+      // Extrema of the cubic, rather than its handles, define its visible bounds.
+      const p = -from[axis] + 3 * a[axis] - 3 * b[axis] + to[axis]
+      const q = 2 * (from[axis] - 2 * a[axis] + b[axis])
+      const r = a[axis] - from[axis]
+      const discriminant = q * q - 4 * p * r
+      const roots =
+        Math.abs(p) < 1e-9
+          ? Math.abs(q) < 1e-9
+            ? []
+            : [-r / q]
+          : discriminant < 0
+            ? []
+            : [(-q + Math.sqrt(discriminant)) / (2 * p), (-q - Math.sqrt(discriminant)) / (2 * p)]
+      for (const t of roots) {
+        if (t <= 0 || t >= 1) continue
+        const u = 1 - t
+        bounds.push({
+          x: u ** 3 * from.x + 3 * u * u * t * a.x + 3 * u * t * t * b.x + t ** 3 * to.x,
+          y: u ** 3 * from.y + 3 * u * u * t * a.y + 3 * u * t * t * b.y + t ** 3 * to.y,
+        })
+      }
+    }
+  }
+  const x = Math.min(...bounds.map((p) => p.x)) - 2
+  const y = Math.min(...bounds.map((p) => p.y)) - 2
   return {
     tool: 'path',
     x,
     y,
-    width: Math.max(...points.map((p) => p.x)) - x + 2,
-    height: Math.max(...points.map((p) => p.y)) - y + 2,
+    width: Math.max(...bounds.map((p) => p.x)) - x + 2,
+    height: Math.max(...bounds.map((p) => p.y)) - y + 2,
     points,
     closed,
   }
 }
 
 export function pathData(drawing: Drawing): string {
-  return (
-    (drawing.points ?? [])
-      .map((p, i) => `${i ? 'L' : 'M'} ${round(p.x - drawing.x)} ${round(p.y - drawing.y)}`)
-      .join(' ') + (drawing.closed ? ' Z' : '')
-  )
+  const points = drawing.points ?? []
+  const first = points[0]
+  if (!first) return ''
+  const at = (p: Point) => `${round(p.x - drawing.x)} ${round(p.y - drawing.y)}`
+  const commands = [`M ${at(first)}`]
+  for (let i = 1; i < points.length + (drawing.closed ? 1 : 0); i++) {
+    const from = points[i - 1]!
+    const to = points[i % points.length]!
+    if (from.handle || to.handle) {
+      const [a, b] = controls(from, to)
+      commands.push(`C ${at(a)} ${at(b)} ${at(to)}`)
+    } else if (i < points.length) commands.push(`L ${at(to)}`)
+  }
+  if (drawing.closed) commands.push('Z')
+  return commands.join(' ')
+}
+
+function controls(from: PathPoint, to: PathPoint): [Point, Point] {
+  return [
+    { x: from.x + (from.handle?.x ?? 0), y: from.y + (from.handle?.y ?? 0) },
+    { x: to.x - (to.handle?.x ?? 0), y: to.y - (to.handle?.y ?? 0) },
+  ]
 }
 
 function round(value: number): number {
@@ -173,7 +224,7 @@ export function saveDrawing(drawing: Drawing, target: DrawingTarget): Promise<vo
       const doc = new DOMParser().parseFromString(frame.html, 'text/html')
       const local = { ...drawing, x: drawing.x - frame.x, y: drawing.y - frame.y }
       // Path points and bounds must use the same coordinate system.
-      local.points = drawing.points?.map((p) => ({ x: p.x - frame.x, y: p.y - frame.y }))
+      local.points = drawing.points?.map((p) => ({ ...p, x: p.x - frame.x, y: p.y - frame.y }))
       const el = drawingElement(doc, local, false)
       el.id = `doop-drawing-${crypto.randomUUID()}`
       doc.body.append(el)
@@ -183,8 +234,10 @@ export function saveDrawing(drawing: Drawing, target: DrawingTarget): Promise<vo
       // Each completed drawing is its own undo step, even when drawn quickly.
       recordUpdates([{ frameId: frame.id, before: { html: frame.html }, after: { html } }])
       useStore.getState().upsertFrame(saved)
-      if (useStore.getState().activePageId === target.pageId)
+      if (useStore.getState().activePageId === target.pageId) {
+        useStore.getState().select(frame.id)
         useStore.getState().pickElement({ frameId: frame.id, selector: `#${el.id}` })
+      }
     } else {
       const frame: Frame = await api.createFrame(target.canvasId, {
         name: names[drawing.tool],
@@ -201,10 +254,14 @@ export function saveDrawing(drawing: Drawing, target: DrawingTarget): Promise<vo
       if (useStore.getState().activePageId === target.pageId) useStore.getState().select(frame.id)
     }
   }
-  // Consecutive gestures can finish before the first request returns. Queue
-  // them so an insertion reads the document saved by the previous one.
+  return queueDrawingSave(save, 'Couldn’t save the drawing. Please try again.')
+}
+
+/** Creation and reparenting share a queue so consecutive gestures compose
+ *  on the last saved document, even while the network is slow. */
+export function queueDrawingSave(save: () => Promise<void>, fallback: string): Promise<void> {
   const pending = pendingDrawing.then(save).catch((err: unknown) => {
-    useStore.getState().pushNotice(errorMessage(err, 'Couldn’t save the drawing. Please try again.'))
+    useStore.getState().pushNotice(errorMessage(err, fallback))
   })
   pendingDrawing = pending
   trackSave(pending)
