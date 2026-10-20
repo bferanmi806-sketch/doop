@@ -140,4 +140,36 @@ export function setSupportWidgetVisible(visible: boolean) {
   supportWidgetObserver.observe(document.body, { childList: true })
 }
 
+/* "Contact support" from the editor: show the widget and open its chat
+   panel. The SDK has no open(): it mounts the widget on show() and leaves the
+   panel closed, so the launcher is clicked once it is in the DOM. On a canvas
+   the bubble is otherwise hidden, so when the person closes the panel (the
+   launcher returns) the widget goes back out of the way. */
+const LAUNCHER = `#${WIDGET_CONTAINER_ID} button[aria-label^="Open chat"]`
+export function openSupportChat() {
+  if (!key || !posthog.conversations?.isAvailable()) return false
+  const hiddenHere = !supportWidgetWanted
+  posthog.conversations.show()
+  const started = Date.now()
+  const open = () => {
+    const launcher = document.querySelector<HTMLButtonElement>(LAUNCHER)
+    if (!launcher) {
+      if (Date.now() - started < 3000) requestAnimationFrame(open)
+      return
+    }
+    launcher.click()
+    if (!hiddenHere) return
+    const container = document.getElementById(WIDGET_CONTAINER_ID)
+    if (!container) return
+    const closed = new MutationObserver(() => {
+      if (!document.querySelector(LAUNCHER)) return
+      closed.disconnect()
+      applySupportWidget()
+    })
+    closed.observe(container, { childList: true, subtree: true })
+  }
+  requestAnimationFrame(open)
+  return true
+}
+
 export { posthog }

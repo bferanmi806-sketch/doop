@@ -5,9 +5,12 @@ import { navigate } from '../App'
 import { cn } from '@/lib/utils'
 import { Button } from './ui/button'
 import { Tooltip } from './ui/tooltip'
-import { BookOpenIcon, CommentIcon, GearIcon, PulseIcon, SlidersIcon, SparkIcon } from './ui/icons'
+import { BookOpenIcon, CommentIcon, GearIcon, HelpIcon, PulseIcon, SlidersIcon, SparkIcon } from './ui/icons'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu'
+import { openSupportChat } from '../lib/posthog'
 import { PresenceFace } from './PeerAvatars'
 
+const islandBtn = 'relative size-7 rounded-[8px] text-ink-soft hover:bg-paper-deep hover:text-ink disabled:opacity-35'
 const island =
   'pointer-events-auto absolute z-[38] flex w-10 flex-col items-center gap-1 rounded-[12px] bg-surface py-1.5 shadow-float'
 
@@ -16,7 +19,7 @@ const island =
  *  button per tab of the Agents panel (agents, comments, activity, memory),
  *  each opening the panel on that tab, with a live dot while an agent works or
  *  a message waits. Open panels close from their own header. The bottom
- *  island holds Settings and you. */
+ *  island holds Settings, Help (docs, support chat) and you. */
 export function SideRail({
   style,
   agentsOpen,
@@ -61,6 +64,30 @@ export function SideRail({
         <IslandControl label="Settings" onClick={() => navigate('/settings')}>
           <GearIcon className="size-3.5" />
         </IslandControl>
+        <DropdownMenu>
+          <Tooltip label="Help" side="left">
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="bare"
+                size="icon"
+                aria-label="Help"
+                className={cn(islandBtn, 'data-[state=open]:bg-paper-deep data-[state=open]:text-ink')}
+              >
+                <HelpIcon className="size-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+          </Tooltip>
+          <DropdownMenuContent side="left" align="end" className="w-[180px]">
+            <DropdownMenuItem asChild>
+              <a href="/docs" target="_blank" rel="noopener noreferrer">
+                <BookOpenIcon /> Docs
+              </a>
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => openSupportChat()}>
+              <CommentIcon /> Contact support
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Tooltip label={`You are “${me.name}” — click to change your name`} side="left">
           <button
             type="button"
@@ -157,11 +184,7 @@ function IslandControl({
           variant="bare"
           size="icon"
           aria-label={label}
-          className={cn(
-            'relative size-7 rounded-[8px] text-ink-soft hover:bg-paper-deep hover:text-ink disabled:opacity-35',
-            on && 'bg-surface text-ink shadow-ring hover:bg-surface',
-            className,
-          )}
+          className={cn(islandBtn, on && 'bg-surface text-ink shadow-ring hover:bg-surface', className)}
           {...props}
         />
       </span>
