@@ -110,4 +110,34 @@ export function suspendAnalyticsWhileImpersonating() {
   posthog.stopSessionRecording()
 }
 
+/* The Support widget (PostHog Conversations, switched on in the project
+   settings for doop.design) floats in the bottom-right corner, where it sits
+   on the editor's zoom bar and the prompt bar. It is for the pages around the
+   editor, not the canvas itself. The SDK renders it only after the remote
+   config arrives, and hide() before that is a no-op, so the wish is kept and
+   re-applied the moment the widget's container is mounted. */
+const WIDGET_CONTAINER_ID = 'ph-conversations-widget-container'
+let supportWidgetWanted = true
+let supportWidgetObserver: MutationObserver | null = null
+
+const applySupportWidget = () => {
+  if (!key || !posthog.conversations?.isAvailable()) return
+  if (supportWidgetWanted) posthog.conversations.show()
+  else posthog.conversations.hide()
+}
+
+export function setSupportWidgetVisible(visible: boolean) {
+  supportWidgetWanted = visible
+  applySupportWidget()
+  if (!key || supportWidgetObserver || typeof MutationObserver === 'undefined') return
+  supportWidgetObserver = new MutationObserver((mutations) => {
+    if (supportWidgetWanted) return
+    const mounted = mutations.some((m) =>
+      Array.from(m.addedNodes).some((n) => n instanceof Element && n.id === WIDGET_CONTAINER_ID),
+    )
+    if (mounted) applySupportWidget()
+  })
+  supportWidgetObserver.observe(document.body, { childList: true })
+}
+
 export { posthog }

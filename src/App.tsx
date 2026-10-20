@@ -18,7 +18,7 @@ import { Integrations } from './pages/Integrations'
 import { Workspace } from './pages/Workspace'
 import { authClient } from './lib/auth'
 import { setName } from './lib/identity'
-import { posthog, syncReplayForUser, suspendAnalyticsWhileImpersonating } from './lib/posthog'
+import { posthog, setSupportWidgetVisible, syncReplayForUser, suspendAnalyticsWhileImpersonating } from './lib/posthog'
 import { useMe } from './lib/me'
 import { adminApi } from './lib/api'
 import { Button } from './components/ui/button'
@@ -50,6 +50,11 @@ export function App() {
      being the admin": the borrowed session has no admin access, so rendering
      the page would show its not-found screen. End the impersonation and
      arrive as the admin instead. */
+  const canvasId = path.match(/^\/c\/([^/]+)/)?.[1]
+  /* the support chat bubble stays off the editor, where it would cover the
+     zoom bar; every other page keeps it */
+  useEffect(() => setSupportWidgetVisible(!canvasId), [canvasId])
+
   const returningToAdmin = !!me?.impersonating && path.startsWith('/admin')
   useEffect(() => {
     if (!returningToAdmin) return
@@ -140,7 +145,6 @@ export function App() {
      session back and reloads. */
   if (path.startsWith('/admin') && (!me || returningToAdmin)) return <div className="auth-page" />
 
-  const canvasId = path.match(/^\/c\/([^/]+)/)?.[1]
   const page = canvasId ? (
     <CanvasPage canvasId={canvasId} key={canvasId} />
   ) : path === CODEX_SETUP_PATH ? (
