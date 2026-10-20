@@ -820,30 +820,29 @@ function RowToggle({
   icon: ReactNode
   onToggle: () => void
 }) {
+  /* no tooltip: the icon says it, and a bubble on every row-end hover is noise */
   return (
-    <Tooltip label={label} side="left">
-      <button
-        type="button"
-        aria-label={label}
-        aria-pressed={on}
-        className={cn(
-          'grid size-5 flex-none place-items-center rounded-[5px] text-ink-faint opacity-0 hover:bg-ink/10 hover:text-ink focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100',
-          on && 'opacity-100',
-          selected && 'text-ink-soft',
-        )}
-        onPointerDown={(e) => e.stopPropagation()}
-        onDoubleClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') e.stopPropagation()
-        }}
-        onClick={(e) => {
-          e.stopPropagation()
-          onToggle()
-        }}
-      >
-        {icon}
-      </button>
-    </Tooltip>
+    <button
+      type="button"
+      aria-label={label}
+      aria-pressed={on}
+      className={cn(
+        'grid size-5 flex-none place-items-center rounded-[5px] text-ink-faint opacity-0 hover:bg-ink/10 hover:text-ink focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100',
+        on && 'opacity-100',
+        selected && 'text-ink-soft',
+      )}
+      onPointerDown={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') e.stopPropagation()
+      }}
+      onClick={(e) => {
+        e.stopPropagation()
+        onToggle()
+      }}
+    >
+      {icon}
+    </button>
   )
 }
 
