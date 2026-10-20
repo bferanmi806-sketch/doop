@@ -552,19 +552,16 @@ function FrameRow({
                     designing…
                   </span>
                 )}
+                {/* who else is in the frame right now: a colour dot each, no
+                    names — the presence pill in the bar says who is who */}
                 {editors.map((p) => (
-                  <span key={p.clientId} className={editorChip} style={{ background: p.color }}>
-                    {p.kind === 'agent' ? <AgentIcon name={p.name} size={8} color="#fff" /> : '✎'}
-                    {p.name}
-                  </span>
+                  <span
+                    key={p.clientId}
+                    title={p.name}
+                    className="size-2 flex-none rounded-full"
+                    style={{ background: p.color }}
+                  />
                 ))}
-                {/* nobody in it right now: who touched it last (the eye and
-                    lock take its place on hover) */}
-                {!stream && editors.length === 0 && frame.updatedBy && (
-                  <span className="max-w-[72px] truncate text-[11px] font-normal text-ink-faint group-hover:hidden">
-                    {frame.updatedBy}
-                  </span>
-                )}
               </>
             }
           />

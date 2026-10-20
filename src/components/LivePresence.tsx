@@ -51,9 +51,11 @@ export function LivePresence({
         >
           <PresenceFace name={me.name} color={me.color} kind="user" />
         </button>
-        <span className="-ml-[7px] flex items-center">
-          <PeerAvatars others={others} />
-        </span>
+        {others.length > 0 && (
+          <span className="-ml-[7px] flex items-center">
+            <PeerAvatars others={others} />
+          </span>
+        )}
       </span>
       {speaking ? (
         <>
@@ -66,7 +68,7 @@ export function LivePresence({
           </span>
         </>
       ) : (
-        <span className="ml-2 whitespace-nowrap leading-4">{online} online</span>
+        <span className="ml-2.5 whitespace-nowrap leading-4">{online} online</span>
       )}
     </BarPill>
   )
