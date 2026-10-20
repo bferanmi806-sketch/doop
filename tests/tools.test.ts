@@ -54,8 +54,11 @@ describe('resolvePointerAction', () => {
   it('a finger on the background pans (phones have no space bar), on a frame it drags', () => {
     expect(resolvePointerAction(mouse({ pointerType: 'touch', target: 'background' }))).toBe('pan')
     expect(resolvePointerAction(mouse({ pointerType: 'touch', target: 'frame' }))).toBe('frame-drag')
-    /* the Comment tool keeps one-finger pan too: a canvas comment is a click */
-    expect(resolvePointerAction(mouse({ tool: 'comment', pointerType: 'touch', target: 'background' }))).toBe('pan')
+    /* the Comment tool is the exception: a tap is how a phone places a canvas
+       comment, and the stage pans a finger that moves on its own */
+    expect(resolvePointerAction(mouse({ tool: 'comment', pointerType: 'touch', target: 'background' }))).toBe(
+      'comment-canvas',
+    )
   })
 
   it('drawing tools draw on both frames and background, including touch and pen', () => {

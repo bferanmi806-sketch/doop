@@ -53,10 +53,13 @@ export function resolvePointerAction({ tool, target, button, pointerType, spaceH
   if (tool === 'hand' || spaceHeld) return 'pan'
   if (isDrawingTool(tool)) return 'draw'
   /* a finger on the background pans: touch has no space bar, and one-finger
-     pan is how phones move around */
+     pan is how phones move around. The Comment tool is the exception — a tap
+     is how a phone places a comment; the stage still pans a finger that
+     moves (it starts both and lets the distance decide) */
   if (target === 'background') {
+    if (tool === 'comment') return 'comment-canvas'
     if (pointerType === 'touch') return 'pan'
-    return tool === 'comment' ? 'comment-canvas' : 'marquee'
+    return 'marquee'
   }
   return tool === 'comment' ? 'comment' : 'frame-drag'
 }

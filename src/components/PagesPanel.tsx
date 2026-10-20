@@ -3,36 +3,26 @@ import { nanoid } from 'nanoid'
 import { canvasPages } from '../../shared/pages'
 import type { CanvasPageInfo } from '../../shared/types'
 import { useStore } from '../lib/store'
-import { savePages, moveFramesToPage, duplicatePage } from '../lib/pageEdits'
+import { savePages, duplicatePage } from '../lib/pageEdits'
 import { ApiError } from '../lib/api'
 import { Button } from './ui/button'
-import { PlusIcon } from './ui/icons'
+import { PageIcon, PlusIcon } from './ui/icons'
 import { cn } from '../lib/utils'
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from './ui/context-menu'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible'
 
-/** The section heading shared with the Layers panel's "Frames" row: the two
- *  must read as one family (a browser test checks their typography). */
-export const sectionHeading = 'font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-ink-faint'
+/** The small grey sub-heading over a section of the Layers panel, shared with
+ *  its "Layers" row: the two must read as one family (a browser test checks
+ *  their typography). */
+export const sectionHeading = 'text-[11px] font-normal text-ink-faint'
 const sectionBtn = 'size-5 rounded-[5px] text-ink-faint hover:bg-paper-deep hover:text-ink'
 
-export function PagesPanel({
-  fill = false,
-  collapsible = false,
-}: {
-  fill?: boolean
-  /** Figma-style: the "Pages" heading folds the list, as the top section of
-   *  the Layers panel */
-  collapsible?: boolean
-}) {
+export function PagesPanel({ fill = false }: { fill?: boolean }) {
   const canvas = useStore((s) => s.canvas)
   const activePageId = useStore((s) => s.activePageId)
-  const selectedIds = useStore((s) => s.selectedIds)
   const [busy, setBusy] = useState(false)
   const [renaming, setRenaming] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [drag, setDrag] = useState<{ id: string; targetId: string | null; after: boolean } | null>(null)
-  const [open, setOpen] = useState(true)
   const didDrag = useRef(false)
   const stopDrag = useRef<(() => void) | null>(null)
   useEffect(() => () => stopDrag.current?.(), [])
@@ -126,19 +116,6 @@ export function PagesPanel({
     }
   }
 
-  async function moveSelection(pageId: string) {
-    if (!canvas || busy) return
-    setBusy(true)
-    try {
-      await moveFramesToPage(canvas, selectedIds, pageId)
-    } catch {
-      if (useStore.getState().canvas?.id !== canvas.id) return
-      useStore.getState().pushNotice('Could not move all selected frames. Please try again.')
-    } finally {
-      setBusy(false)
-    }
-  }
-
   const addPage = (
     <Button
       variant="bare"
@@ -151,7 +128,7 @@ export function PagesPanel({
         void save([...pages, page], page.id)
       }}
     >
-      <PlusIcon width={12} height={12} />
+      <PlusIcon className="size-3.5" />
     </Button>
   )
 
@@ -164,8 +141,8 @@ export function PagesPanel({
               data-page-id={page.id}
               onContextMenu={() => useStore.getState().setActivePage(page.id)}
               className={cn(
-                'group relative flex h-[26px] items-center gap-1 rounded-md text-[12.5px] text-ink hover:bg-paper-deep',
-                page.id === activePageId && 'bg-brand text-white hover:bg-brand',
+                'group relative flex h-[27px] items-center gap-1 rounded-[7px] pr-2.5 text-[12px] text-ink-soft hover:bg-sub',
+                page.id === activePageId && 'bg-paper-deep text-ink hover:bg-paper-deep',
                 drag?.id === page.id && 'opacity-40',
               )}
             >
@@ -174,6 +151,14 @@ export function PagesPanel({
                   className={`pointer-events-none absolute inset-x-0 h-0.5 bg-brand ${drag.after ? 'bottom-0' : 'top-0'}`}
                 />
               )}
+              <span
+                className={cn(
+                  'grid size-4 flex-none place-items-center pl-2.5 pr-0 box-content text-ink-faint',
+                  page.id === activePageId && 'text-ink',
+                )}
+              >
+                <PageIcon className="size-3.5" />
+              </span>
               {renaming === page.id ? (
                 <form
                   className="min-w-0 flex-1"
@@ -188,7 +173,7 @@ export function PagesPanel({
                     maxLength={100}
                     disabled={busy}
                     onFocus={(e) => e.target.select()}
-                    className="w-full rounded border border-line bg-surface px-2 py-1 text-xs text-ink"
+                    className="w-full rounded-[6px] bg-surface px-2 py-1 text-[12px] text-ink shadow-elevation-1-focus outline-none"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     onKeyDown={(e) => {
@@ -198,7 +183,7 @@ export function PagesPanel({
                 </form>
               ) : (
                 <button
-                  className={`min-w-0 flex-1 touch-none select-none truncate px-2 py-1.5 text-left text-[12.5px] ${drag ? 'cursor-grabbing' : 'cursor-grab'} ${page.id === activePageId ? 'font-semibold' : ''}`}
+                  className={`min-w-0 flex-1 touch-none select-none truncate py-1.5 pl-0.5 text-left text-[12px] ${drag ? 'cursor-grabbing' : 'cursor-grab'} ${page.id === activePageId ? 'font-medium' : ''}`}
                   aria-current={page.id === activePageId ? 'page' : undefined}
                   onPointerDown={(e) => {
                     didDrag.current = false
@@ -249,63 +234,18 @@ export function PagesPanel({
           </ContextMenuContent>
         </ContextMenu>
       ))}
-      {selectedIds.length > 0 && pages.length > 1 && (
-        <select
-          aria-label="Move selected frames to page"
-          className="mt-2 w-full rounded border border-line bg-paper p-1 text-xs"
-          value=""
-          disabled={busy}
-          onChange={(e) => void moveSelection(e.target.value)}
-        >
-          <option value="" disabled>
-            Move selection to page…
-          </option>
-          {pages
-            .filter((p) => p.id !== activePageId)
-            .map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-        </select>
-      )}
     </>
   )
 
-  if (collapsible) {
-    return (
-      <Collapsible
-        open={open}
-        onOpenChange={setOpen}
-        className="flex min-h-0 flex-none flex-col border-b border-line-soft"
-      >
-        <div className={cn('flex items-center justify-between py-1.5 pr-2 pl-2.5', sectionHeading)}>
-          <CollapsibleTrigger
-            className="flex-row-reverse justify-end gap-1 rounded-[5px] px-1 py-0.5 hover:bg-paper-deep hover:text-ink"
-            aria-label={open ? 'Fold pages' : 'Unfold pages'}
-          >
-            <span data-slot="page-section-heading" className={sectionHeading}>
-              Pages
-            </span>
-          </CollapsibleTrigger>
-          {addPage}
-        </div>
-        <CollapsibleContent className="max-h-[35vh] overflow-y-auto px-3 pb-2">{list}</CollapsibleContent>
-      </Collapsible>
-    )
-  }
-
   return (
-    <div
-      className={cn('overflow-y-auto px-3 py-2', fill ? 'min-h-0 flex-1' : 'max-h-[35vh] border-b border-line-soft')}
-    >
-      <div className={cn('flex items-center justify-between py-1', sectionHeading)}>
+    <div className={cn('flex flex-none flex-col', fill && 'min-h-0 flex-1')}>
+      <div className={cn('mt-1.5 flex h-6 flex-none items-center justify-between pr-2.5 pl-3.5', sectionHeading)}>
         <span data-slot="page-section-heading" className={sectionHeading}>
           Pages
         </span>
         {addPage}
       </div>
-      {list}
+      <div className={cn('overflow-y-auto px-2 pb-1', fill ? 'min-h-0 flex-1' : 'max-h-[30vh]')}>{list}</div>
     </div>
   )
 }

@@ -7,28 +7,38 @@ rather than hand-rolling primitives; it writes into `src/components/ui` per the 
 
 ## Palette
 
-- `--paper` `#f7f7f9` / `--paper-deep` `#eeeef2` - page background layers.
+White system (Doop UI v2, canvas guideline `doop-ui-system`): neutral greys, no warm cream.
+
+- `--paper` `#fdfdfd` (canvas) / `--paper-deep` `#f0f0f0` (pressed or selected row fill) / `--sub`
+  `#f7f7f7` (filled field wells) - background layers.
 - `--surface` `#ffffff` - card/panel surfaces.
-- `--ink` `#17171b`, `--ink-soft`, `--ink-faint` - text, in descending emphasis.
-- `--line`, `--line-soft` - borders/dividers.
-- `--brand` `#e5533c` / `--accent-ink` `#c23a25` - the doop orange-red brand color and its ink
-  variant.
+- `--ink` `#111`, `--ink-soft` `#5f5e5b`, `--ink-faint` `#9c9b99`, `--ink-ghost` `#b8b8b8` - text, in
+  descending emphasis (ghost: placeholders, unit letters).
+- `--line` `#dcdcdc`, `--line-soft` `#ececec` - borders/dividers.
+- `--brand` `#0177d3` - the one accent: selection, focus, live signal. `--accent-ink` - failure red.
+  The primary button is ink (black), not brand.
+- `--glaze-ring` - the silver hairline an active agent wears in the presence pill.
 - Full shadcn semantic set also present: `--primary`, `--secondary`, `--muted`, `--accent`,
   `--destructive`, `--border`, `--input`, `--ring`, `--card`, `--popover`, `--sidebar-*`,
   `--chart-1` through `--chart-5`.
 
 ## Typography
 
-- `--font-ui`: `'Archivo', sans-serif` - UI text (`--font-sans` alias).
-- `--font-display`: `'Bricolage Grotesque', sans-serif` - headings (`--font-heading` alias).
-- `--font-mono`: `'Spline Sans Mono', ui-monospace, monospace`.
+- `--font-ui` / `--font-display`: `'Inter'` - UI and headings (`--font-sans` / `--font-heading`
+  aliases). Chrome uses 400/500 only: 12px labels, rows and buttons; 11px values, timestamps, counts.
+- `--font-mono`: `'Geist Mono', ui-monospace, monospace` - ids, sizes, numbers.
+- `--font-serif`: `'Instrument Serif'` - opt-in editorial line only.
+- Icons: Lucide via `src/components/ui/icons.tsx`, 1.15 stroke (`ICON_STROKE`); 14px in the editor
+  chrome.
 
 ## Shape and depth
 
-- `--radius`: `0.625rem`, with `--radius-sm` through `--radius-4xl` derived from it
-  (`calc(var(--radius) * N)`) - use the scale, not one-off radius values.
-- `--shadow-card` / `--shadow-pop` - two-layer soft shadows (ambient + key) for cards and popped
-  elements respectively.
+- `--radius`: `0.5rem`, with `--radius-sm` through `--radius-4xl` derived from it
+  (`calc(var(--radius) * N)`). Floating panels 14px, pills 10px, buttons 8px, rows 6-7px.
+- No borders on controls: `--shadow-ring` (`shadow-ring`, 1px ring + soft drop) for inputs, chips and
+  pills, `--shadow-ring-hover` on hover, `--shadow-float` (`shadow-float`) for panels floating over
+  the canvas, `--shadow-pop` for menus and toasts. `--shadow-card` / `--shadow-elevation-*` alias
+  these.
 
 ## Theme
 

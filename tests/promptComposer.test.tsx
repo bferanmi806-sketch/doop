@@ -15,7 +15,12 @@ const mocks = vi.hoisted(() => ({
   agentAllowance: vi.fn(() => Promise.resolve({ used: 0, limit: 5, byoModel: false })),
 }))
 vi.mock('../src/lib/api', () => ({
-  api: { addCard: mocks.addCard, agentAllowance: mocks.agentAllowance },
+  api: {
+    addCard: mocks.addCard,
+    agentAllowance: mocks.agentAllowance,
+    /* the composer's model picker reads the account it runs on */
+    modelAccount: () => Promise.resolve({ connected: false }),
+  },
   ApiError: class ApiError extends Error {},
 }))
 vi.mock('../src/lib/posthog', () => ({ posthog: { capture: vi.fn() } }))

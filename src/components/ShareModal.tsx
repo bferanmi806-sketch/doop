@@ -15,7 +15,7 @@ import { posthog } from '../lib/posthog'
 import { Avatar } from './ui/avatar'
 import { Button } from './ui/button'
 import { Checkbox } from './ui/checkbox'
-import { BuildingIcon, XIcon } from './ui/icons'
+import { BuildingIcon, CopyIcon, XIcon } from './ui/icons'
 import { Input } from './ui/input'
 import { Modal, ModalTitle } from './ui/modal'
 import { Textarea } from './ui/textarea'
@@ -270,8 +270,9 @@ export function ShareModal({
               {linkEdits ? 'Anyone with the link can edit' : 'Invite-only canvas'}
             </span>
           )}
-          <Button className="justify-center" onClick={copy}>
-            ⧉ Copy link
+          <Button className="justify-center gap-2" onClick={copy}>
+            <CopyIcon className="size-3.5" />
+            Copy link
           </Button>
         </div>
         {isOwner && (

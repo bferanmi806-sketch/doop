@@ -9,8 +9,8 @@ import { ChevronDownIcon } from './icons'
    commits on blur or Enter; a new value from outside replaces the draft. */
 
 const fieldCls =
-  'flex h-6 min-w-0 flex-1 items-center gap-1 rounded-md border border-line bg-surface px-[7px] font-mono text-[11px] text-ink focus-within:border-ink'
-const unitCls = 'ml-auto flex-none text-[9.5px] text-ink-faint'
+  'flex h-[26px] min-w-0 flex-1 items-center gap-1 rounded-[7px] bg-sub px-2 font-mono text-[11px] text-ink focus-within:bg-surface focus-within:shadow-elevation-1-focus'
+const unitCls = 'ml-auto flex-none font-sans text-[10.5px] text-ink-ghost'
 
 /** A read-only field in the same shell, for values the rail reports but does not edit. */
 export function StaticField({ className, children }: { className?: string; children: ReactNode }) {
@@ -23,8 +23,8 @@ export function FieldUnit({ children }: { children: ReactNode }) {
 
 export function PropertySection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="border-b border-line-soft px-3 pt-[9px] pb-[11px]">
-      <h3 className="mb-1.5 flex h-5 items-center text-[11.5px] font-bold text-ink">{title}</h3>
+    <section className="border-b border-line-soft px-3 pt-[7px] pb-2.5">
+      <h3 className="mb-[5px] flex h-5 items-center text-[12px] font-normal text-ink-soft">{title}</h3>
       {children}
     </section>
   )
@@ -33,7 +33,7 @@ export function PropertySection({ title, children }: { title: string; children: 
 export function PropertyRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="mt-1 grid min-h-[26px] grid-cols-[58px_1fr] items-center gap-1.5">
-      <span className="text-[11px] text-ink-soft">{label}</span>
+      <span className="text-[11.5px] text-ink-faint">{label}</span>
       <div className="flex min-w-0 gap-1">{children}</div>
     </div>
   )
@@ -158,15 +158,15 @@ export function ToggleField({
   onChange: (on: boolean) => void
 }) {
   return (
-    <div className="flex h-6 flex-1 overflow-hidden rounded-md border border-line">
+    <div className="flex h-[26px] flex-1 gap-0.5 overflow-hidden rounded-[7px] bg-sub p-0.5">
       {[true, false].map((on, i) => (
         <button
           key={labels[i]}
           type="button"
           aria-pressed={value === on}
           className={cn(
-            'flex-1 text-[11px] text-ink-soft transition-colors hover:text-ink',
-            value === on && 'bg-ink font-semibold text-paper hover:text-paper',
+            'flex-1 rounded-[5px] text-[11.5px] text-ink-soft transition-colors hover:text-ink',
+            value === on && 'bg-surface font-medium text-ink shadow-ring',
           )}
           onClick={() => value !== on && onChange(on)}
         >

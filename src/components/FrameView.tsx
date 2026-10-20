@@ -441,6 +441,19 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
     setHover(null)
   }
 
+  /* a Layers row under the pointer outlines its element here, the same as a
+     hover over the frame: ask the runtime where the element is, and draw the
+     answer (the `doop:located` reply below) as the hover outline. A string
+     selector keeps the selection identity-stable, so memo holds. */
+  const layerHover = useStore((s) => (s.hoveredLayer?.frameId === frame.id ? s.hoveredLayer.selector : null))
+  const [seenLayerHover, setSeenLayerHover] = useState(layerHover)
+  if (seenLayerHover !== layerHover) {
+    setSeenLayerHover(layerHover)
+    /* the row was left: its outline goes (the drawn layer outline already
+       reset the canvas hover's dedup key, so the next pointer hover draws) */
+    if (!layerHover) setHover(null)
+  }
+
   /* source view + composer prefill for the element toolbar */
   const [codeView, setCodeView] = useState<string | null>(null)
   const [composePrefill, setComposePrefill] = useState('')
@@ -451,16 +464,21 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
     iframeRef.current?.contentWindow?.postMessage({ type: 'doop:code', reqId: codeReq.current, selector }, '*')
   }
 
-  function closePopovers() {
+  /* everything hanging off the picked element except the pick itself */
+  function closeElementPopovers() {
     if (probeTimer.current) {
       window.clearTimeout(probeTimer.current)
       probeTimer.current = null
     }
-    setProbe(null)
     setComposing(false)
     setComposePrefill('')
     setCodeView(null)
     setOpenThread(null)
+  }
+
+  function closePopovers() {
+    closeElementPopovers()
+    setProbe(null)
   }
 
   /* delayed slightly so the second click of a double-click (→ edit mode)
@@ -468,7 +486,10 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
      double-click to wait out, so it probes at once */
   function probeAt(x: number, y: number, intent: 'toolbar' | 'comment' = 'toolbar') {
     if (!frame.html || editing) return
-    closePopovers()
+    /* the current pick stays until the probe answers: clearing it here would
+       close the element panel and reopen it a beat later on the next
+       element. A probe that hits nothing clears it then. */
+    closeElementPopovers()
     probeIntent.current = intent
     probeTimer.current = window.setTimeout(
       () => {
@@ -497,6 +518,13 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
     if (!runtimeReady || !probeSel) return
     iframeRef.current?.contentWindow?.postMessage({ type: 'doop:locate', reqId: '__probe__', selector: probeSel }, '*')
   }, [runtimeReady, html, probeSel])
+  useEffect(() => {
+    if (!runtimeReady || !layerHover) return
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: 'doop:locate', reqId: '__layer-hover__', selector: layerHover },
+      '*',
+    )
+  }, [runtimeReady, html, layerHover])
 
   /* deselecting the frame drops its element selection too, so a stale
      outline never reappears when the frame is picked again */
@@ -613,6 +641,19 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
         setCodeView(typeof ev.data.html === 'string' ? ev.data.html : null)
       }
       if (ev.data?.type === 'doop:located' && typeof ev.data.reqId === 'string') {
+        if (ev.data.reqId === '__layer-hover__') {
+          /* the pointer may have left the row while the runtime looked: a late
+             reply must not paint an outline nobody is hovering */
+          const hovered = useStore.getState().hoveredLayer
+          if (!hovered || hovered.frameId !== frame.id) return
+          const rect = ev.data.rect as HoverHit['rect'] | null
+          const selector = hovered.selector
+          /* the tag of the selector's last step: "section:nth-of-type(2)" → "section" */
+          const tag = (selector.split('>').at(-1) ?? '').trim().split(/[:.#[]/)[0] ?? ''
+          hoverKey.current = null
+          setHover(rect ? { tag, rect } : null)
+          return
+        }
         if (ev.data.reqId === '__probe__') {
           /* re-glue the selected element's outline after the html changed */
           const rect = ev.data.rect as ProbeHit['rect'] | null

@@ -1,4 +1,4 @@
-import { useMemo, useState, type ComponentProps } from 'react'
+import { useMemo, useState } from 'react'
 import { colorFor } from '../../shared/types'
 import { useStore } from '../lib/store'
 import { api } from '../lib/api'
@@ -11,10 +11,10 @@ import { cn } from '@/lib/utils'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { PanelBody } from './ui/panel'
-import { PinIcon } from './ui/icons'
+import { CheckIcon } from './ui/icons'
 import { isResidentLimit } from './TeamAllowance'
 
-const emptyNote = 'px-4 py-6 text-center text-[13px] text-ink-faint'
+const emptyNote = 'px-4 py-6 text-center text-[12px] leading-[1.45] text-ink-faint'
 
 /** Every comment thread on the current page — pinned to a frame or to the
  *  canvas itself — open ones first. Clicking a thread flies to its pin and
@@ -42,14 +42,15 @@ export function CommentsPanel() {
   }
 
   return (
-    <PanelBody className="pb-3">
-      <div role="group" aria-label="Comment filter" className="flex gap-1 px-4 pt-2 pb-1.5">
-        <FilterChip active={filter === 'open'} onClick={() => setFilter('open')}>
-          Open · {counts.open}
-        </FilterChip>
-        <FilterChip active={filter === 'resolved'} onClick={() => setFilter('resolved')}>
-          Resolved · {counts.resolved}
-        </FilterChip>
+    <PanelBody className="pb-2">
+      {/* the same quiet segmented switch as the panel's own tabs */}
+      <div role="group" aria-label="Comment filter" className="flex gap-0.5 px-3 pt-2 pb-1">
+        <FilterTab active={filter === 'open'} count={counts.open} onClick={() => setFilter('open')}>
+          Open
+        </FilterTab>
+        <FilterTab active={filter === 'resolved'} count={counts.resolved} onClick={() => setFilter('resolved')}>
+          Resolved
+        </FilterTab>
       </div>
       {shown.length === 0 ? (
         <div className={emptyNote}>No {filter} threads on this page.</div>
@@ -60,16 +61,30 @@ export function CommentsPanel() {
   )
 }
 
-function FilterChip({ active, ...props }: { active: boolean } & ComponentProps<typeof Button>) {
+function FilterTab({
+  active,
+  count,
+  children,
+  onClick,
+}: {
+  active: boolean
+  count: number
+  children: string
+  onClick: () => void
+}) {
   return (
-    <Button
-      variant={active ? 'solid' : 'ghost'}
-      size="pill"
-      mono
+    <button
+      type="button"
       aria-pressed={active}
-      className={cn('px-2.5 py-[3px]', !active && 'text-ink-soft')}
-      {...props}
-    />
+      onClick={onClick}
+      className={cn(
+        'flex h-[26px] items-center gap-1.5 rounded-[7px] px-2 text-[12px] transition-colors',
+        active ? 'bg-paper-deep font-medium text-ink' : 'text-ink-soft hover:bg-sub hover:text-ink',
+      )}
+    >
+      {children}
+      <span className={cn('text-[11px] tabular-nums', active ? 'text-ink-soft' : 'text-ink-faint')}>{count}</span>
+    </button>
   )
 }
 
@@ -80,8 +95,11 @@ function reportLimit(err: unknown) {
   else console.error(err)
 }
 
+/** One thread, in the same shape as a task row: who and when on the first
+ *  line, the comment under it, then where it is pinned and how many replies.
+ *  Open threads carry a reply field and a Resolve action. */
 function ThreadRow({ thread }: { thread: CommentThreadGroup }) {
-  const { root, replies, frame } = thread
+  const { root, frame } = thread
   const resolved = threadState(thread) === 'resolved'
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
@@ -127,7 +145,7 @@ function ThreadRow({ thread }: { thread: CommentThreadGroup }) {
   }
 
   return (
-    <div className="group border-t border-line-soft px-4 py-2.5 first-of-type:border-t-0">
+    <div className="mx-1.5 py-1">
       <div
         role="button"
         tabIndex={0}
@@ -140,45 +158,51 @@ function ThreadRow({ thread }: { thread: CommentThreadGroup }) {
             goToThread()
           }
         }}
-        className="-mx-2 cursor-pointer rounded-md px-2 py-1 hover:bg-paper-deep focus-visible:bg-paper-deep focus-visible:outline-none"
+        className="grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-[2px] rounded-[8px] px-1.5 py-2 text-[12px] leading-[18px] hover:bg-sub focus-visible:bg-sub focus-visible:outline-none"
       >
-        <div className="flex items-baseline gap-2 text-[12px]">
-          <b className="min-w-0 truncate" style={{ color: colorFor(root.from) }}>
-            {root.from}
-          </b>
-          <span className="flex-none font-mono text-[10.5px] text-ink-faint">{timeAgo(root.at)}</span>
+        <span className="flex min-w-0 items-center gap-1.5 whitespace-nowrap">
           <span
-            className={cn(
-              'ml-auto flex-none rounded-full border border-current px-[7px] py-px font-mono text-[9px] uppercase tracking-[0.08em]',
-              resolved ? 'text-ink-faint' : 'text-accent-ink',
-            )}
+            aria-hidden
+            className="grid size-4 flex-none place-items-center rounded-full text-[8px] font-medium text-white"
+            style={{ background: colorFor(root.from) }}
           >
-            {resolved ? 'resolved' : 'open'}
+            {root.from.slice(0, 1).toUpperCase()}
           </span>
-        </div>
-        <div className="mt-1 break-words text-[13px] leading-[1.45] text-ink">{root.text}</div>
-        <div className="mt-1 flex items-center gap-2 text-[11px] text-ink-faint">
-          {frame ? (
-            <span className="min-w-0 truncate" title={frame.name}>
-              ▢ {frame.name}
-            </span>
-          ) : (
-            <span className="inline-flex min-w-0 items-center gap-0.5 truncate" title="Pinned to the canvas">
-              <PinIcon className="size-3" /> Canvas
-            </span>
-          )}
-          <span className="flex-none">
-            · {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
+          <b className="truncate font-medium text-ink">{root.from}</b>
+        </span>
+        <span className="text-[11px] text-ink-faint tabular-nums">{timeAgo(root.at)}</span>
+        {/* open threads clamp (the pin shows the whole conversation); a
+            resolved one has no pin to open, so it reads in full here */}
+        <span className={cn('col-span-2 min-w-0 break-words pl-[22px] text-ink-soft', !resolved && 'line-clamp-3')}>
+          {root.text}
+        </span>
+        {(frame || resolved) && (
+          <span className="col-span-2 flex min-w-0 items-center gap-[7px] pl-[22px] text-[11px] text-ink-faint">
+            {resolved && (
+              <span className="grid size-3 flex-none place-items-center rounded-full bg-ink text-paper">
+                <CheckIcon className="size-[8px]" strokeWidth={2.4} />
+              </span>
+            )}
+            {frame && (
+              <span className="min-w-0 truncate" title={frame.name}>
+                {frame.name}
+              </span>
+            )}
+            {resolved && root.resolvedBy && (
+              <span className="min-w-0 truncate">
+                {frame ? '· ' : ''}resolved by {root.resolvedBy}
+              </span>
+            )}
           </span>
-          {resolved && root.resolvedBy && <span className="min-w-0 flex-none truncate">· by {root.resolvedBy}</span>}
-        </div>
+        )}
       </div>
       {!resolved && (
-        <div className="mt-1.5 flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 py-1 pr-1.5 pl-[28px]">
           <Input
-            inputSize="sm"
-            className="min-w-0 flex-1 rounded-lg px-[9px] focus:border-ink-soft focus:ring-0 md:text-xs"
-            placeholder="Reply… (@doop to ask the agent)"
+            variant="bare"
+            inputSize="auto"
+            className="h-7 min-w-0 flex-1 rounded-[7px] bg-surface px-2.5 shadow-ring focus:shadow-elevation-1-focus md:text-[12px]"
+            placeholder="Reply… @doop to ask the agent"
             aria-label={`Reply to ${root.from}`}
             value={draft}
             disabled={sending}
@@ -188,18 +212,18 @@ function ThreadRow({ thread }: { thread: CommentThreadGroup }) {
             }}
           />
           <Button
-            variant="ghost"
-            size="pill"
-            className="flex-none px-2.5 text-ink-soft hover:border-ink-soft hover:bg-transparent hover:text-ink"
+            variant="bare"
+            className="h-7 flex-none gap-1 rounded-[7px] px-2 text-[12px] font-normal"
             title="Mark this thread as resolved"
             onClick={resolve}
           >
-            ✓ Resolve
+            <CheckIcon className="size-3.5" />
+            Resolve
           </Button>
         </div>
       )}
       {failed && (
-        <div className="mt-1 text-[11px] leading-[1.4] text-accent-ink">
+        <div className="pl-[28px] text-[11px] leading-[1.4] text-accent-ink">
           That reply did not go through — it may be resolved already. Try again.
         </div>
       )}

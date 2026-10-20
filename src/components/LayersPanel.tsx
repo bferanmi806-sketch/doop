@@ -39,7 +39,7 @@ import { cn } from '@/lib/utils'
 import { AgentIcon } from './AgentIcon'
 import { LayerKindIcon } from './LayerKindIcon'
 import { FrameContextMenu } from './FrameContextMenu'
-import { Panel, PanelBody, PanelHeader } from './ui/panel'
+import { Panel, PanelBody, PanelClose, PanelHeader } from './ui/panel'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Tooltip } from './ui/tooltip'
@@ -66,11 +66,12 @@ import {
   SearchIcon,
 } from './ui/icons'
 
-/* the tree indents 18px per level; frame rows sit at depth 0 */
-const INDENT = 18
+/* the tree indents 16px per level; frame rows sit at depth 0 */
+const INDENT = 16
 
 const sectionBtn = 'size-5 rounded-[5px] text-ink-faint hover:bg-paper-deep hover:text-ink'
-const editorChip = 'inline-flex flex-none items-center gap-[3px] rounded-full px-1.5 text-[9.5px] font-bold text-white'
+const editorChip =
+  'inline-flex h-4 flex-none items-center gap-[3px] rounded-full px-1.5 text-[10px] font-medium leading-none text-white'
 
 function rowKey(frameId: string, selector: string) {
   return `${frameId}|${selector}`
@@ -157,7 +158,19 @@ function visibleRows(frames: Frame[], query: string, expanded: Set<string>): Vis
 /** The Layers rail: every frame on the canvas, opening into the element tree
  *  of its HTML. Selection runs both ways — a row selects the element in the
  *  frame, a click in the frame highlights its row. */
-export function LayersPanel({ onAddFrame }: { onAddFrame: () => void }) {
+export function LayersPanel({
+  onAddFrame,
+  surface = 'floating',
+  onClose,
+}: {
+  onAddFrame: () => void
+  /* 'inline' when the panel is filling a mobile Sheet rather than floating */
+  surface?: 'floating' | 'inline'
+  /** inline only: the sheet's close, in the collapse control's place */
+  onClose?: () => void
+}) {
+  /* a row's pointerleave never fires if the panel goes away under it */
+  useEffect(() => () => useStore.getState().setHoveredLayer(null), [])
   const pageCanvas = usePageCanvas()
   const frames = useMemo(() => pageCanvas?.frames ?? [], [pageCanvas])
   const selectedId = useStore((s) => s.selectedId)
@@ -335,34 +348,37 @@ export function LayersPanel({ onAddFrame }: { onAddFrame: () => void }) {
   }
 
   return (
-    <Panel className="left-3 inset-y-3 w-[300px]">
-      {/* the same header as the right-hand panel: the panel's name as an icon
-          pill, the collapse control at the far end */}
-      <PanelHeader>
-        <span className="inline-flex h-7 items-center gap-1.5 rounded-md bg-paper-deep px-1.5 font-sans text-[12.5px] font-medium normal-case tracking-normal text-ink">
-          <LayersIcon className="size-4" />
+    <Panel surface={surface} className={cn(surface === 'floating' && 'top-2.5 bottom-3.5 left-3.5 w-[264px]')}>
+      {/* the panel's name with its icon, the collapse control at the far end */}
+      <PanelHeader className="h-10 pl-3.5">
+        <span className="flex items-center gap-2">
+          <LayersIcon className="size-3.5" />
           Layers
         </span>
-        <Tooltip label="Collapse panel" side="bottom" align="end">
-          <Button
-            variant="bare"
-            size="icon-sm"
-            className="shrink-0 text-ink-faint hover:bg-paper-deep hover:text-ink"
-            aria-label="Collapse panel"
-            onClick={() => setLayersOpen(false)}
-          >
-            <PanelCollapseIcon width={13} height={13} />
-          </Button>
-        </Tooltip>
+        {surface === 'inline' ? (
+          <PanelClose label="Close" onClick={onClose} />
+        ) : (
+          <Tooltip label="Collapse panel" side="bottom" align="end">
+            <Button
+              variant="bare"
+              size="icon-sm"
+              className="size-7 shrink-0 rounded-[7px] text-ink-faint hover:bg-paper-deep hover:text-ink"
+              aria-label="Collapse panel"
+              onClick={() => setLayersOpen(false)}
+            >
+              <PanelCollapseIcon className="size-3.5" />
+            </Button>
+          </Tooltip>
+        )}
       </PanelHeader>
-      {/* Figma's order: the pages fold at the top, the frames of the active
-          page under them, the search at the bottom within thumb's reach */}
-      <PagesPanel collapsible />
-      <div className={cn('flex items-center justify-between py-1.5 pr-2 pl-3.5', sectionHeading)}>
+      {/* Figma's order: the pages at the top, the frames of the active page
+          under them, the search at the bottom within thumb's reach */}
+      <PagesPanel />
+      <div className={cn('mt-1.5 flex h-6 flex-none items-center justify-between pr-2.5 pl-3.5', sectionHeading)}>
         <span data-slot="frame-section-heading" className={sectionHeading}>
-          Frames
+          Layers
         </span>
-        <span className="flex gap-0.5">
+        <span className="flex gap-1">
           <Tooltip label="Collapse all" side="bottom">
             <Button
               variant="bare"
@@ -371,12 +387,12 @@ export function LayersPanel({ onAddFrame }: { onAddFrame: () => void }) {
               aria-label="Collapse all"
               onClick={() => setExpanded(new Set())}
             >
-              <CollapseAllIcon width={12} height={12} />
+              <CollapseAllIcon className="size-3.5" />
             </Button>
           </Tooltip>
           <Tooltip label="New frame" side="bottom" align="end">
             <Button variant="bare" size="icon-sm" className={sectionBtn} aria-label="New frame" onClick={onAddFrame}>
-              <PlusIcon width={12} height={12} />
+              <PlusIcon className="size-3.5" />
             </Button>
           </Tooltip>
         </span>
@@ -393,12 +409,12 @@ export function LayersPanel({ onAddFrame }: { onAddFrame: () => void }) {
         }}
       >
         {frames.length === 0 && (
-          <div className="px-3 py-6 text-center text-[12.5px] text-ink-faint">
+          <div className="px-3 py-6 text-center text-[12px] text-ink-faint">
             No frames yet. Press + to add one, or ask the agent for a design.
           </div>
         )}
         {frames.length > 0 && rows.length === 0 && (
-          <div className="px-3 py-6 text-center text-[12.5px] text-ink-faint">Nothing matches “{query.trim()}”.</div>
+          <div className="px-3 py-6 text-center text-[12px] text-ink-faint">Nothing matches “{query.trim()}”.</div>
         )}
         {rows.map((row) =>
           row.kind === 'frame' ? (
@@ -425,13 +441,13 @@ export function LayersPanel({ onAddFrame }: { onAddFrame: () => void }) {
           ),
         )}
       </PanelBody>
-      <footer className="flex-none border-t border-line-soft p-2">
-        <label className="flex h-8 items-center gap-2 rounded-lg border border-line bg-paper px-2.5 text-ink-faint focus-within:border-ink">
-          <SearchIcon width={13} height={13} className="flex-none" />
+      <footer className="flex-none px-2.5 pt-1 pb-2.5">
+        <label className="flex h-[30px] items-center gap-2 rounded-[8px] px-2.5 text-ink-faint shadow-ring focus-within:shadow-elevation-1-focus">
+          <SearchIcon className="size-3.5 flex-none" />
           <Input
             variant="bare"
             inputSize="auto"
-            className="h-full text-[12.5px] md:text-[12.5px]"
+            className="h-full text-[12px] placeholder:text-ink-ghost md:text-[12px]"
             placeholder="Search layers"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -443,41 +459,35 @@ export function LayersPanel({ onAddFrame }: { onAddFrame: () => void }) {
 }
 
 /** The collapsed rail: a narrow column at the panel's spot with the expand
- *  control and the Layers mark carrying the frame count, as in the design. */
+ *  control and the Layers mark. The frame count lives in the tooltip only. */
 export function LayersRailToggle() {
   const setLayersOpen = useStore((s) => s.setLayersOpen)
   const count = usePageCanvas()?.frames.length ?? 0
   return (
     <nav
       aria-label="Layers panel"
-      className="absolute left-3 top-3 z-[35] flex w-12 flex-col items-center gap-1.5 rounded-[14px] border border-line bg-surface p-1.5 shadow-card"
+      className="pointer-events-auto absolute top-2.5 left-3.5 z-[35] flex w-10 flex-col items-center gap-0.5 rounded-[12px] bg-surface p-[5px] shadow-float"
     >
       <Tooltip label="Expand panel" side="right">
         <Button
           variant="bare"
           size="icon-sm"
-          className="size-[34px] rounded-lg text-ink-soft hover:bg-paper-deep hover:text-ink"
+          className="size-7 rounded-[7px] text-ink-soft hover:bg-paper-deep hover:text-ink"
           aria-label="Expand panel"
           onClick={() => setLayersOpen(true)}
         >
-          <PanelExpandIcon width={16} height={16} />
+          <PanelExpandIcon className="size-3.5" />
         </Button>
       </Tooltip>
-      <span className="my-0.5 h-px w-6 bg-line-soft" />
       <Tooltip label={`Layers · ${count} ${count === 1 ? 'frame' : 'frames'}`} side="right">
         <Button
           variant="bare"
           size="icon-sm"
-          className="relative size-[34px] rounded-lg bg-brand/[0.06] text-brand hover:bg-brand/10 hover:text-brand"
+          className="size-7 rounded-[7px] text-ink hover:bg-paper-deep"
           aria-label={`Layers — ${count} frames`}
           onClick={() => setLayersOpen(true)}
         >
-          <LayersIcon width={16} height={16} />
-          {count > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 grid h-[15px] min-w-[15px] place-items-center rounded-lg border-2 border-surface bg-brand px-[3px] font-mono text-[8px] font-medium text-white">
-              {count}
-            </span>
-          )}
+          <LayersIcon className="size-3.5" />
         </Button>
       </Tooltip>
     </nav>
@@ -519,9 +529,9 @@ function FrameRow({
             drop={drop}
             caret={<Caret open={row.open} present />}
             onCaret={onToggle}
-            icon={<FrameIcon width={13} height={13} />}
+            icon={<FrameIcon className="size-3.5" />}
             label={frame.name}
-            className={cn('font-semibold', current && !selected && 'text-brand [&_[data-icon]]:text-brand')}
+            className={cn(current && !selected && 'text-ink')}
             selected={selected}
             hidden={!!frame.hidden}
             dimmed={!!frame.hidden}
@@ -548,13 +558,20 @@ function FrameRow({
                     {p.name}
                   </span>
                 ))}
+                {/* nobody in it right now: who touched it last (the eye and
+                    lock take its place on hover) */}
+                {!stream && editors.length === 0 && frame.updatedBy && (
+                  <span className="max-w-[72px] truncate text-[11px] font-normal text-ink-faint group-hover:hidden">
+                    {frame.updatedBy}
+                  </span>
+                )}
               </>
             }
           />
         </ContextMenuTrigger>
         <FrameContextMenu frame={frame} at={pasteAt} />
       </ContextMenu>
-      {row.empty && <div className="py-1 pl-[42px] text-[11.5px] text-ink-faint">empty frame</div>}
+      {row.empty && <div className="py-1 pl-[46px] text-[11px] text-ink-faint">empty frame</div>}
     </>
   )
 }
@@ -600,6 +617,14 @@ function NodeRow({
           onClick={onActivate}
           onContextMenu={onActivate}
           onPointerDown={onPointerDown}
+          /* the row under the pointer is outlined on the canvas too, as a
+             hover over the frame itself would */
+          onPointerEnter={() => useStore.getState().setHoveredLayer({ frameId: frame.id, selector: node.selector })}
+          onPointerLeave={() => {
+            const s = useStore.getState()
+            if (s.hoveredLayer?.frameId === frame.id && s.hoveredLayer.selector === node.selector)
+              s.setHoveredLayer(null)
+          }}
         />
       </ContextMenuTrigger>
       <ContextMenuContent>
@@ -702,9 +727,12 @@ function Row({
       role="treeitem"
       aria-selected={selected}
       className={cn(
-        'group relative flex h-[26px] cursor-default select-none items-center gap-1 whitespace-nowrap rounded-md pr-1 text-[12.5px] text-ink hover:bg-paper-deep',
-        selected && 'bg-brand text-white hover:bg-brand [&_[data-icon]]:text-white/85',
-        drop === 'inside' && 'shadow-[inset_0_0_0_2px_var(--brand)]',
+        'group relative flex h-7 cursor-default select-none items-center gap-[5px] whitespace-nowrap rounded-[7px] pr-1.5 text-[12px] text-ink-soft hover:bg-sub',
+        selected && 'bg-paper-deep font-medium text-ink hover:bg-paper-deep [&_[data-icon]]:text-ink',
+        /* room under the floating eye and lock, so the name never runs beneath them */
+        (onToggleHidden || onToggleLocked) &&
+          (hidden || locked ? 'pr-[50px]' : 'focus-within:pr-[50px] hover:pr-[50px]'),
+        drop === 'inside' && 'shadow-[inset_0_0_0_1.5px_var(--brand)]',
         className,
       )}
       style={{ ...rest.style, paddingLeft: 6 + depth * INDENT }}
@@ -722,7 +750,7 @@ function Row({
       )}
       <span
         data-icon
-        className={cn('grid size-3.5 flex-none place-items-center text-ink-faint', onCaret && 'cursor-pointer')}
+        className={cn('grid size-3 flex-none place-items-center text-ink-faint', onCaret && 'cursor-pointer')}
         onClick={(e) => {
           if (!onCaret) return
           e.stopPropagation()
@@ -734,20 +762,33 @@ function Row({
       <span data-icon className={cn('grid size-4 flex-none place-items-center text-ink-faint', dimmed && 'opacity-50')}>
         {icon}
       </span>
-      <span className={cn('min-w-0 flex-1 overflow-hidden text-ellipsis', dimmed && 'opacity-50')}>
-        {label}
-        {detail && <span className={cn('text-ink-faint', selected && 'text-white/85')}>{detail}</span>}
-      </span>
+      <span className={cn('min-w-0 flex-1 overflow-hidden text-ellipsis', dimmed && 'opacity-50')}>{label}</span>
+      {/* the class or id that names the element, as a quiet right-hand tag */}
+      {detail && (
+        <span className="min-w-0 max-w-[45%] flex-none truncate text-[11px] font-normal text-ink-faint group-hover:hidden">
+          {detail.replace(/^\./, '')}
+        </span>
+      )}
       {trailing && <span className="flex flex-none items-center gap-1">{trailing}</span>}
       {(onToggleHidden || onToggleLocked) && (
-        <span className="flex flex-none items-center gap-0.5">
+        /* the eye and lock float over the row's right end, outside the flex
+           flow, so showing or hiding them never moves anything: the row keeps
+           its layout and an open tooltip keeps its anchor while it closes.
+           They toggle visibility rather than display, for the same reason;
+           a hidden or locked row keeps its mark showing. */
+        <span
+          className={cn(
+            'absolute top-0 right-0 flex h-full flex-none items-center gap-0.5 rounded-r-[7px] bg-inherit pr-1.5 pl-1',
+            !hidden && !locked && 'invisible group-focus-within:visible group-hover:visible',
+          )}
+        >
           {onToggleHidden && (
             <RowToggle
               label={hidden ? 'Show' : 'Hide'}
               on={!!hidden}
               selected={selected}
               onToggle={onToggleHidden}
-              icon={hidden ? <EyeClosedIcon width={13} height={13} /> : <EyeIcon width={13} height={13} />}
+              icon={hidden ? <EyeClosedIcon className="size-3.5" /> : <EyeIcon className="size-3.5" />}
             />
           )}
           {onToggleLocked && (
@@ -756,7 +797,7 @@ function Row({
               on={!!locked}
               selected={selected}
               onToggle={onToggleLocked}
-              icon={<LockIcon width={12} height={12} />}
+              icon={<LockIcon className="size-3" />}
             />
           )}
         </span>
@@ -789,9 +830,9 @@ function RowToggle({
         aria-label={label}
         aria-pressed={on}
         className={cn(
-          'grid size-5 flex-none place-items-center rounded-[5px] text-ink-faint opacity-0 hover:bg-ink/10 hover:text-ink focus-visible:opacity-100 group-hover:opacity-100',
+          'grid size-5 flex-none place-items-center rounded-[5px] text-ink-faint opacity-0 hover:bg-ink/10 hover:text-ink focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100',
           on && 'opacity-100',
-          selected && 'text-white/85 hover:bg-white/15 hover:text-white',
+          selected && 'text-ink-soft',
         )}
         onPointerDown={(e) => e.stopPropagation()}
         onDoubleClick={(e) => e.stopPropagation()}
@@ -811,5 +852,5 @@ function RowToggle({
 
 function Caret({ open, present }: { open: boolean; present: boolean }) {
   if (!present) return null
-  return open ? <ChevronDownIcon width={11} height={11} /> : <ChevronRightIcon width={11} height={11} />
+  return open ? <ChevronDownIcon className="size-3" /> : <ChevronRightIcon className="size-3" />
 }

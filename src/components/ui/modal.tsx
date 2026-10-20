@@ -3,6 +3,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { cva, type VariantProps } from 'class-variance-authority'
 
 import { cn } from '@/lib/utils'
+import { XIcon } from './icons'
 
 /* Doop's modal: a hairline card lifted on the soft pop shadow, over a dimmed
    canvas. Built on Radix so it brings a focus trap, Escape and scroll-locking
@@ -32,6 +33,7 @@ const modalVariants = cva(
 function Modal({
   open = true,
   onClose,
+  showClose = false,
   size,
   className,
   children,
@@ -40,12 +42,24 @@ function Modal({
   VariantProps<typeof modalVariants> & {
     open?: boolean
     onClose: () => void
+    /** an × in the top-right corner. On a phone a wide modal leaves almost
+     *  no backdrop to tap and there is no Escape key, so a modal without a
+     *  Cancel of its own needs this to be closable at all */
+    showClose?: boolean
   }) {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-[60] animate-[fade-in_0.15s_ease] bg-[rgba(18,18,23,0.45)]" />
         <DialogPrimitive.Content data-slot="modal" className={cn(modalVariants({ size, className }))} {...props}>
+          {showClose && (
+            <DialogPrimitive.Close
+              aria-label="Close"
+              className="absolute top-3 right-3 z-[1] grid size-9 place-items-center rounded-[9px] text-ink-soft transition-colors hover:bg-paper-deep hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-faint sm:top-4 sm:right-4"
+            >
+              <XIcon className="size-4" />
+            </DialogPrimitive.Close>
+          )}
           {children}
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>

@@ -4,14 +4,15 @@ import { Slot } from '@radix-ui/react-slot'
 
 import { cn } from '@/lib/utils'
 
-/* Doop's button: a hairline-bordered surface that fills rather than moves.
-   The editorial system draws elevation with rules, not with drop shadows or
-   offset blocks, so pressing a control deepens its fill instead of sinking
-   it. That restraint lives in the base and every variant only re-colours it. */
+/* Doop's button: a white surface drawn by a 1px shadow ring rather than a
+   border, with one black primary per screen. Pressing a control deepens its
+   fill instead of sinking it. That restraint lives in the base and every
+   variant only re-colours it. The border stays in the base (transparent) so
+   callers that set a border colour keep working. */
 const buttonVariants = cva(
   [
     'inline-flex shrink-0 select-none items-center justify-center gap-[7px] whitespace-nowrap rounded-md',
-    'border font-semibold transition-[background-color,border-color,color] duration-[120ms]',
+    'border font-medium transition-[background-color,border-color,color,box-shadow] duration-[120ms]',
     'focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40',
     'disabled:pointer-events-none disabled:opacity-45',
     "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
@@ -20,16 +21,15 @@ const buttonVariants = cva(
     variants: {
       variant: {
         /* the workhorse: white surface, ink hairline, fills on press */
-        default: 'border-ink bg-surface text-ink hover:bg-paper-deep active:bg-line',
-        primary: 'border-brand bg-brand text-white hover:border-brand/85 hover:bg-brand/85 active:bg-brand',
+        default: 'border-transparent bg-surface text-ink shadow-ring hover:shadow-ring-hover active:bg-paper-deep',
+        primary: 'border-transparent bg-ink text-paper hover:bg-ink/85 active:bg-ink',
         /* quiet sibling: the soft hairline instead of the ink one */
-        ghost: 'border-line bg-transparent font-medium text-ink hover:bg-surface',
-        danger:
-          'border-line bg-transparent font-medium text-accent-ink hover:border-accent-ink/40 hover:bg-accent-ink/10',
+        ghost: 'border-transparent bg-transparent text-ink shadow-ring hover:bg-paper-deep hover:shadow-ring-hover',
+        danger: 'border-transparent bg-transparent text-accent-ink shadow-ring hover:bg-accent-ink/10',
         /* bare text action — menu rows, inline destructive links */
-        bare: 'border-transparent bg-transparent font-semibold text-ink-soft hover:bg-line-soft hover:text-ink',
-        'bare-danger': 'border-transparent bg-transparent font-semibold text-accent-ink hover:bg-accent-ink/10',
-        link: 'border-transparent bg-transparent font-semibold text-ink underline-offset-4 hover:underline',
+        bare: 'border-transparent bg-transparent text-ink-soft hover:bg-paper-deep hover:text-ink',
+        'bare-danger': 'border-transparent bg-transparent text-accent-ink hover:bg-accent-ink/10',
+        link: 'border-transparent bg-transparent text-ink underline-offset-4 hover:underline',
         /* filled destructive pill — the retry affordance on failed tasks */
         'danger-solid': 'border-accent-ink bg-accent-ink text-white hover:border-ink hover:bg-ink hover:text-paper',
         /* flat ink fill: compact affordances inside cards */
@@ -38,7 +38,7 @@ const buttonVariants = cva(
         inverse: 'border-transparent bg-transparent text-paper hover:bg-paper/15',
       },
       size: {
-        pill: 'rounded-full px-2 py-[3px] text-[11px] font-bold',
+        pill: 'rounded-full px-2 py-[3px] text-[11px] font-medium',
         sm: 'px-2.5 py-[5px] text-xs',
         md: 'px-3.5 py-2 text-[13px]',
         lg: 'justify-center px-4 py-[11px] text-sm',

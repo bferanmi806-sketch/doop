@@ -29,7 +29,7 @@ function DropdownMenuContent({
         align={align}
         collisionPadding={12}
         className={cn(
-          'z-[70] w-[min(340px,calc(100vw-24px))] rounded-[14px] border border-line bg-surface p-1.5 shadow-pop',
+          'z-[70] w-[min(340px,calc(100vw-24px))] rounded-[12px] bg-surface p-1.5 shadow-pop',
           'animate-[chip-in_0.18s_ease] data-[state=closed]:animate-none',
           className,
         )}
@@ -41,7 +41,7 @@ function DropdownMenuContent({
 
 /* what every row in the menu shares, whichever primitive renders it */
 const itemClass =
-  'cursor-pointer gap-[11px] rounded-[9px] px-2.5 py-[9px] text-[13.5px] outline-none data-[highlighted]:bg-paper-deep data-[disabled]:pointer-events-none data-[disabled]:text-ink-faint'
+  'cursor-pointer gap-2.5 rounded-[8px] px-2.5 py-2 text-[12.5px] outline-none data-[highlighted]:bg-sub data-[disabled]:pointer-events-none data-[disabled]:text-ink-faint'
 
 function DropdownMenuItem({
   className,

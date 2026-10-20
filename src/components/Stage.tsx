@@ -34,9 +34,6 @@ const MAX_ZOOM = 3
    included, like the Hand tool's grab — except inside the comment UI itself
    (pins, composer, threads: `data-comment-ui`), which keeps its own cursors. */
 const COMMENT_CURSOR = 'cursor-comment! [&_:not([data-comment-ui]_*)]:cursor-comment!'
-/* the open side panel overlays the stage's right edge (312px incl. margin,
-   see the Toolbar below): that strip is not room for a comment composer */
-const SIDE_PANEL_WIDTH = 312
 
 /** The canvas-pinned root comment a ?comment= link names, if it is loaded. */
 function linkedCanvasComment(id: string | null): CanvasComment | null {
@@ -87,7 +84,15 @@ const sendViewport = throttle(
   50,
 )
 
-export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; sidePanelOpen: boolean }) {
+export function Stage({
+  onAddFrame,
+  rightInset,
+}: {
+  onAddFrame: () => void
+  /** px the floating panels and islands cover at the stage's right edge —
+   *  no room there for a comment composer */
+  rightInset: number
+}) {
   const ref = useRef<HTMLDivElement>(null)
   const drawing = useCanvasDrawing(ref)
   const worldRef = useRef<HTMLDivElement>(null)
@@ -630,7 +635,13 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
        (Hand, space held) — anything but a pan on it is the frame's own business */
     if (action === 'pan') return startPan(e, isBackground)
     if (action === 'marquee') startMarquee(e)
-    if (action === 'comment-canvas') startCanvasComment(e)
+    if (action === 'comment-canvas') {
+      /* a finger that moves is a pan, a finger that lifts in place is a
+         comment: the pan follows the movement, the comment checks the
+         distance on release and only opens when there was none */
+      if (e.pointerType === 'touch') startPan(e, isBackground)
+      startCanvasComment(e)
+    }
   }
 
   /* the Comment tool on empty canvas: a click (not a drag) opens the composer
@@ -642,7 +653,7 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
     /* the composer hangs beside the pin on whichever side keeps it on the
        visible stage (the side panel overlays the stage's right edge) */
     const rect = e.currentTarget.getBoundingClientRect()
-    const placement = placeComposer(e.clientX, rect.left, rect.right - (sidePanelOpen ? SIDE_PANEL_WIDTH : 0))
+    const placement = placeComposer(e.clientX, rect.left, rect.right - rightInset)
     function onUp(ev: PointerEvent) {
       window.removeEventListener('pointerup', onUp)
       if (Math.abs(ev.clientX - origin.x) + Math.abs(ev.clientY - origin.y) > 3) return
@@ -805,20 +816,20 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
         </ContextMenuTrigger>
         <FollowFrame />
 
+        {/* the tool rail: a vertical island beside the Layers panel on desktop
+            (the page sets --rail-left and --chrome-top), a centred strip at
+            the bottom on phones */}
         <div
           className={cn(
-            'absolute bottom-[calc(8px+env(safe-area-inset-bottom))] left-1/2 z-[35] -translate-x-1/2 transition-[left] duration-150 ease-[ease] sm:bottom-4',
-            /* on a narrow desktop window the open side panel (312px incl. its
-               margin) leaves no room between the zoom pill and the window's
-               center: center on the canvas area left of the panel instead */
-            sidePanelOpen && 'md:left-[calc((100%-312px)/2)]',
+            'absolute bottom-[calc(8px+env(safe-area-inset-bottom))] left-1/2 z-[35] -translate-x-1/2 sm:bottom-4',
+            'md:top-[calc(var(--chrome-top,0px)+10px)] md:bottom-auto md:left-[var(--rail-left,14px)] md:translate-x-0 md:transition-[left] md:duration-150',
             uiHidden && 'hidden',
           )}
         >
           {isDrawingTool(tool) && (
             <div
               data-drawing-hint
-              className="absolute bottom-full left-1/2 mb-2 flex w-max max-w-[min(340px,90vw)] -translate-x-1/2 flex-wrap items-center justify-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-center text-xs text-ink-soft shadow-pop"
+              className="absolute bottom-full left-1/2 mb-2 flex w-max max-w-[min(340px,90vw)] -translate-x-1/2 flex-wrap items-center justify-center gap-2 rounded-[10px] bg-surface px-3 py-2 text-center text-[12px] text-ink-soft shadow-pop md:top-0 md:bottom-auto md:left-full md:mb-0 md:ml-2.5 md:translate-x-0 md:justify-start md:text-left"
             >
               <span>
                 {tool === 'path'
@@ -846,13 +857,13 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
               )}
             </div>
           )}
-          <Toolbar aria-label="Canvas tools">
+          <Toolbar aria-label="Canvas tools" className="md:w-10 md:flex-col">
             {TOOLS.map((t) => (
-              <Tooltip key={t.id} label={`${t.label} (${t.key})`}>
+              <Tooltip key={t.id} label={`${t.label} (${t.key})`} side="right">
                 <ToolbarButton
                   aria-label={t.label}
                   aria-pressed={tool === t.id}
-                  className="px-2 aria-pressed:bg-ink aria-pressed:text-paper aria-pressed:hover:bg-ink sm:px-2"
+                  className="text-ink aria-pressed:bg-paper-deep"
                   onClick={() => setTool(t.id)}
                 >
                   {TOOL_ICONS[t.id]}
@@ -864,7 +875,6 @@ export function Stage({ onAddFrame, sidePanelOpen }: { onAddFrame: () => void; s
 
         <ZoomControls
           labelRef={zoomLabelRef}
-          sidePanelOpen={sidePanelOpen}
           hidden={uiHidden}
           onZoomIn={() => ref.current && zoomCentered(ref.current, useStore.getState().viewport.zoom * 1.25)}
           onZoomOut={() => ref.current && zoomCentered(ref.current, useStore.getState().viewport.zoom / 1.25)}

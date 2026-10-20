@@ -1,145 +1,190 @@
-/** Doop's UI icon set: Iconoir (MIT), drawn on a 24 grid at a 1.5 stroke with
- *  round caps and joins — light enough to sit inside the frosted chips.
+/** Doop's UI icon set: Lucide (ISC), drawn on a 24 grid with round caps and
+ *  joins at a 1.15 stroke — the hairline weight of the white system, so a
+ *  glyph sits as quietly as the 1px rings around it.
  *
  *  Every icon is re-exported under the name the app already uses, wrapped to
- *  default to 16px (Iconoir's own default is 1.5em) — pass width/height or a
- *  `size-*` class to override, exactly as before. `PlayIcon` is the filled
- *  variant, as the transport control always was. */
+ *  default to 16px — pass width/height or a `size-*` class to override (the
+ *  editor chrome uses 14px). A caller's own `strokeWidth` still wins. */
 
 import type { ComponentType, SVGProps } from 'react'
 import {
   Activity,
-  Bell,
-  ChatBubble,
-  ChatLines,
-  MapPin,
-  Circle,
-  Building,
-  CreditCard,
-  Lock,
-  Clock,
-  Attachment,
-  Brain,
-  Compass,
-  Computer,
-  CursorPointer,
-  DragHandGesture,
-  Download,
-  Eye,
-  EyeClosed,
-  Group,
-  HalfMoon,
-  HelpCircle,
-  Key,
-  LogOut,
-  Menu,
-  NavArrowLeft,
-  Settings,
-  Shield,
-  User,
-  ViewGrid,
   ArrowUp,
+  Bell,
   Bookmark,
+  BookOpen,
+  Brain,
+  Building2,
   Check,
-  Compress,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsDownUp,
+  Circle,
+  CircleHelp,
+  Clock,
+  Compass,
   Copy,
-  Puzzle,
-  DesignNib,
-  FrameAltEmpty,
-  Github,
-  Import,
-  MediaImage,
-  MoreHoriz,
-  ViewStructureUp,
-  NavArrowDown,
-  NavArrowRight,
-  PlaySolid,
+  CreditCard,
+  Download,
+  Ellipsis,
+  Eye,
+  EyeOff,
+  ExternalLink,
+  Folder,
+  File,
+  Frame,
+  Globe,
+  Hand,
+  Image,
+  Key,
+  Layers,
+  LayoutGrid,
+  Lock,
+  LogOut,
+  MapPin,
+  Menu,
+  Minus,
+  MousePointer2,
+  MessageCircle,
+  Monitor,
+  Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
+  Paperclip,
+  PenTool,
+  Play,
   Plus,
-  RefreshDouble,
+  Puzzle,
+  RefreshCw,
+  Scan,
   Search,
-  ShareAndroid,
-  SidebarCollapse,
-  SidebarExpand,
-  SparkSolid,
+  Settings,
+  Share,
+  Share2,
+  SlidersHorizontal,
+  Shield,
+  Sparkles,
   Square,
-  SunLight,
-  Text,
-  Trash,
-  Xmark,
-} from 'iconoir-react'
+  Sun,
+  Trash2,
+  Type,
+  User,
+  Users,
+  X,
+} from 'lucide-react'
 
 type IconProps = Omit<SVGProps<SVGSVGElement>, 'ref'>
 
-function icon(Base: ComponentType<IconProps>, extra?: IconProps) {
+/** The stroke every chrome glyph is drawn at, in the icon's 24-unit grid. */
+export const ICON_STROKE = 1.15
+
+function icon(Base: ComponentType<IconProps>) {
   return function Icon(props: IconProps) {
-    return <Base width={16} height={16} {...extra} {...props} />
+    return <Base width={16} height={16} strokeWidth={ICON_STROKE} aria-hidden {...props} />
   }
 }
 
-/* The right-hand panel controls are the sidebar glyphs mirrored: Iconoir only
-   draws the left-anchored pair. */
-const mirrored = { style: { transform: 'scaleX(-1)' } } satisfies IconProps
-
-export const XIcon = icon(Xmark)
-export const MoreHorizontalIcon = icon(MoreHoriz)
-export const ShareIcon = icon(ShareAndroid)
+export const XIcon = icon(X)
+export const MoreHorizontalIcon = icon(Ellipsis)
+export const ShareIcon = icon(Share2)
 export const CopyIcon = icon(Copy)
-export const TrashIcon = icon(Trash)
+export const TrashIcon = icon(Trash2)
 export const CheckIcon = icon(Check)
-export const ChevronRightIcon = icon(NavArrowRight)
-export const ChevronDownIcon = icon(NavArrowDown)
-export const GithubIcon = icon(Github)
-export const SyncIcon = icon(RefreshDouble)
-export const ImportIcon = icon(Import)
+export const ChevronRightIcon = icon(ChevronRight)
+export const ChevronDownIcon = icon(ChevronDown)
+/** Lucide dropped its brand marks; this is its last GitHub outline, kept on
+ *  the same grid and stroke as the rest of the set. */
+export function GithubIcon(props: IconProps) {
+  return (
+    <svg
+      width={16}
+      height={16}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={ICON_STROKE}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      {...props}
+    >
+      <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
+      <path d="M9 18c-4.51 2-5-2-7-2" />
+    </svg>
+  )
+}
+export const SyncIcon = icon(RefreshCw)
+export const ImportIcon = icon(Download)
+/** Import's counterpart: the arrow leaving the box. */
+export const ExportIcon = icon(ExternalLink)
 export const PulseIcon = icon(Activity)
 export const BellIcon = icon(Bell)
-export const ChatIcon = icon(ChatBubble)
-/* the canvas tools */
-export const CursorIcon = icon(CursorPointer)
-export const HandIcon = icon(DragHandGesture)
-export const CommentIcon = icon(ChatLines)
-export const PinIcon = icon(MapPin)
-export const SparkIcon = icon(SparkSolid)
+export const ChatIcon = icon(MessageCircle)
+export const SparkIcon = icon(Sparkles)
 export const SearchIcon = icon(Search)
 export const PlusIcon = icon(Plus)
-export const CollapseAllIcon = icon(Compress)
-export const PanelCollapseIcon = icon(SidebarCollapse)
-export const PanelExpandIcon = icon(SidebarExpand)
-export const PanelCollapseRightIcon = icon(SidebarCollapse, mirrored)
-export const PanelExpandRightIcon = icon(SidebarExpand, mirrored)
-export const LayersIcon = icon(ViewStructureUp)
-export const EyeIcon = icon(Eye)
-export const EyeClosedIcon = icon(EyeClosed)
-export const FrameIcon = icon(FrameAltEmpty)
+export const CollapseAllIcon = icon(ChevronsDownUp)
+export const PanelCollapseIcon = icon(PanelLeftClose)
+export const PanelExpandIcon = icon(PanelLeftOpen)
+export const PanelCollapseRightIcon = icon(PanelRightClose)
+export const PanelExpandRightIcon = icon(PanelRightOpen)
+export const LayersIcon = icon(Layers)
+export const FrameIcon = icon(Frame)
+/** a page of the canvas, in the Layers panel's Pages list */
+export const PageIcon = icon(File)
 export const BoxIcon = icon(Square)
-export const CircleIcon = icon(Circle)
-export const TextIcon = icon(Text)
-export const ImageIcon = icon(MediaImage)
-export const VectorIcon = icon(DesignNib)
+export const TextIcon = icon(Type)
+export const ImageIcon = icon(Image)
+export const VectorIcon = icon(PenTool)
 export const BookmarkIcon = icon(Bookmark)
-export const PlayIcon = icon(PlaySolid)
+export const PlayIcon = icon(Play)
 export const ArrowUpIcon = icon(ArrowUp)
-export const ChevronLeftIcon = icon(NavArrowLeft)
-export const GridIcon = icon(ViewGrid)
+export const ChevronLeftIcon = icon(ChevronLeft)
+export const GridIcon = icon(LayoutGrid)
 export const ListIcon = icon(Menu)
 export const UserIcon = icon(User)
-export const UsersIcon = icon(Group)
+export const UsersIcon = icon(Users)
 export const CompassIcon = icon(Compass)
 export const ClockIcon = icon(Clock)
 export const GearIcon = icon(Settings)
 export const ShieldIcon = icon(Shield)
-export const HelpIcon = icon(HelpCircle)
+export const HelpIcon = icon(CircleHelp)
 export const KeyIcon = icon(Key)
 export const LogOutIcon = icon(LogOut)
-export const AttachmentIcon = icon(Attachment)
+export const AttachmentIcon = icon(Paperclip)
 export const BrainIcon = icon(Brain)
 /** a shared workspace — the org's building */
-export const BuildingIcon = icon(Building)
+export const BuildingIcon = icon(Building2)
 export const CreditCardIcon = icon(CreditCard)
 export const LockIcon = icon(Lock)
-export const DesktopIcon = icon(Computer)
+export const DesktopIcon = icon(Monitor)
 export const DownloadIcon = icon(Download)
 export const PuzzleIcon = icon(Puzzle)
-/* the theme switch: sun for light, half moon for dark */
-export const SunIcon = icon(SunLight)
-export const MoonIcon = icon(HalfMoon)
+/* the theme switch: sun for light, moon for dark */
+export const SunIcon = icon(Sun)
+export const MoonIcon = icon(Moon)
+
+/* the editor chrome's own glyphs */
+export const FolderIcon = icon(Folder)
+export const BookOpenIcon = icon(BookOpen)
+export const SlidersIcon = icon(SlidersHorizontal)
+export const PointerIcon = icon(MousePointer2)
+export const HandIcon = icon(Hand)
+/** the select tool's arrow — the same glyph as PointerIcon */
+export const CursorIcon = icon(MousePointer2)
+/** comments: the round bubble, as on the side panel's Comments tab in the design */
+export const CommentIcon = icon(MessageCircle)
+export const PinIcon = icon(MapPin)
+export const EyeIcon = icon(Eye)
+export const EyeClosedIcon = icon(EyeOff)
+export const CircleIcon = icon(Circle)
+/** a web page — the import-a-site tool */
+export const WebIcon = icon(Globe)
+export const MinusIcon = icon(Minus)
+/** zoom to fit: the four corners of the viewport */
+export const FitIcon = icon(Scan)
+/** sharing a canvas: the box with the arrow leaving it upward */
+export const ShareUpIcon = icon(Share)

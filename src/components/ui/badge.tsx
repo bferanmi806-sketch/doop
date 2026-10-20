@@ -8,11 +8,12 @@ import { cn } from '@/lib/utils'
    model names, so the tones below are the vocabulary — nothing should invent
    its own pill colour. */
 const badgeVariants = cva(
-  'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-[7px] py-0.5 font-mono text-[11px] leading-[1.5]',
+  'inline-flex items-center gap-1.5 whitespace-nowrap rounded-[4px] border px-[5px] py-px font-mono text-[10.5px] leading-[1.4]',
   {
     variants: {
       tone: {
-        default: 'border-line bg-paper-deep text-ink-soft',
+        default:
+          'border-transparent bg-transparent text-ink-faint shadow-[inset_0_0_0_0.75px_rgba(0,0,0,0.14)] dark:shadow-[inset_0_0_0_0.75px_rgba(255,255,255,0.18)]',
         admin: 'border-accent-ink/40 bg-accent-ink/[0.08] text-accent-ink',
         banned: 'border-warning-ink/35 bg-warning/[0.12] text-warning-ink',
         accent: 'border-accent-ink/40 bg-transparent text-accent-ink',

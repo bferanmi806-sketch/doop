@@ -71,6 +71,9 @@ interface State {
    *  surface and a click on a Layers row both land here, so the outline in
    *  the frame and the highlighted row stay in step */
   selectedElement: { frameId: string; selector: string } | null
+  /** the element under the pointer in the Layers panel — its frame outlines
+   *  it on the canvas, the same as a hover over the frame itself */
+  hoveredLayer: { frameId: string; selector: string } | null
   /** the element properties panel is showing — opened by a pick (a click on
    *  the frame surface or a Layers row), it then follows whatever element is
    *  selected until it is closed */
@@ -190,6 +193,7 @@ interface State {
   openCtxMenu(menu: { frameId: string; deferPanel: boolean }): void
   closeCtxMenu(): void
   setSelectedElement(el: { frameId: string; selector: string } | null): void
+  setHoveredLayer(el: { frameId: string; selector: string } | null): void
   /** an element picked by the user — on the frame surface or in the Layers
    *  rail: selects it and opens its properties panel; picking nothing clears
    *  the selection and closes the panel */
@@ -242,6 +246,7 @@ export const useStore = create<State>((set, get) => ({
   inspectorOpen: false,
   ctxMenu: null,
   selectedElement: null,
+  hoveredLayer: null,
   elementPanelOpen: false,
   layersOpen: readLayersOpen(),
   uiHidden: false,
@@ -535,6 +540,12 @@ export const useStore = create<State>((set, get) => ({
   setInspectorOpen: (inspectorOpen) => set({ inspectorOpen }),
   openCtxMenu: (ctxMenu) => set({ ctxMenu }),
   closeCtxMenu: () => set({ ctxMenu: null }),
+  setHoveredLayer: (hoveredLayer) =>
+    set((s) =>
+      s.hoveredLayer?.frameId === hoveredLayer?.frameId && s.hoveredLayer?.selector === hoveredLayer?.selector
+        ? s
+        : { hoveredLayer },
+    ),
   setSelectedElement: (selectedElement) =>
     set((s) =>
       s.selectedElement?.frameId === selectedElement?.frameId &&

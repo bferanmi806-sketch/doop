@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import type { Frame } from '../../shared/types'
 import { useStore } from '../lib/store'
 import { inspectElement, onFrameReady, styleElement, type ElementInfo, type StylePatch } from '../lib/frameBridge'
@@ -60,11 +60,28 @@ function readTab(): Tab {
 /** The element properties rail — the second panel at the right, opened from
  *  a Layers row. Reads the element's computed styles out of the live frame
  *  and writes edits back as inline styles; the HTML tab edits its markup. */
-export function ElementPanel({ frame, selector, className }: { frame: Frame; selector: string; className?: string }) {
+export function ElementPanel({
+  frame,
+  selector,
+  className,
+  style,
+}: {
+  frame: Frame
+  selector: string
+  className?: string
+  /** carries `right`, so it opens beside the Agents panel at the edge */
+  style?: CSSProperties
+}) {
   /* the tab sticks across elements and visits: walking the tree in HTML
      view must not snap back to Design on every row */
   const [tab, setTab] = useState<Tab>(readTab)
-  const [info, setInfo] = useState<ElementInfo | null>(null)
+  /* the values carry the selector they were read from: switching elements
+     keeps the panel mounted (no blank flash), but the old element's values
+     are shown dimmed and locked until the new element's read lands, so a
+     quick edit can never write them onto the new selection */
+  const [read, setRead] = useState<{ selector: string; info: ElementInfo } | null>(null)
+  const info = read?.selector === selector ? read.info : null
+  const stale = read && !info ? read.info : null
 
   const tree = useMemo(() => buildLayerTree(frame.html), [frame.html])
   const node = useMemo(() => findLayer(tree, selector), [tree, selector])
@@ -80,7 +97,7 @@ export function ElementPanel({ frame, selector, className }: { frame: Frame; sel
       timer = window.setTimeout(() => {
         inspectElement(frame.id, selector)
           .then((next) => {
-            if (live) setInfo(next)
+            if (live && next) setRead({ selector, info: next })
           })
           .catch(console.error)
       }, INSPECT_DELAY_MS)
@@ -95,9 +112,12 @@ export function ElementPanel({ frame, selector, className }: { frame: Frame; sel
   }, [frame.id, frame.html, selector])
 
   function apply(styles: StylePatch) {
+    if (!info) return // nothing fresh to edit against yet
     styleElement(frame.id, selector, styles)
       .then((next) => {
-        if (next) setInfo(next)
+        /* a reply for an element no longer selected must not replace the
+           values of the one that is */
+        if (next) setRead((r) => (r && r.selector !== selector ? r : { selector, info: next }))
       })
       .catch(console.error)
   }
@@ -119,9 +139,12 @@ export function ElementPanel({ frame, selector, className }: { frame: Frame; sel
   const parentLabel = parentNode ? `${parentNode.tag}${parentNode.detail}` : 'body'
 
   return (
-    <Panel className={cn('right-3 top-3 max-h-[calc(100%-24px)] w-[260px] transition-[right] duration-150', className)}>
+    <Panel
+      className={cn('top-2.5 max-h-[calc(100%-24px)] w-[244px] transition-[right] duration-150', className)}
+      style={style}
+    >
       <PanelTabsRoot value={tab} onValueChange={(v) => selectTab(v === 'html' ? 'html' : 'design')}>
-        <PanelHeader className="px-2.5 py-2">
+        <PanelHeader className="pl-2">
           <PanelTabs>
             <PanelTab value="design">Design</PanelTab>
             <PanelTab value="html">HTML</PanelTab>
@@ -129,12 +152,12 @@ export function ElementPanel({ frame, selector, className }: { frame: Frame; sel
           <PanelClose onClick={close} />
         </PanelHeader>
         <div className="flex flex-none items-center gap-[7px] border-b border-line-soft px-3 py-2.5">
-          <span className="grid size-5 flex-none place-items-center rounded-[5px] bg-paper-deep text-ink-soft">
+          <span className="grid size-5 flex-none place-items-center text-ink-faint">
             <LayerKindIcon kind={node?.kind ?? 'box'} />
           </span>
-          <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-ink">
+          <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-ink">
             {name}
-            <small className="ml-[5px] font-mono text-[9.5px] font-normal text-ink-faint">in {parentLabel}</small>
+            <small className="ml-[5px] text-[11px] font-normal text-ink-faint">in {parentLabel}</small>
           </span>
           {parentNode && (
             <Tooltip label="Select parent" side="bottom" align="end">
@@ -147,13 +170,23 @@ export function ElementPanel({ frame, selector, className }: { frame: Frame; sel
                   useStore.getState().setSelectedElement({ frameId: frame.id, selector: parentNode.selector })
                 }
               >
-                <ArrowUpIcon width={12} height={12} />
+                <ArrowUpIcon className="size-3.5" />
               </Button>
             </Tooltip>
           )}
         </div>
         <PanelTabPanel value="design">
-          <PanelBody>{info ? <DesignTab info={info} apply={apply} /> : <Waiting />}</PanelBody>
+          <PanelBody>
+            {info ? (
+              <DesignTab info={info} apply={apply} />
+            ) : stale ? (
+              <div aria-busy className="pointer-events-none opacity-50" title="Reading the element…">
+                <DesignTab info={stale} apply={apply} />
+              </div>
+            ) : (
+              <Waiting />
+            )}
+          </PanelBody>
         </PanelTabPanel>
         <PanelTabPanel value="html">
           <HtmlTab key={selector} frame={frame} selector={selector} />

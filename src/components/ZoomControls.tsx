@@ -13,14 +13,14 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
 import { Toolbar, ToolbarButton } from './ui/toolbar'
+import { MinusIcon, PlusIcon } from './ui/icons'
 
-/* The zoom pill in the canvas's bottom-right corner: step out, the current
+/* The zoom pill at the bottom right of the open canvas: step out, the current
    level, step in. The level doubles as the trigger of a menu with the preset
    zooms and the fits. The Stage writes the percentage into `labelRef` straight
    from its viewport subscription, so pan/zoom never re-renders this. */
 export function ZoomControls({
   labelRef,
-  sidePanelOpen,
   hidden,
   onZoomIn,
   onZoomOut,
@@ -29,8 +29,6 @@ export function ZoomControls({
   onFitSelection,
 }: {
   labelRef: RefObject<HTMLSpanElement>
-  /** the Activity panel is open at the right edge, so sit beside it */
-  sidePanelOpen: boolean
   /** ⌘. has hidden the chrome: display:none, so the label ref stays mounted */
   hidden: boolean
   onZoomIn: () => void
@@ -44,28 +42,28 @@ export function ZoomControls({
   const drawing = useStore((s) => isDrawingTool(s.tool))
   /* phones have no room for shortcut hints, and no keyboard to use them */
   const hint = (keys: string) => !isMobile && <MenuHint>{keys}</MenuHint>
-  /* a quieter pill than the frame toolbar: 26px rows, narrow steppers */
-  const stepBtn = 'min-h-0 px-2 py-1 text-[12px] leading-[18px] sm:px-2 sm:py-1'
+  const stepBtn = 'min-h-0'
 
   return (
     <Toolbar
       className={cn(
-        'absolute bottom-[calc(64px+env(safe-area-inset-bottom))] z-[35] gap-0 p-[3px] transition-[right] duration-150 ease-[ease] sm:gap-0 min-[1000px]:bottom-4 sm:p-[3px]',
-        drawing && 'max-[999px]:bottom-[calc(124px+env(safe-area-inset-bottom))]',
-        /* the corner is free when only the (top-anchored) side rail is out;
-           clear of the full-height 300px side panel at right: 12px otherwise */
-        isMobile ? 'right-2' : sidePanelOpen ? 'right-[324px]' : 'right-3',
+        'absolute bottom-[calc(64px+env(safe-area-inset-bottom))] z-[35] h-9 gap-0.5 px-1 py-0 transition-[right] duration-150 ease-[ease] md:bottom-3.5',
+        /* on phones the tool strip runs along the bottom, with its drawing hint above it */
+        drawing && 'max-md:bottom-[calc(124px+env(safe-area-inset-bottom))]',
+        /* beside the account island and whatever panels are open — the page
+           sets --chrome-right as they come and go */
+        isMobile ? 'left-1/2 -translate-x-1/2' : 'right-[var(--chrome-right,12px)]',
         hidden && 'hidden',
       )}
     >
       <ToolbarButton aria-label="Zoom out" className={stepBtn} onClick={onZoomOut}>
-        −
+        <MinusIcon />
       </ToolbarButton>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <ToolbarButton
             aria-label="Zoom level"
-            className={cn(stepBtn, 'min-w-[44px] px-1.5 text-center text-[11px] normal-case tracking-normal sm:px-1.5')}
+            className={cn(stepBtn, 'w-auto min-w-[48px] px-1.5 font-mono text-[12px] text-ink sm:w-auto sm:px-1.5')}
           >
             <span ref={labelRef}>100%</span>
           </ToolbarButton>
@@ -84,7 +82,7 @@ export function ZoomControls({
         </DropdownMenuContent>
       </DropdownMenu>
       <ToolbarButton aria-label="Zoom in" className={stepBtn} onClick={onZoomIn}>
-        +
+        <PlusIcon />
       </ToolbarButton>
     </Toolbar>
   )

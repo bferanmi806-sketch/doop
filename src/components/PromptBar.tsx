@@ -3,12 +3,14 @@ import { useStore, type ComposerSend } from '../lib/store'
 import { api, type Allowance } from '../lib/api'
 import { posthog } from '../lib/posthog'
 import { uploadImageFrames } from '../lib/frameClipboard'
-import { MeterLine, isResidentLimit, useAllowance } from './TeamAllowance'
+import { isResidentLimit, meterText, useAllowance } from './TeamAllowance'
 import { Button } from './ui/button'
 import { Textarea } from './ui/textarea'
 import { Note } from './ui/note'
+import { Tooltip } from './ui/tooltip'
 import { DoopMark } from './Logo'
-import { ArrowUpIcon, AttachmentIcon, XIcon } from './ui/icons'
+import { ArrowUpIcon, AttachmentIcon, FrameIcon, XIcon } from './ui/icons'
+import { ModelPicker } from './ModelPicker'
 import { LayerKindIcon } from './LayerKindIcon'
 import { buildLayerTree, findLayer, layerName } from '../lib/layers'
 import type { CardScope } from '../../shared/types'
@@ -296,14 +298,11 @@ export function PromptBar({ canvasId }: { canvasId: string }) {
   }
 
   return (
-    <div className="flex shrink-0 flex-col gap-2 border-t border-line-soft bg-surface p-3">
+    <div className="flex shrink-0 flex-col gap-1.5 border-t border-line-soft bg-surface px-3 pt-2.5 pb-2">
       {attachments.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {attachments.map((a) => (
-            <div
-              key={a.preview}
-              className="relative h-11 w-11 overflow-hidden rounded-[7px] border border-line bg-paper"
-            >
+            <div key={a.preview} className="relative h-11 w-11 overflow-hidden rounded-[7px] bg-paper shadow-ring">
               <img src={a.preview} alt={a.file.name} className="block h-full w-full object-cover" />
               <Button
                 variant="bare"
@@ -319,7 +318,7 @@ export function PromptBar({ canvasId }: { canvasId: string }) {
         </div>
       )}
       <form
-        className="rounded-[10px] border border-line bg-surface p-2 transition-[border-color] focus-within:border-ink-soft"
+        className="rounded-[10px]"
         onSubmit={(e) => {
           e.preventDefault()
           void submit(text)
@@ -337,20 +336,20 @@ export function PromptBar({ canvasId }: { canvasId: string }) {
           }}
         />
         {chip && (
-          <div className="mb-1.5 flex">
+          <div className="mb-2 flex">
             <span
-              className="flex min-w-0 max-w-full items-center gap-1 rounded-[7px] bg-brand/10 py-[3px] pl-2 pr-1 font-mono text-[12px] text-accent-ink"
+              className="flex h-6 min-w-0 max-w-full items-center gap-1.5 rounded-[6px] pr-1 pl-2 text-[12px] text-ink-soft shadow-ring"
               title={
                 chip.kind === 'frame' ? `Scoped to the frame “${chip.label}”` : `Scoped to ${chip.label} in this frame`
               }
             >
-              <span className="flex-none opacity-70">
-                {chip.kind === 'frame' ? <FrameGlyph /> : <LayerKindIcon kind={chip.kind} />}
+              <span className="flex-none text-ink-faint">
+                {chip.kind === 'frame' ? <FrameIcon className="size-3.5" /> : <LayerKindIcon kind={chip.kind} />}
               </span>
               <span className="min-w-0 truncate">{clip(chip.label)}</span>
               <Button
                 variant="bare"
-                className="size-4 flex-none justify-center rounded-full p-0 text-accent-ink/70 hover:bg-brand/15 hover:text-accent-ink"
+                className="size-4 flex-none justify-center rounded-full p-0 text-ink-faint hover:bg-paper-deep hover:text-ink"
                 aria-label={chip.kind === 'frame' ? 'Remove frame scope' : 'Remove element scope'}
                 disabled={busy}
                 onClick={() => setDismissed(scopeKey(chip.scope))}
@@ -365,7 +364,7 @@ export function PromptBar({ canvasId }: { canvasId: string }) {
           variant="bare"
           rows={1}
           aria-label="Ask the Doop Agent"
-          className="block overflow-y-auto px-0.5 leading-[1.45] md:text-[13px]"
+          className="block overflow-y-auto px-0.5 text-[12.5px] leading-[1.45] placeholder:text-ink-ghost md:text-[12.5px]"
           value={text}
           disabled={busy}
           placeholder={
@@ -373,7 +372,7 @@ export function PromptBar({ canvasId }: { canvasId: string }) {
               ? chip.kind === 'frame'
                 ? 'What should change in this frame…'
                 : 'What should change in this element…'
-              : 'Describe what to design…'
+              : 'Ask Doop to design something…'
           }
           onKeyDown={onKeyDown}
           onChange={(e) => setDraft(canvasId, e.target.value)}
@@ -385,60 +384,57 @@ export function PromptBar({ canvasId }: { canvasId: string }) {
             }
           }}
         />
-        <div className="mt-1.5 flex items-center gap-1">
+        <div className="mt-2 flex items-center gap-1">
           <Button
             variant="bare"
             size="icon-sm"
-            className="text-ink-faint hover:bg-paper-deep hover:text-ink-soft"
+            className="size-7 rounded-[7px] text-ink-faint hover:bg-paper-deep hover:text-ink"
             aria-label="Attach images"
             title="Attach screenshots or images"
             disabled={busy}
             onClick={() => fileRef.current?.click()}
           >
-            <AttachmentIcon aria-hidden />
+            <AttachmentIcon className="size-3.5" />
           </Button>
           <span className="flex-1" />
-          <Button
-            variant="primary"
-            size="icon-sm"
-            className="rounded-full border-transparent"
-            type="submit"
-            aria-label="Send"
-            title="Send (Enter)"
-            disabled={busy || !text.trim()}
-          >
-            {busy ? <span aria-hidden>…</span> : <ArrowUpIcon aria-hidden width={14} height={14} />}
-          </Button>
+          <ModelPicker disabled={busy} />
+          {/* the meter rides on the send button; a disabled button takes no
+              pointer events, so the span under it is what the tooltip hangs on */}
+          <Tooltip label={meterText(allowance) ?? 'Send (Enter)'} side="top" align="end">
+            <span
+              className="inline-flex rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-faint"
+              /* while the button is disabled the wrapper takes its tab stop,
+                 so the meter can be reached and read without a pointer */
+              tabIndex={busy || !text.trim() ? 0 : -1}
+              aria-label={meterText(allowance) ?? undefined}
+            >
+              <Button
+                variant="primary"
+                size="icon-sm"
+                className="size-7 rounded-full"
+                type="submit"
+                aria-label="Send"
+                disabled={busy || !text.trim()}
+              >
+                {busy ? <span aria-hidden>…</span> : <ArrowUpIcon className="size-3.5" strokeWidth={1.6} />}
+              </Button>
+            </span>
+          </Tooltip>
         </div>
       </form>
-      <div className="min-h-4 text-xs leading-[1.4]">
-        {error ? (
-          <Note tone="error" size="sm" className="text-xs">
-            {error}
-          </Note>
-        ) : sent ? (
-          <Note size="sm" className="text-xs text-ink-soft">
-            <DoopMark size={11} /> The Doop Agent is on it — watch the canvas
-          </Note>
-        ) : chip ? (
-          <Note size="sm" className="text-xs text-ink-soft">
-            <span className="text-accent-ink">✦</span>{' '}
-            {chip.kind === 'frame'
-              ? 'Scoped to this frame — Esc to ask about the whole canvas'
-              : 'Scoped to the selection — Esc to ask without it'}
-          </Note>
-        ) : (
-          <MeterLine allowance={allowance} />
-        )}
-      </div>
+      {(error || sent) && (
+        <div className="text-[11px] leading-[1.4]">
+          {error ? (
+            <Note tone="error" size="sm" className="text-[11px]">
+              {error}
+            </Note>
+          ) : (
+            <Note size="sm" className="text-[11px] text-ink-soft">
+              <DoopMark size={11} /> The Doop Agent is on it — watch the canvas
+            </Note>
+          )}
+        </div>
+      )}
     </div>
-  )
-}
-
-function FrameGlyph() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
-      <rect x="1.5" y="1.5" width="9" height="9" rx="1.5" />
-    </svg>
   )
 }

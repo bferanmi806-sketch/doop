@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useStore } from '../lib/store'
 import { MOD_KEY, isHideUiShortcut } from '../lib/keys'
 import { canHideUi, hideUiHinted } from '../lib/hideUi'
@@ -15,19 +15,27 @@ import {
 } from '../lib/api'
 import { navigate } from '../App'
 import { DoopMark } from '../components/Logo'
-import { BarDivider, TopBar, TopBarHome, TopBarTitle } from '../components/TopBar'
+import {
+  BarDivider,
+  BarPill,
+  TopBar,
+  TopBarTitle,
+  barIconBtn,
+  barPillBtn,
+  barPillIconBtn,
+  barPrimaryBtn,
+} from '../components/TopBar'
+import { LivePresence } from '../components/LivePresence'
 import { ensureTab } from '../lib/desktop'
 import { Stage } from '../components/Stage'
-import { Board } from '../components/Board'
 import { Inspector } from '../components/Inspector'
 import { ElementPanel } from '../components/ElementPanel'
 import { ActivityPanel } from '../components/ActivityPanel'
 import { ConnectModal } from '../components/ConnectModal'
 import { LimitWall, isResidentLimit } from '../components/TeamAllowance'
 import { WorkingNow } from '../components/WorkingNow'
-import { SideRail } from '../components/SideRail'
+import { MobilePanelTabs, SideRail } from '../components/SideRail'
 import { LayersPanel, LayersRailToggle } from '../components/LayersPanel'
-import { PagesPanel } from '../components/PagesPanel'
 import { Onboarding } from '../components/Onboarding'
 import { ShareModal } from '../components/ShareModal'
 import {
@@ -58,26 +66,58 @@ import { AuthScreen } from '../components/ui/screen'
 import { Wordmark } from '../components/ui/wordmark'
 import {
   BrainIcon,
+  CopyIcon,
+  ExportIcon,
+  FolderIcon,
   GithubIcon,
   ImportIcon,
+  LayersIcon,
   MoreHorizontalIcon,
   PlayIcon,
-  PulseIcon,
-  SparkIcon,
+  PlusIcon,
+  GearIcon,
+  ShareIcon,
+  ShareUpIcon,
+  XIcon,
 } from '../components/ui/icons'
 import { Badge } from '../components/ui/badge'
 import { Input } from '../components/ui/input'
 import { Field } from '../components/ui/field'
-import { Avatar } from '../components/ui/avatar'
-import { PeerAvatars } from '../components/PeerAvatars'
+import { PeerAvatars, PresenceFace } from '../components/PeerAvatars'
 import { Checkbox, CheckboxCard } from '../components/ui/checkbox'
-import { Segmented, SegmentedItem } from '../components/ui/segmented'
 import { Toast, ToastAction, ToastSpinner } from '../components/ui/toast'
 import { Tooltip } from '../components/ui/tooltip'
 import { Note } from '../components/ui/note'
 import { Textarea } from '../components/ui/textarea'
 import { Modal, ModalActions, ModalEyebrow, ModalLede, ModalTitle } from '../components/ui/modal'
 import { createCenteredFrame } from '../lib/framePlacement'
+
+/* The floating chrome's geometry, in px from the canvas area's edges. The
+   panels sit 14px in from the edge; on the right the Agents panel (280)
+   always hugs the edge, the Inspector (244) opens to its left, and the icon
+   islands (40) sit left of whatever is open. On the left the tool rail follows the Layers
+   panel (264), or its collapsed 40px island. --chrome-left/--chrome-right
+   mark where the open canvas begins and ends, for the zoom pill and toasts. */
+const EDGE = 14
+const LAYERS_W = 264
+const RAIL_W = 40
+const INSPECTOR_W = 244
+const AGENTS_W = 280
+
+function chromeLayout({
+  layersOpen,
+  propertiesShown,
+  agentsOpen,
+}: {
+  layersOpen: boolean
+  propertiesShown: boolean
+  agentsOpen: boolean
+}) {
+  const toolRail = layersOpen ? EDGE + LAYERS_W + 12 : EDGE + RAIL_W + 10
+  const properties = agentsOpen ? EDGE + AGENTS_W + 8 : EDGE
+  const island = propertiesShown ? properties + INSPECTOR_W + 10 : agentsOpen ? EDGE + AGENTS_W + 10 : EDGE
+  return { toolRail, properties, island, left: toolRail + RAIL_W + 16, right: island + RAIL_W + 10 }
+}
 
 const STARTER_HTML = `<!doctype html>
 <html>
@@ -111,12 +151,20 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
   const select = useStore((s) => s.select)
   const isMobile = useIsMobile()
   const [showActivity, setShowActivity] = useState(() => !window.matchMedia('(max-width: 900px)').matches)
-  const [view, setView] = useState<'canvas' | 'board'>('canvas')
-  const [showConnect, setShowConnect] = useState(false)
+  /* ?connect=1 (the "connect your agent" email) lands on the Connect AI
+     modal; the flag comes off the URL once the page is up so a reload or a
+     copied link does not reopen it */
+  const [showConnect, setShowConnect] = useState(() => new URLSearchParams(location.search).get('connect') === '1')
+  useEffect(() => {
+    const url = new URL(location.href)
+    if (url.searchParams.get('connect') !== '1') return
+    url.searchParams.delete('connect')
+    history.replaceState(history.state, '', `${url.pathname}${url.search}${url.hash}`)
+  }, [])
   const [showShare, setShowShare] = useState(false)
   const [presenting, setPresenting] = useState(false)
   /* ⌘. acts only over the canvas view, outside PresentMode */
-  const hideUiActive = canHideUi({ view, presenting })
+  const hideUiActive = canHideUi({ view: 'canvas', presenting })
   /* returning from a GitHub App install: the setup redirect appends a signed
      pass — pull it off the URL and open the import modal on the repo picker */
   const [ghInstallPass, setGhInstallPass] = useState<string | null>(() => {
@@ -132,6 +180,7 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
   })
   const [showImport, setShowImport] = useState(!!ghInstallPass || !!ghInstallError)
   const [showMobileActions, setShowMobileActions] = useState(false)
+  const [showMobileLayers, setShowMobileLayers] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const storeNotice = useStore((s) => s.notice)
@@ -173,7 +222,6 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
          composer ends ⌘. hide-UI — a field under `hidden` cannot take focus. */
       if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'k') {
         e.preventDefault()
-        setView('canvas')
         setShowActivity(true)
         if (useStore.getState().uiHidden) useStore.getState().toggleUiHidden()
         useStore.getState().setPanelTab('tasks')
@@ -318,9 +366,21 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
   const selectedElement = useStore((s) => s.selectedElement)
   const elementPanelOpen = useStore((s) => s.elementPanelOpen)
   const panelElement = elementPanelOpen && selectedElement?.frameId === selectedFrame?.id ? selectedElement : null
-  /* both right-hand property panels sit beside the Activity panel when it is
-     open, beside the collapsed side rail otherwise */
-  const propertiesPanelCls = showActivity ? 'right-[324px]' : 'right-[72px]'
+  /* the frame Inspector or the element panel, whichever has the slot */
+  const propertiesShown = !!selectedFrame && !deferPanel && (!!panelElement || inspectorOpen)
+  const chrome = chromeLayout({ layersOpen, propertiesShown, agentsOpen: showActivity })
+  const chromeVars = {
+    '--chrome-top': isMobile ? '0px' : '50px',
+    '--rail-left': `${chrome.toolRail}px`,
+    '--chrome-left': `${chrome.left}px`,
+    '--chrome-right': `${chrome.right}px`,
+  } as CSSProperties
+  const meFace = { name: me.name, color: presences[me.clientId]?.color ?? 'var(--brand)' }
+
+  function openConnect() {
+    posthog.capture('agent_connection_opened')
+    setShowConnect(true)
+  }
 
   /* the id in the URL isn't a canvas — a typo, a stale link, or one someone
      just deleted. Say so plainly rather than opening a canvas shell that
@@ -346,89 +406,99 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
   return (
     /* --app-inset is 0 normally; the impersonation shell raises it so this
        fixed layer starts below the banner instead of under it */
-    <div className="fixed inset-x-0 bottom-0 top-[var(--app-inset,0px)] flex flex-col">
-      {/* Three tiers. Desktop (≥ md): one row with the full action set. Tablet
-          (xs..md): still one row — the id badge and the text actions fold
-          into the ••• sheet so the name and the view switch keep their room.
-          Phone (< xs): two rows, the name on top, the switch and the actions
-          below it, each at its natural width. */}
-      {/* ⌘. hides the chrome (this bar, the panels, the toolbars) with
-          display:none rather than unmounting it, so what it holds — a chat
-          draft, the expanded layers, a scroll position — is exactly as it
-          was when ⌘. brings it back */}
-      <TopBar className={cn(uiHidden && 'hidden')}>
-        <div className="flex min-w-0 items-center gap-1.5 max-xs:basis-full">
-          <TopBarHome label="All canvases" to="/" />
-          <CanvasName />
-          <Badge className="max-md:hidden" title="Canvas id — agents use this with the MCP tools">
-            {canvasId}
-          </Badge>
-          {!connected && (
-            <Badge tone="accent" className="max-md:ml-auto">
-              reconnecting…
+    <div className="fixed inset-x-0 bottom-0 top-[var(--app-inset,0px)] bg-paper">
+      {/* Floating pills over the canvas, which shows through the transparent
+          bar: the title pill on the left, live presence centred, sharing on
+          the right. Tablet (xs..md) folds the text actions into the •••
+          sheet; phone (< xs) wraps to two rows. ⌘. hides the chrome (this
+          bar, the panels, the toolbars) with display:none rather than
+          unmounting it, so what it holds — a composer draft, the expanded
+          layers, a scroll position — is exactly as it was when ⌘. brings it
+          back. */}
+      <TopBar variant="canvas" className={cn(uiHidden && 'hidden')}>
+        <div className="flex min-w-0 items-center gap-2 max-xs:basis-full">
+          <BarPill className="min-w-0 gap-1 pr-3 pl-1">
+            <Tooltip label="All canvases" side="bottom" align="start">
+              <Button
+                variant="bare"
+                size="icon-sm"
+                className={barPillIconBtn}
+                aria-label="All canvases"
+                onClick={() => navigate('/')}
+              >
+                <FolderIcon className="size-3.5" />
+              </Button>
+            </Tooltip>
+            <CanvasName />
+            <Badge className="max-md:hidden" title="Canvas id — agents use this with the MCP tools">
+              {canvasId}
             </Badge>
-          )}
+            {connected ? (
+              <span className="ml-1 whitespace-nowrap text-ink-faint max-lg:hidden">— Auto-saved</span>
+            ) : (
+              <span className="ml-1 whitespace-nowrap text-accent-ink">— Reconnecting…</span>
+            )}
+          </BarPill>
         </div>
-        <Segmented
-          className="shrink-0 max-xs:order-2"
-          aria-label="View"
-          value={view}
-          onValueChange={(next) => setView(next as 'canvas' | 'board')}
-        >
-          <SegmentedItem value="canvas">Canvas</SegmentedItem>
-          <SegmentedItem value="board">Board</SegmentedItem>
-        </Segmented>
-        <div className="ml-auto flex items-center gap-2.5 max-md:hidden">
-          <Button
-            variant="bare"
-            className="h-8 px-2.5 text-[12.5px] font-medium"
-            onClick={() => setShowImport(true)}
-            title="Import from a website, live app or GitHub repo"
+        <div className="absolute top-3.5 left-1/2 -translate-x-1/2 max-[1180px]:hidden">
+          <LivePresence me={meFace} others={others} onRenameSelf={() => setRenaming(true)} />
+        </div>
+        <div className="ml-auto flex flex-none items-center gap-2 max-md:hidden">
+          {/* the presence pill needs the bar's centre; narrower desktops keep
+              the plain avatar stack (and its follow buttons) over here */}
+          <div
+            className="mr-1 flex items-center min-[1181px]:hidden"
+            title={others.map((p) => p.name).join(', ') || 'Just you here'}
           >
-            <ImportIcon className="size-[13px]" />
-            Import
-          </Button>
-          <BarDivider />
-          <div className="flex items-center px-0.5" title={others.map((p) => p.name).join(', ') || 'Just you here'}>
+            <PresenceFace name={meFace.name} color={meFace.color} kind="user" />
+            <span className="-ml-[7px] flex items-center">
+              <PeerAvatars others={others} />
+            </span>
+          </div>
+          <BarPill>
             <Button
               variant="bare"
-              className="p-0 hover:bg-transparent"
-              title={`You are “${me.name}” — click to change your name`}
-              onClick={() => setRenaming(true)}
+              className={barPillBtn}
+              onClick={() => setShowImport(true)}
+              title="Import a live web page as a frame"
             >
-              <Avatar name={me.name} kind="user" stacked />
+              <ImportIcon className="size-3.5" />
+              Import
             </Button>
-            <PeerAvatars others={others} />
-          </div>
-          <BarDivider />
-          <Tooltip label={selectedId ? 'Present this frame' : 'Select a frame to present'} side="bottom">
+            <BarDivider className="mx-0.5" />
             <Button
-              variant="ghost"
-              size="icon"
-              className="size-[34px] rounded-[7px] bg-surface hover:border-ink-faint hover:bg-paper-deep disabled:opacity-40"
-              aria-label="Present selected frame"
-              disabled={!selectedId}
-              onClick={() => setPresenting(true)}
+              variant="bare"
+              className={barPillBtn}
+              onClick={openExport}
+              title="Export frames to Photoshop, Canva or Figma"
             >
-              <PlayIcon className="size-3.5" />
+              <ExportIcon className="size-3.5" />
+              Export
             </Button>
-          </Tooltip>
-          <Button
-            variant="ghost"
-            className="h-[34px] rounded-[7px] bg-surface px-[17px] text-[12.5px] font-semibold hover:border-ink-faint hover:bg-paper-deep"
-            onClick={() => setShowShare(true)}
-          >
-            Share
-          </Button>
-          <Button
-            variant="primary"
-            className="h-[34px] rounded-[7px] px-[13px] text-[12.5px]"
-            onClick={() => {
-              posthog.capture('agent_connection_opened')
-              setShowConnect(true)
-            }}
-          >
-            <SparkIcon className="size-3" />
+          </BarPill>
+          <BarPill>
+            <Button variant="bare" className={barPillBtn} onClick={() => setShowShare(true)}>
+              <ShareUpIcon className="size-3.5" />
+              Share
+            </Button>
+            <Tooltip label={selectedId ? 'Present this frame' : 'Select a frame to present'} side="bottom">
+              <span className="inline-flex">
+                <Button
+                  variant="bare"
+                  size="icon-sm"
+                  className={barPillIconBtn}
+                  aria-label="Present selected frame"
+                  disabled={!selectedId}
+                  onClick={() => setPresenting(true)}
+                >
+                  <PlayIcon className="size-3.5" />
+                </Button>
+              </span>
+            </Tooltip>
+          </BarPill>
+          {/* the bar's one black action — it opens the MCP connection modal */}
+          <Button variant="primary" className={barPrimaryBtn} onClick={openConnect}>
+            <PlusIcon className="size-3.5" strokeWidth={1.4} />
             Connect AI
           </Button>
         </div>
@@ -437,18 +507,13 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
             className="mr-1 flex items-center max-sm:hidden"
             title={others.map((p) => p.name).join(', ') || 'Just you here'}
           >
-            <Avatar name={me.name} kind="user" stacked />
-            <PeerAvatars others={others} />
+            <PresenceFace name={meFace.name} color={meFace.color} kind="user" />
+            <span className="-ml-[7px] flex items-center">
+              <PeerAvatars others={others} />
+            </span>
           </div>
-          <Button
-            variant="primary"
-            className="h-[34px] rounded-[7px] px-[13px] text-[12.5px]"
-            onClick={() => {
-              posthog.capture('agent_connection_opened')
-              setShowConnect(true)
-            }}
-          >
-            <SparkIcon className="size-3" />
+          <Button variant="primary" className={barPrimaryBtn} onClick={openConnect}>
+            <PlusIcon className="size-3.5" strokeWidth={1.4} />
             <span className="max-sm:hidden">Connect AI</span>
             <span className="sm:hidden">AI</span>
           </Button>
@@ -456,95 +521,121 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
             <Button
               variant="ghost"
               size="icon"
-              className="size-[34px] rounded-[7px] bg-surface"
+              className={barIconBtn}
               aria-label="Canvas actions"
               onClick={() => setShowMobileActions(true)}
             >
-              <MoreHorizontalIcon />
+              <MoreHorizontalIcon className="size-4" />
             </Button>
           </Tooltip>
         </div>
       </TopBar>
 
-      <div className="relative flex-1 overflow-hidden">
-        {view === 'board' ? (
-          <Board canvasId={canvasId} />
-        ) : (
-          <>
-            <Stage onAddFrame={addFrame} sidePanelOpen={showActivity} />
-            {/* `contents` so the overlays keep positioning against the stage box */}
-            <div className={uiHidden ? 'hidden' : 'contents'}>
-              <div
-                className={cn(
-                  'pointer-events-none absolute top-3 right-[72px] z-30 flex flex-col items-end gap-2 transition-[right] duration-150 ease-[ease] [&>*]:pointer-events-auto max-md:top-[56px] max-md:right-2 max-md:left-2',
-                  /* clear of the 300px side panel at right: 12px */
-                  showActivity && 'right-[324px]',
-                )}
-              >
-                {pendingProposal &&
-                  mutedProposal !== pendingProposal.id &&
-                  !(showActivity && panelTab === 'memory') && (
-                    <div className="flex items-center rounded-[10px] border border-brand bg-surface shadow-card">
-                      <Button
-                        variant="bare"
-                        className="py-[9px] pl-3.5 pr-1 text-[12.5px] font-bold text-accent-ink hover:bg-transparent hover:text-accent-ink"
-                        onClick={() => {
-                          useStore.getState().setPanelTab('memory')
-                          setShowActivity(true)
-                        }}
-                      >
-                        <DoopMark size={12} /> Memory suggestion — review
-                      </Button>
-                      <Button
-                        variant="bare"
-                        className="py-[9px] pl-1.5 pr-2.5 text-[11px] hover:bg-transparent"
-                        title="Hide for now"
-                        onClick={() => setMutedProposal(pendingProposal.id)}
-                      >
-                        ✕
-                      </Button>
-                    </div>
-                  )}
-                {decisionToast && (
-                  <Button
-                    variant="ghost"
-                    className="max-w-full items-center gap-2.5 whitespace-normal rounded-[12px] border-line bg-surface px-3.5 py-2.5 text-left shadow-pop transition-shadow hover:bg-surface hover:shadow-card sm:max-w-[320px] [&_svg]:text-accent-ink"
-                    title="Open Memory"
-                    onClick={() => {
-                      useStore.getState().setPanelTab('memory')
-                      setShowActivity(true)
-                      setDecisionToast(null)
-                    }}
-                  >
-                    <BrainIcon width={17} height={17} />
-                    <span>
-                      <b className="block font-display text-[13px] font-semibold tracking-[-0.01em]">Saved to Memory</b>
-                      <span className="mt-[1px] block text-[12px] leading-[1.4] text-ink-soft">{decisionToast}</span>
-                    </span>
-                  </Button>
-                )}
+      {/* the canvas runs under the transparent top bar to the window's top
+          edge; the floating chrome gets its own layer that starts below the
+          bar, so every panel offset stays measured from there */}
+      <div className="absolute inset-0 overflow-hidden" style={chromeVars}>
+        <Stage onAddFrame={addFrame} rightInset={isMobile ? 0 : chrome.right} />
+        <div
+          className={cn(
+            'pointer-events-none absolute inset-x-0 bottom-0 top-[50px] max-md:top-14 max-xs:top-[100px]',
+            uiHidden && 'hidden',
+          )}
+        >
+          <div className="pointer-events-none absolute top-3.5 right-[var(--chrome-right)] z-30 flex flex-col items-end gap-2 transition-[right] duration-150 [&>*]:pointer-events-auto max-md:top-[56px] max-md:right-2 max-md:left-2">
+            {pendingProposal && mutedProposal !== pendingProposal.id && !(showActivity && panelTab === 'memory') && (
+              <div className="flex items-center rounded-[10px] bg-surface shadow-ring">
+                <Button
+                  variant="bare"
+                  className="h-8 pr-1 pl-3 text-[12px] font-medium text-ink hover:bg-transparent hover:text-ink"
+                  onClick={() => {
+                    useStore.getState().setPanelTab('memory')
+                    setShowActivity(true)
+                  }}
+                >
+                  <DoopMark size={12} /> Memory suggestion — review
+                </Button>
+                <Button
+                  variant="bare"
+                  size="icon-sm"
+                  className="mr-1 size-6 rounded-[6px] text-ink-faint"
+                  title="Hide for now"
+                  aria-label="Hide for now"
+                  onClick={() => setMutedProposal(pendingProposal.id)}
+                >
+                  <XIcon className="size-3" />
+                </Button>
               </div>
-              <WorkingNow />
-              <Onboarding canvasId={canvasId} panelOpen={showActivity} />
-              {!isMobile && (layersOpen ? <LayersPanel onAddFrame={addFrame} /> : <LayersRailToggle />)}
-              {!isMobile && selectedFrame && panelElement && !deferPanel && (
-                <ElementPanel
-                  key={`${selectedFrame.id}|${panelElement.selector}`}
-                  frame={selectedFrame}
-                  selector={panelElement.selector}
-                  className={propertiesPanelCls}
-                />
-              )}
-              {!isMobile && selectedFrame && inspectorOpen && !panelElement && !deferPanel && (
-                <Inspector frame={selectedFrame} className={propertiesPanelCls} />
-              )}
-              {!isMobile && !showActivity && <SideRail onOpen={() => setShowActivity(true)} />}
-              {!isMobile && showActivity && (
-                <ActivityPanel canvasId={canvasId} onClose={() => setShowActivity(false)} />
-              )}
-            </div>
-          </>
-        )}
+            )}
+            {decisionToast && (
+              <Button
+                variant="bare"
+                className="max-w-full items-center gap-2.5 whitespace-normal rounded-[12px] bg-surface px-3.5 py-2.5 text-left font-normal shadow-pop transition-shadow hover:bg-surface hover:shadow-ring-hover sm:max-w-[320px] [&_svg]:text-ink-soft"
+                title="Open Memory"
+                onClick={() => {
+                  useStore.getState().setPanelTab('memory')
+                  setShowActivity(true)
+                  setDecisionToast(null)
+                }}
+              >
+                <BrainIcon className="size-4" />
+                <span>
+                  <b className="block text-[12.5px] font-medium text-ink">Saved to Memory</b>
+                  <span className="mt-[1px] block text-[12px] leading-[1.4] text-ink-soft">{decisionToast}</span>
+                </span>
+              </Button>
+            )}
+          </div>
+          {/* the presence pill in the bar already carries each agent's status
+              line; this per-agent stack is only for windows too narrow for it */}
+          <WorkingNow style={{ left: chrome.left }} className="min-[1180px]:hidden" />
+          <Onboarding canvasId={canvasId} />
+          {!isMobile && (layersOpen ? <LayersPanel onAddFrame={addFrame} /> : <LayersRailToggle />)}
+          {isMobile && !showActivity && (
+            <MobilePanelTabs
+              onOpen={(tab) => {
+                useStore.getState().setPanelTab(tab)
+                setShowActivity(true)
+              }}
+            />
+          )}
+          {!isMobile && selectedFrame && panelElement && !deferPanel && (
+            <ElementPanel
+              /* keyed by frame, not element: picking the next element swaps
+                 the values in place instead of remounting the panel blank */
+              key={selectedFrame.id}
+              frame={selectedFrame}
+              selector={panelElement.selector}
+              style={{ right: chrome.properties }}
+            />
+          )}
+          {!isMobile && selectedFrame && inspectorOpen && !panelElement && !deferPanel && (
+            <Inspector frame={selectedFrame} style={{ right: chrome.properties }} />
+          )}
+          {!isMobile && showActivity && (
+            <ActivityPanel canvasId={canvasId} onClose={() => setShowActivity(false)} style={{ right: EDGE }} />
+          )}
+          {!isMobile && (
+            <SideRail
+              style={{ right: chrome.island }}
+              agentsOpen={showActivity}
+              onToggleAgents={() => setShowActivity((open) => !open)}
+              inspectorOpen={propertiesShown}
+              inspectorAvailable={!!selectedFrame}
+              onToggleInspector={() => {
+                const s = useStore.getState()
+                if (propertiesShown) {
+                  /* the element panel and the inspector share the slot —
+                     hiding it closes whichever is showing */
+                  s.setElementPanelOpen(false)
+                  s.setInspectorOpen(false)
+                } else s.setInspectorOpen(true)
+              }}
+              me={meFace}
+              onRenameSelf={() => setRenaming(true)}
+            />
+          )}
+        </div>
       </div>
 
       {isMobile && (
@@ -557,49 +648,74 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
               <div className="border-b border-line-soft px-5 py-4 pr-14">
                 <SheetTitle className="font-display text-lg font-extrabold">Canvas actions</SheetTitle>
                 <SheetDescription className="mt-1 text-xs text-ink-soft">
-                  Organize pages, import, share, or change your account settings.
+                  Layers, import, export, share, or your account settings.
                 </SheetDescription>
               </div>
-              <PagesPanel />
-              <div className="grid gap-2 p-4">
+              {/* the same glyphs as the desktop bar and islands; pages live
+                  in the Layers sheet, as on desktop */}
+              <div className="grid gap-2 p-4 [&_svg]:size-3.5 [&_svg]:text-ink-soft">
                 <Button
                   variant="ghost"
-                  className="h-11 justify-start border-line bg-surface px-4"
+                  className="h-11 justify-start gap-2.5 border-line bg-surface px-4"
+                  onClick={() => {
+                    setShowMobileActions(false)
+                    setShowMobileLayers(true)
+                  }}
+                >
+                  <LayersIcon /> Layers
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="h-11 justify-start gap-2.5 border-line bg-surface px-4"
                   onClick={() => {
                     setShowMobileActions(false)
                     setShowImport(true)
                   }}
                 >
-                  Import website
+                  <ImportIcon /> Import website
                 </Button>
                 <Button
                   variant="ghost"
-                  className="h-11 justify-start border-line bg-surface px-4"
+                  className="h-11 justify-start gap-2.5 border-line bg-surface px-4"
+                  onClick={() => {
+                    setShowMobileActions(false)
+                    openExport()
+                  }}
+                >
+                  <ExportIcon /> Export frames
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="h-11 justify-start gap-2.5 border-line bg-surface px-4"
                   onClick={() => {
                     setShowMobileActions(false)
                     setShowShare(true)
                   }}
                 >
-                  Share canvas
+                  <ShareIcon /> Share canvas
                 </Button>
                 <Button
                   variant="ghost"
-                  className="h-11 justify-start border-line bg-surface px-4"
-                  onClick={() => {
-                    setShowMobileActions(false)
-                    setShowActivity(true)
-                  }}
-                >
-                  <PulseIcon /> Chat, agents & activity
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="h-11 justify-start px-4 text-ink-soft"
+                  className="h-11 justify-start gap-2.5 px-4 text-ink-soft"
                   onClick={() => navigate('/settings')}
                 >
-                  Settings
+                  <GearIcon /> Settings
                 </Button>
               </div>
+            </SheetContent>
+          </Sheet>
+          <Sheet open={showMobileLayers && !uiHidden} onOpenChange={setShowMobileLayers}>
+            <SheetContent
+              side="bottom"
+              showCloseButton={false}
+              /* the first focusable is the panel's close button, whose
+                 tooltip would pop on the sheet's auto-focus; the finger is
+                 the focus on a phone anyway */
+              onOpenAutoFocus={(e) => e.preventDefault()}
+              className="max-h-[calc(100svh-56px)] gap-0 rounded-t-2xl border-line bg-surface p-0 shadow-pop data-[side=bottom]:h-[min(78svh,680px)]"
+            >
+              <SheetTitle className="sr-only">Layers</SheetTitle>
+              <LayersPanel onAddFrame={addFrame} surface="inline" onClose={() => setShowMobileLayers(false)} />
             </SheetContent>
           </Sheet>
           {/* ⌘. closes both sheets (and their backdrops) for the moment only:
@@ -673,15 +789,17 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
           }}
           onDone={(frameIds, failedCount) => {
             setShowImport(false)
-            setView('canvas')
             select(frameIds[0] ?? null)
             const imported = frameIds.length === 1 ? '1 item imported' : `${frameIds.length} items imported`
             showToast(failedCount ? `${imported} · ${failedCount} failed` : imported)
           }}
+          onImporting={(frameCount) => {
+            setShowImport(false)
+            showToast(`Importing ${frameCount} ${frameCount === 1 ? 'frame' : 'frames'} from Figma — Doop is on it`)
+          }}
           onQueued={(cardCount) => {
             setShowImport(false)
             setGhInstallPass(null)
-            setView('board')
             showToast(`${cardCount} ${cardCount === 1 ? 'card' : 'cards'} queued — Doop is on it`)
           }}
         />
@@ -885,7 +1003,7 @@ function ImportModal({
     .sort((a, b) => KIND_ORDER[a.kind] - KIND_ORDER[b.kind])
 
   return (
-    <Modal size="xl" className="sm:max-w-[820px]" onClose={() => !busy && onClose()}>
+    <Modal size="xl" showClose className="sm:max-w-[820px]" onClose={() => !busy && onClose()}>
       <>
         {repoReview ? (
           <>
@@ -1396,10 +1514,17 @@ function SyncKeysSection({ canvasId, onBack }: { canvasId: string; onBack: () =>
             />
             <Button
               size="sm"
-              className="absolute right-3.5 top-3 bg-surface px-2.5 text-xs"
+              className="absolute top-3 right-3.5 gap-1.5 bg-surface px-2.5 text-xs"
               onClick={() => copySnippet(k)}
             >
-              {copiedId === k.id ? 'Copied!' : '⧉ Copy'}
+              {copiedId === k.id ? (
+                'Copied!'
+              ) : (
+                <>
+                  <CopyIcon className="size-3.5" />
+                  Copy
+                </>
+              )}
             </Button>
           </div>
         </div>
@@ -1710,6 +1835,7 @@ function CanvasName() {
   const canvas = useStore((s) => s.canvas)
   return (
     <TopBarTitle
+      pill
       loading={!canvas}
       value={canvas?.name ?? ''}
       onCommit={(name) => {

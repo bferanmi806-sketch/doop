@@ -83,6 +83,13 @@ async function exportOutcome(frame: Frame, format: FrameExportFormat): Promise<s
  *  a spinner while the server renders (rendering can take several seconds),
  *  then the outcome. Fired from surfaces that close on click, so the
  *  toast in the store is the only place the result can land. */
+/** Save the frame's document as an .html file — the same text the raw editor
+ *  shows, so a draft in progress exports as typed. Nothing to fetch, so it
+ *  cannot fail the way the rendered exports can. */
+export function downloadFrameHtml(frame: Frame, html = frame.html): void {
+  saveBlob(new Blob([html], { type: 'text/html;charset=utf-8' }), `${frame.name || 'frame'}.html`)
+}
+
 export async function downloadFrameExport(frame: Frame, format: FrameExportFormat): Promise<void> {
   inFlight += 1
   useStore.getState().pushNotice(`Exporting ${FORMAT_LABEL[format]}…`, { busy: true })

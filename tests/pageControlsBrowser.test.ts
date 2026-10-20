@@ -99,12 +99,12 @@ describe.skipIf(!findBrowserPath())('page list controls and keyboard history', (
     )
     await page.click('[data-page-id] > button:first-of-type', { count: 2 })
     await page.waitForSelector('input[aria-label="Page name"]')
-    /* the row being renamed is the active one (brand fill, white label); the
-       input must not inherit that white onto its light surface */
+    /* the row being renamed is the active one (a grey fill); the input reads
+       as ink on its own white surface, not as text on the row's fill */
     expect(
       await page.$eval('input[aria-label="Page name"]', (input) => [
         getComputedStyle(input).color === getComputedStyle(document.body).color,
-        getComputedStyle(input).color !== getComputedStyle(input.closest('[data-page-id]')!).color,
+        getComputedStyle(input).backgroundColor !== getComputedStyle(input.closest('[data-page-id]')!).backgroundColor,
       ]),
     ).toEqual([true, true])
     await page.type('input[aria-label="Page name"]', 'Ideas')
