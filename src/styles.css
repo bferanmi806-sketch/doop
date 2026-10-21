@@ -167,7 +167,7 @@
   --shadow-float: 0 12px 40px -10px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06);
   --shadow-card: var(--shadow-ring);
   --shadow-pop: 0 25px 80px -12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.06);
-  /* modal card: a half-pixel ring and three short soft shadows (Octolane) */
+  /* modal card: a half-pixel ring and three short soft shadows */
   --shadow-modal:
     0 0 0 0.5px rgba(0, 0, 0, 0.07), 0 2px 3px -2px rgba(0, 0, 0, 0.1), 0 3px 12px -4px rgba(0, 0, 0, 0.1),
     0 4px 16px -8px rgba(0, 0, 0, 0.1);
