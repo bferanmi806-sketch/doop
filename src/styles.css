@@ -429,9 +429,24 @@
   }
 }
 
+/* Modals: in over 250ms from 96%, out over 150ms back to 96%, both on the
+   ease-out-quint curve (transitions.dev "Modal open/close"). */
 @keyframes modal-in {
   from {
-    transform: translateY(14px) scale(0.98);
+    transform: scale(0.96);
+    opacity: 0;
+  }
+}
+
+@keyframes modal-out {
+  to {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+}
+
+@keyframes fade-out {
+  to {
     opacity: 0;
   }
 }

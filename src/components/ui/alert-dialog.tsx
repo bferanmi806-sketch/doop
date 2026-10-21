@@ -3,7 +3,7 @@ import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog'
 
 import { cn } from '@/lib/utils'
 import { Button } from './button'
-import { modalVariants } from './modal'
+import { modalVariants, overlayCls } from './modal'
 
 /* "Are you sure?" as a real dialog rather than window.confirm: it can be
    styled, it says what will happen in the app's own voice, and — the part
@@ -32,7 +32,7 @@ function ConfirmDialog({
   return (
     <AlertDialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <AlertDialogPrimitive.Portal>
-        <AlertDialogPrimitive.Overlay className="fixed inset-0 z-[80] animate-[fade-in_0.15s_ease] bg-[rgba(18,18,23,0.45)]" />
+        <AlertDialogPrimitive.Overlay className={cn(overlayCls, 'z-[80]')} />
         <AlertDialogPrimitive.Content
           data-slot="confirm-dialog"
           className={cn(modalVariants({ size: 'sm' }), 'z-[80]')}
