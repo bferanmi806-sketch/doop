@@ -47,7 +47,10 @@ describe.skipIf(!findBrowserPath())('page list controls and keyboard history', (
       return canvas.id
     })
     await page.goto(`${origin}/c/${canvasId}`)
+    /* the Layers heading paints before the canvas's pages arrive; the first
+       assertion counts page rows, so wait for the list itself */
     await page.waitForSelector('[data-slot="frame-section-heading"]')
+    await page.waitForSelector('[data-page-id]')
   }, 60_000)
   afterAll(async () => {
     await page?.close()
