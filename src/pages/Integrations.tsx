@@ -4,7 +4,8 @@ import type { Automation } from '../../shared/automations'
 import { api, type IntegrationsStatus } from '../lib/api'
 import { posthog } from '../lib/posthog'
 import { AccountMenu } from '../components/DashShell'
-import { MetaTile, WorkspaceRail } from '../components/AutomateShell'
+import { MetaTile } from '../components/AutomateShell'
+import { AppRail, pageTitleCls, railLayout } from '../components/AppRail'
 import { clientIntegrations } from '../integrations'
 import { DisconnectButton, IntegrationCard } from '../integrations/ui'
 import { Button } from '../components/ui/button'
@@ -101,25 +102,18 @@ export function Integrations() {
   const usedBy = automations.filter((a) => a.steps.some((s) => s.type === 'pull')).length
 
   return (
-    <DashLayout>
-      <WorkspaceRail
-        active="integrations"
-        canvases={canvases}
-        automationCount={automations.length}
-        integrationCount={
-          Number(!!meta?.connected) + (status ? clientIntegrations.filter((i) => i.isConnected(status)).length : 0)
-        }
-      />
-      <DashMain>
-        <DashHeader>
+    <DashLayout className={railLayout}>
+      <AppRail active="integrations" canvases={canvases} />
+      <DashMain className="[background:var(--paper)]">
+        <DashHeader className="border-b-0 bg-transparent backdrop-blur-none">
           <span className="flex-1" />
-          <AccountMenu />
+          <span className="md:hidden">
+            <AccountMenu />
+          </span>
         </DashHeader>
 
-        <DashContent>
-          <DashTitle className="mb-[26px]">
-            Integrations<em className="not-italic text-brand">.</em>
-          </DashTitle>
+        <DashContent className="pt-2 md:pt-3">
+          <DashTitle className={pageTitleCls}>Integrations</DashTitle>
 
           {notice && (
             <Callout tone={notice.tone} className="mb-4 max-w-[720px]">

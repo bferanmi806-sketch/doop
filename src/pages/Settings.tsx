@@ -11,33 +11,16 @@ import { AccountSettings } from '../components/AccountSettings'
 import { AppearanceSettings } from '../components/AppearanceSettings'
 import { AgentKeys } from '../components/AgentKeys'
 import { Webhooks } from '../components/Webhooks'
-import {
-  AccountMenu,
-  ConnectCard,
-  IconBack,
-  IconChevron,
-  IconKey,
-  IconSpark,
-  IconTheme,
-  IconUser,
-  IconWebhooks,
-} from '../components/DashShell'
+import { AccountMenu, IconBack, IconKey, IconSpark, IconTheme, IconUser, IconWebhooks } from '../components/DashShell'
+import { AppRail, RailItem, RailLabel, pageTitleCls, railLayout } from '../components/AppRail'
+import { BellIcon, KeyIcon, MoonIcon, PlusIcon, SparkIcon, UserIcon } from '../components/ui/icons'
+
+const railIcon = { width: 14, height: 14, 'aria-hidden': true } as const
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Button } from '../components/ui/button'
-import { Wordmark } from '../components/ui/wordmark'
 import { Card, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Progress } from '../components/ui/progress'
-import {
-  DashContent,
-  DashHeader,
-  DashLayout,
-  DashMain,
-  DashNavItem,
-  DashSectionLabel,
-  DashSidebar,
-  DashSubtitle,
-  DashTitle,
-} from '../components/ui/dash'
+import { DashContent, DashHeader, DashLayout, DashMain, DashSubtitle, DashTitle } from '../components/ui/dash'
 
 type Pane = 'agent' | 'keys' | 'webhooks' | 'account' | 'appearance'
 
@@ -107,67 +90,73 @@ export function Settings() {
     : null
 
   return (
-    <DashLayout>
-      <DashSidebar>
-        <Wordmark size="sm" className="px-2 pb-5 text-[17px]" />
-
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-[9px] rounded-[9px] px-[10px] py-2 text-[13px] text-ink-soft hover:bg-paper hover:text-ink"
-          onClick={() => navigate(back)}
-        >
-          <IconBack /> {back === '/' ? 'Back to canvases' : 'Back to canvas'}
-        </Button>
-
-        <DashSectionLabel>Settings</DashSectionLabel>
+    <DashLayout className={railLayout}>
+      <AppRail active={null}>
+        <RailLabel>Settings</RailLabel>
         <nav className="flex flex-col gap-0.5">
-          <DashNavItem icon={<IconSpark />} active={pane === 'agent'} onClick={() => setPane('agent')}>
-            Doop Agent
-          </DashNavItem>
-          <DashNavItem icon={<IconKey />} active={pane === 'keys'} onClick={() => setPane('keys')}>
-            Agent keys
-          </DashNavItem>
-          <DashNavItem icon={<IconWebhooks />} active={pane === 'webhooks'} onClick={() => setPane('webhooks')}>
-            Webhooks
-          </DashNavItem>
-          <DashNavItem icon={<IconUser />} active={pane === 'account'} onClick={() => setPane('account')}>
-            Your account
-          </DashNavItem>
-          <DashNavItem icon={<IconTheme />} active={pane === 'appearance'} onClick={() => setPane('appearance')}>
-            Appearance
-          </DashNavItem>
+          <RailItem
+            icon={<SparkIcon {...railIcon} />}
+            label="Doop Agent"
+            on={pane === 'agent'}
+            go={() => setPane('agent')}
+          />
+          <RailItem
+            icon={<KeyIcon {...railIcon} />}
+            label="Agent keys"
+            on={pane === 'keys'}
+            go={() => setPane('keys')}
+          />
+          <RailItem
+            icon={<BellIcon {...railIcon} />}
+            label="Webhooks"
+            on={pane === 'webhooks'}
+            go={() => setPane('webhooks')}
+          />
+          <RailItem
+            icon={<UserIcon {...railIcon} />}
+            label="Your account"
+            on={pane === 'account'}
+            go={() => setPane('account')}
+          />
+          <RailItem
+            icon={<MoonIcon {...railIcon} />}
+            label="Appearance"
+            on={pane === 'appearance'}
+            go={() => setPane('appearance')}
+          />
         </nav>
+      </AppRail>
 
-        <div className="min-h-6 flex-1" />
-        <ConnectCard />
-      </DashSidebar>
-
-      <DashMain>
-        <DashHeader>
-          <nav className="flex items-center gap-2 text-[13px] text-ink-faint" aria-label="Breadcrumb">
+      <DashMain className="[background:var(--paper)]">
+        <DashHeader className="border-b-0 bg-transparent backdrop-blur-none">
+          {back !== '/' && (
             <Button
-              variant="link"
-              size="sm"
-              className="px-0 py-0 text-[13px] font-normal text-ink-faint hover:text-ink"
-              onClick={() => navigate('/')}
+              variant="ghost"
+              className="h-10 gap-[7px] rounded-[8px] text-[12.5px] md:h-8"
+              onClick={() => navigate(back)}
             >
-              Home
+              <IconBack /> Back to canvas
             </Button>
-            <IconChevron />
-            <b className="font-semibold text-ink">Settings</b>
-          </nav>
+          )}
           <span className="flex-1" />
-          <Button variant="primary" className="min-h-10 max-xs:px-3 md:min-h-0" onClick={createCanvas}>
-            <span className="max-xs:hidden">+ New canvas</span>
-            <span className="hidden max-xs:inline">+ New</span>
+          <Button
+            variant="primary"
+            className="h-10 gap-[7px] rounded-[8px] pl-2.5 pr-3 text-[12.5px] md:h-8"
+            onClick={createCanvas}
+          >
+            <PlusIcon width={15} height={15} strokeWidth={1.75} />
+            <span className="max-xs:hidden">New canvas</span>
+            <span className="hidden max-xs:inline">New</span>
           </Button>
-          <AccountMenu />
+          <span className="md:hidden">
+            <AccountMenu />
+          </span>
         </DashHeader>
 
-        <DashContent>
+        <DashContent className="pt-2 md:pt-3">
           <div className="flex items-start gap-4 md:items-end">
             <div>
-              <DashTitle>{panes[pane].title}</DashTitle>
+              <DashTitle className={pageTitleCls}>{panes[pane].title}</DashTitle>
               <DashSubtitle>{panes[pane].blurb}</DashSubtitle>
             </div>
           </div>

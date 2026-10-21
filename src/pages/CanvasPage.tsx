@@ -45,6 +45,8 @@ import {
   RadioTowerIcon,
   SourcePicker,
 } from '../components/ImportSources'
+import { importSources } from '../components/importSourceList'
+import { canvaApi, isCanvaDesignUrl } from '../integrations/canva/api'
 import { PresentMode } from '../components/PresentMode'
 import { getIdentity, setName } from '../lib/identity'
 import {
@@ -178,7 +180,23 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
     if (err) history.replaceState(null, '', location.pathname)
     return err
   })
-  const [showImport, setShowImport] = useState(!!ghInstallPass || !!ghInstallError)
+  /* ?import=<source> (Home's Import picker, on the canvas it just made) opens
+     the import modal on that source's screen (`1` for the picker itself); the
+     flag comes off the URL once the page is up, the same way ?connect=1 does —
+     stripping it in the initializer loses it to the remount that follows the
+     canvas load */
+  const [importRequested] = useState(() => new URLSearchParams(location.search).get('import'))
+  useEffect(() => {
+    const url = new URL(location.href)
+    if (!url.searchParams.has('import')) return
+    url.searchParams.delete('import')
+    history.replaceState(history.state, '', `${url.pathname}${url.search}${url.hash}`)
+  }, [])
+  const [showImport, setShowImport] = useState(!!ghInstallPass || !!ghInstallError || !!importRequested)
+  /* the page's frames and the selection when Export opened — a snapshot,
+     so canvas changes mid-flow don't swap what the checklist shows */
+  const [exporting, setExporting] = useState<{ frames: Frame[]; selected: string[] } | null>(null)
+  const [figmaFrames, setFigmaFrames] = useState<Frame[] | null>(null)
   const [showMobileActions, setShowMobileActions] = useState(false)
   const [showMobileLayers, setShowMobileLayers] = useState(false)
   const [renaming, setRenaming] = useState(false)
@@ -783,6 +801,7 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
           canvasId={canvasId}
           installPass={ghInstallPass}
           installError={ghInstallError}
+          initialSource={importRequested && importRequested !== '1' ? importRequested : null}
           onClose={() => {
             setShowImport(false)
             setGhInstallPass(null)
@@ -827,6 +846,7 @@ function ImportModal({
   canvasId,
   installPass,
   installError,
+  initialSource = null,
   onClose,
   onDone,
   onQueued,
@@ -834,6 +854,8 @@ function ImportModal({
   canvasId: string
   installPass: string | null
   installError: string | null
+  /** open straight on this source's screen (Home's picker already chose) */
+  initialSource?: string | null
   onClose: () => void
   onDone: (frameIds: string[], failedCount: number) => void
   /** a repo import queues cards on the board instead of landing frames */
@@ -841,7 +863,7 @@ function ImportModal({
 }) {
   /* which source's screen is open — null is the picker; landing back from
      GitHub's install flow jumps straight to that screen */
-  const [source, setSource] = useState<string | null>(installPass || installError ? 'github' : null)
+  const [source, setSource] = useState<string | null>(installPass || installError ? 'github' : initialSource)
   const [url, setUrl] = useState('')
   const [wholeSite, setWholeSite] = useState(false)
   const [discovery, setDiscovery] = useState<DiscoveredSite | null>(null)
@@ -1155,29 +1177,7 @@ function ImportModal({
         ) : !discovery ? (
           <>
             {source === null ? (
-              <SourcePicker
-                onPick={setSource}
-                sources={[
-                  {
-                    id: 'website',
-                    title: 'Website',
-                    blurb: 'One page, or discover a whole site.',
-                    icon: <GlobeIcon className="size-5 text-ink" />,
-                  },
-                  {
-                    id: 'liveapp',
-                    title: 'Live app',
-                    blurb: 'Behind a login, a VPN or localhost.',
-                    icon: <RadioTowerIcon className="size-5 text-ink" />,
-                  },
-                  {
-                    id: 'github',
-                    title: 'GitHub repo',
-                    blurb: 'Screens read from the repo’s routes.',
-                    icon: <GithubIcon width={21} height={21} />,
-                  },
-                ]}
-              />
+              <SourcePicker onPick={setSource} sources={importSources()} />
             ) : source === 'website' ? (
               <>
                 <ImportStepHeader icon={<GlobeIcon className="size-[22px] text-ink" />} title="Import a website" />

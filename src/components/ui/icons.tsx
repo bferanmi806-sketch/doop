@@ -11,7 +11,9 @@ import {
   Activity,
   ArrowUp,
   Bell,
+  Blocks,
   Bookmark,
+  Calendar,
   BookOpen,
   Brain,
   Building2,
@@ -22,6 +24,8 @@ import {
   ChevronsDownUp,
   Circle,
   CircleHelp,
+  CirclePlus,
+  Command,
   Clock,
   Compass,
   Copy,
@@ -32,6 +36,7 @@ import {
   EyeOff,
   ExternalLink,
   Folder,
+  FolderPlus,
   File,
   Frame,
   Globe,
@@ -40,6 +45,7 @@ import {
   Key,
   Layers,
   LayoutGrid,
+  LayoutTemplate,
   Lock,
   LogOut,
   MapPin,
@@ -47,6 +53,7 @@ import {
   Minus,
   MousePointer2,
   MessageCircle,
+  MessageSquare,
   Monitor,
   Moon,
   PanelLeftClose,
@@ -59,6 +66,7 @@ import {
   Plus,
   Puzzle,
   RefreshCw,
+  RotateCcw,
   Scan,
   Search,
   Settings,
@@ -71,8 +79,10 @@ import {
   Sun,
   Trash2,
   Type,
+  Upload,
   User,
   Users,
+  Workflow,
   X,
 } from 'lucide-react'
 
@@ -188,3 +198,24 @@ export const MinusIcon = icon(Minus)
 export const FitIcon = icon(Scan)
 /** sharing a canvas: the box with the arrow leaving it upward */
 export const ShareUpIcon = icon(Share)
+
+/* the signed-in home: its rail, suggestion chips and composer */
+/** a new workspace — a folder with a plus */
+export const FolderPlusIcon = icon(FolderPlus)
+/** automations: two linked steps */
+export const WorkflowIcon = icon(Workflow)
+/** integrations: building blocks */
+export const BlocksIcon = icon(Blocks)
+/** connect an agent: a plus in a ring */
+export const CirclePlusIcon = icon(CirclePlus)
+/** import: the arrow entering from above */
+export const UploadIcon = icon(Upload)
+export const CalendarIcon = icon(Calendar)
+/** what changed: the clock turned back */
+export const HistoryIcon = icon(RotateCcw)
+/** review comments: the square bubble */
+export const MessageSquareIcon = icon(MessageSquare)
+/** draft a page: a page skeleton */
+export const LayoutTemplateIcon = icon(LayoutTemplate)
+/** the ⌘ key, in shortcut hints */
+export const CommandIcon = icon(Command)

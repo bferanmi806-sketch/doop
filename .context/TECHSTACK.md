@@ -126,6 +126,20 @@
 - Tailwind CSS 4.3.3 (`@tailwindcss/vite` 4.3.3) - styling; `tw-animate-css` 1.4.0 for animation
   utilities. Design tokens in `src/styles.css` (see `.context/DESIGN.md`).
 - Tauri 2.9.0 (`@tauri-apps/cli`, `desktop/src-tauri`) - desktop app wrapper around the web build.
+- Home (`src/pages/Home.tsx`, `src/components/HomeHero.tsx`): a 12.5px rail (canvases, workspaces,
+  explore, resources, agents, an Ask Doop pill bound to ⌘/), Import + New canvas in the top bar, and
+  a hero over the brand's gradient wave: the hopping Disc-D, a greeting, a strip of suggestion chips
+  (the "on" chip wears the drifting colour beam from `src/styles.css`) and a composer. A prompt makes
+  a canvas named after it (`src/lib/homePrompt.ts`), queues it as the first board card asking for N
+  drafts, and opens the canvas; a card that cannot queue rides along as the canvas composer's draft.
+  Import makes a canvas and opens it with `?import=1`, which `CanvasPage` turns into the import
+  picker. `GET /api/canvases` adds `people` (owner, then members) for the tiles' avatar stacks.
+  The rail is `src/components/AppRail.tsx`, mounted by Home, Automations, Integrations, Community
+  and Settings alike (a page's own group, such as the settings panes, goes in as children); it owns
+  the ⌘K search palette (`CanvasSearchModal.tsx`), the connect-an-agent modal, the collapsed
+  narrow state (remembered in `localStorage` under `doop-rail`) and the account face at the bottom.
+  From another page the rail sends scope picks home as `/?scope=` and new workspaces as
+  `/?workspace=new`.
 
 ## 11. Developer Experience Tooling
 

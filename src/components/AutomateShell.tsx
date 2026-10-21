@@ -1,121 +1,18 @@
-import { useMemo, useState, type SVGProps } from 'react'
-import { navigate } from '../App'
-import { colorFor, type CanvasMeta } from '../../shared/types'
+import type { SVGProps } from 'react'
+import type { CanvasMeta } from '../../shared/types'
 import { roleById } from '../../shared/agents'
-import { timeAgo } from '../lib/time'
-import { AgentIcon } from './AgentIcon'
-import { ConnectCard, IconAutomations, IconGrid, IconIntegrations, IconShare, IconUser } from './DashShell'
-import { NavItem } from '../pages/Home'
 import { RoleMark } from './RoleMark'
-import { DashSectionLabel, DashSidebar } from './ui/dash'
-import { Dot } from './ui/dot'
-import { Wordmark } from './ui/wordmark'
 import { fieldVariants } from './ui/input'
 import { cn } from '@/lib/utils'
 
 /**
- * Pieces the Automations and Integrations pages share with the rest of the
- * signed-in shell: the Home rail (with these two pages in its main nav), the
- * provider and trigger marks, and the small controls the node editor is
- * built from. Visual reference: the "Automations 0/1/5" frames on the Doop
+ * Pieces the Automations and Integrations pages share: the provider and
+ * trigger marks, and the small controls the node editor is built from. The
+ * rail itself is the shell's AppRail. Visual reference: the "Automations 0/1/5" frames on the Doop
  * Dashboard canvas.
  */
 
 export type AutomatePage = 'automations' | 'integrations'
-
-/** an agent that worked this recently is treated as still at the desk */
-const LIVE_WINDOW = 5 * 60 * 1000
-
-/** The Home rail as the design draws it on these pages: canvases nav, then
- *  Automations and Integrations in the same list, then the agents seen
- *  across the user's canvases. */
-export function WorkspaceRail({
-  active,
-  canvases,
-  automationCount,
-  integrationCount,
-}: {
-  active: AutomatePage
-  canvases: CanvasMeta[]
-  automationCount?: number
-  integrationCount?: number
-}) {
-  const agents = useMemo(() => {
-    const map = new Map<string, { name: string; lastAt: number }>()
-    for (const c of canvases) {
-      for (const a of c.agents ?? []) {
-        const e = map.get(a.name)
-        if (e) e.lastAt = Math.max(e.lastAt, a.lastAt ?? 0)
-        else map.set(a.name, { name: a.name, lastAt: a.lastAt ?? 0 })
-      }
-    }
-    return [...map.values()].sort((x, y) => y.lastAt - x.lastAt).slice(0, 5)
-  }, [canvases])
-  /* read once per mount: liveness is a rail-level glance, not a clock */
-  const [now] = useState(() => Date.now())
-  const mine = canvases.filter((c) => !c.shared).length
-  const shared = canvases.length - mine
-
-  return (
-    <DashSidebar>
-      <Wordmark size="sm" className="px-2 pb-5 text-[17px]" />
-      <nav className="flex flex-col gap-0.5">
-        <NavItem icon={<IconGrid />} label="All canvases" count={canvases.length} on={false} go={() => navigate('/')} />
-        <NavItem icon={<IconUser />} label="Owned by me" count={mine} on={false} go={() => navigate('/')} />
-        <NavItem icon={<IconShare />} label="Shared with me" count={shared} on={false} go={() => navigate('/')} />
-        <NavItem
-          icon={<IconAutomations />}
-          label="Automations"
-          count={automationCount}
-          on={active === 'automations'}
-          go={() => navigate('/automations')}
-        />
-        <NavItem
-          icon={<IconIntegrations />}
-          label="Integrations"
-          count={integrationCount}
-          on={active === 'integrations'}
-          go={() => navigate('/integrations')}
-        />
-      </nav>
-
-      {agents.length > 0 && (
-        <>
-          <DashSectionLabel>Agents</DashSectionLabel>
-          <div className="flex flex-col gap-0.5">
-            {agents.map((a) => (
-              <div
-                key={a.name}
-                className="flex min-w-0 items-center gap-[9px] px-2.5 py-[5px] text-[13px] text-ink-soft"
-              >
-                <span
-                  className="grid size-[22px] flex-none place-items-center rounded-[7px] bg-paper-deep"
-                  style={{ color: colorFor(a.name) }}
-                >
-                  <AgentIcon name={a.name} size={13} />
-                </span>
-                <span className="truncate">{a.name}</span>
-                {a.lastAt > 0 && now - a.lastAt < LIVE_WINDOW ? (
-                  <Dot
-                    size="sm"
-                    className="ml-auto bg-success shadow-[0_0_0_3px_color-mix(in_srgb,var(--success)_15%,transparent)]"
-                  />
-                ) : (
-                  <span className="ml-auto flex-none font-mono text-[10.5px] text-ink-faint">
-                    {a.lastAt > 0 ? timeAgo(a.lastAt) : ''}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      <div className="min-h-6 flex-1" />
-      <ConnectCard />
-    </DashSidebar>
-  )
-}
 
 /* ---- marks ---- */
 

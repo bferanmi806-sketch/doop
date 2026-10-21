@@ -61,6 +61,8 @@ export interface CanvasMeta {
   previewFrameId?: string
   /** agents that have worked on this canvas (most recent first) */
   agents?: { name: string; owner?: string; lastAt?: number }[]
+  /** the owner first, then everyone invited — the home tile's avatar stack */
+  people?: { id: string; name: string }[]
 }
 
 /** The dashboard/gallery preview render (`/i/<id>.jpg?preview`) clips a

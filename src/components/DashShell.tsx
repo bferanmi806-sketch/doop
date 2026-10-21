@@ -1,3 +1,4 @@
+import * as React from 'react'
 import { useState } from 'react'
 import { authClient } from '../lib/auth'
 import { navigate } from '../App'
@@ -6,6 +7,8 @@ import { useMe } from '../lib/me'
 import { isDesktopShell } from '../lib/shell'
 import { isTheme, useTheme } from '../lib/theme'
 import { AgentIcon } from './AgentIcon'
+import { PresenceFace } from './PeerAvatars'
+import { colorFor } from '../../shared/types'
 import { ConnectModal } from './ConnectModal'
 import { themeOptions } from './ThemePicker'
 import { CodeBlock } from './ui/code-block'
@@ -57,23 +60,50 @@ export function initials(name?: string): string {
   return letters.toUpperCase()
 }
 
-export function AccountMenu() {
+export function AccountMenu({
+  face = false,
+  side,
+  align,
+}: {
+  /** the round presence face the editor's rail wears, instead of the ink square */
+  face?: boolean
+  side?: React.ComponentProps<typeof DropdownMenuContent>['side']
+  align?: React.ComponentProps<typeof DropdownMenuContent>['align']
+} = {}) {
   const { data: session } = authClient.useSession()
   const me = useMe(session?.user.id)
   const { theme, setTheme } = useTheme()
+  const name = session?.user.name ?? ''
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="bare"
-          className="grid size-10 flex-none place-items-center rounded-[10px] bg-ink font-display text-[12.5px] font-bold text-paper hover:bg-ink hover:text-paper hover:opacity-90 sm:size-[34px]"
-          aria-label="Account"
-        >
-          {initials(session?.user.name)}
-        </Button>
+        {face ? (
+          <button
+            type="button"
+            aria-label="Account"
+            title={name}
+            className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-faint data-[state=open]:ring-2 data-[state=open]:ring-ink-faint"
+          >
+            <PresenceFace
+              name={name || '·'}
+              color={colorFor(session?.user.id ?? name)}
+              kind="user"
+              size={28}
+              className="text-[10.5px] shadow-none"
+            />
+          </button>
+        ) : (
+          <Button
+            variant="bare"
+            className="grid size-10 flex-none place-items-center rounded-[10px] bg-ink font-display text-[12.5px] font-bold text-paper hover:bg-ink hover:text-paper hover:opacity-90 sm:size-[34px]"
+            aria-label="Account"
+          >
+            {initials(name)}
+          </Button>
+        )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent>
+      <DropdownMenuContent side={side} align={align}>
         <DropdownMenuLabel className="flex items-center gap-[11px] px-2.5 pb-3 pt-[11px]">
           <span className="grid size-[42px] flex-none place-items-center rounded-[12px] border border-line bg-paper-deep font-display text-[14px] font-extrabold">
             {initials(session?.user.name)}

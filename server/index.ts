@@ -904,9 +904,22 @@ app.delete('/api/agent-keys/:id', async (req, res) => {
   res.json({ ok: true })
 })
 
-app.get('/api/canvases', (req, res) =>
+app.get('/api/canvases', async (req, res) => {
+  const list = workspaces.canvasesFor(req.user!.id)
+  /* the people on each canvas (owner first, then invited members) resolve
+     to names in one query — the home tiles wear them as an avatar stack */
+  const peopleIds = new Set<string>()
+  for (const c of list) for (const id of canvasPeopleIds(c.id)) peopleIds.add(id)
+  const names = new Map<string, string>()
+  if (peopleIds.size) {
+    const rows = await db
+      .select({ id: authSchema.user.id, name: authSchema.user.name })
+      .from(authSchema.user)
+      .where(inArray(authSchema.user.id, [...peopleIds]))
+    for (const r of rows) names.set(r.id, r.name)
+  }
   res.json(
-    workspaces.canvasesFor(req.user!.id).map((c) => {
+    list.map((c) => {
       /* which agents have worked on this canvas (most recent first), with
          the user whose token they connected under and when they last worked */
       const seen = new Map<string, { owner?: string; lastAt: number }>()
@@ -916,12 +929,20 @@ app.get('/api/canvases', (req, res) =>
       }
       return {
         ...c,
+        people: canvasPeopleIds(c.id).map((id) => ({ id, name: names.get(id) ?? 'Unknown' })),
         agents: [...seen].slice(0, 8).map(([name, v]) => ({ name, owner: v.owner, lastAt: v.lastAt })),
         activeTasks: activeAgentTasks(actions.getTasks(c.id)),
       }
     }),
-  ),
-)
+  )
+})
+
+/** owner first, then invited members, each once */
+function canvasPeopleIds(canvasId: string): string[] {
+  const c = store.getCanvas(canvasId)
+  if (!c) return []
+  return [...new Set([...(c.ownerId ? [c.ownerId] : []), ...(c.memberIds ?? [])])]
+}
 
 /* A workspace canvas needs membership and a workspace that may still grow —
    the 402 is what every client turns into the upgrade modal. */

@@ -10,7 +10,8 @@ import { api } from '../lib/api'
 import { navigate } from '../App'
 import { Logo } from '../components/Logo'
 import { timeAgo } from '../lib/time'
-import { AccountMenu, ConnectCard, IconCommunity, IconGrid } from '../components/DashShell'
+import { AccountMenu } from '../components/DashShell'
+import { AppRail, RailItem, RailLabel, pageTitleCls, railLayout } from '../components/AppRail'
 import { posthog } from '../lib/posthog'
 import { openCanvasTab } from '../lib/desktop'
 import { Button } from '../components/ui/button'
@@ -18,23 +19,12 @@ import { Badge } from '../components/ui/badge'
 import { Input } from '../components/ui/input'
 import { Card, cardVariants } from '../components/ui/card'
 import { Skeleton } from '../components/ui/skeleton'
-import { Wordmark } from '../components/ui/wordmark'
 import { Segmented, SegmentedItem } from '../components/ui/segmented'
 import { ToggleChipGroup, ToggleChipItem } from '../components/ui/toggle-chip'
 import { Modal, ModalEyebrow, ModalTitle } from '../components/ui/modal'
 import { CopyIcon } from '../components/ui/icons'
 import { Toast } from '../components/ui/toast'
-import {
-  DashContent,
-  DashHeader,
-  DashLayout,
-  DashMain,
-  DashSectionLabel,
-  DashSidebar,
-  DashSubtitle,
-  DashTitle,
-} from '../components/ui/dash'
-import { NavItem } from './Home'
+import { DashContent, DashHeader, DashLayout, DashMain, DashSubtitle, DashTitle } from '../components/ui/dash'
 import { cn } from '@/lib/utils'
 
 type Shelf = 'all' | CommunityCategory
@@ -132,41 +122,36 @@ export function Community() {
   const empty = items !== null && items.length === 0
 
   return (
-    <DashLayout>
-      <DashSidebar>
-        <Wordmark size="sm" className="px-2 pb-5 text-[17px]" />
+    <DashLayout className={railLayout}>
+      <AppRail active="community" searchShortcut={false}>
+        {shelves.length > 0 && (
+          <>
+            <RailLabel>Shelves</RailLabel>
+            <nav className="flex flex-col gap-0.5">
+              <RailItem
+                icon={<span className="w-[14px]" />}
+                label="Everything"
+                trail={counts.get('all')}
+                on={shelf === 'all'}
+                go={() => setShelf('all')}
+              />
+              {shelves.map((c) => (
+                <RailItem
+                  key={c}
+                  icon={<span className="w-[14px]" />}
+                  label={COMMUNITY_CATEGORY_LABELS[c]}
+                  trail={counts.get(c)}
+                  on={shelf === c}
+                  go={() => setShelf(c)}
+                />
+              ))}
+            </nav>
+          </>
+        )}
+      </AppRail>
 
-        <nav className="flex flex-col gap-0.5">
-          <NavItem icon={<IconGrid />} label="My canvases" on={false} go={() => navigate('/')} />
-        </nav>
-
-        <DashSectionLabel>Explore</DashSectionLabel>
-        <nav className="flex flex-col gap-0.5">
-          <NavItem
-            icon={<IconCommunity />}
-            label="Community"
-            count={counts.get('all')}
-            on={shelf === 'all'}
-            go={() => setShelf('all')}
-          />
-          {shelves.map((c) => (
-            <NavItem
-              key={c}
-              icon={<span className="w-[15px]" />}
-              label={COMMUNITY_CATEGORY_LABELS[c]}
-              count={counts.get(c)}
-              on={shelf === c}
-              go={() => setShelf(c)}
-            />
-          ))}
-        </nav>
-
-        <div className="min-h-6 flex-1" />
-        <ConnectCard />
-      </DashSidebar>
-
-      <DashMain>
-        <DashHeader className="max-md:min-h-[104px]">
+      <DashMain className="[background:var(--paper)]">
+        <DashHeader className="border-b-0 bg-transparent backdrop-blur-none max-md:min-h-[104px]">
           <Button
             variant="bare"
             className="min-h-10 gap-2 p-0 font-display text-base font-extrabold text-ink hover:bg-transparent md:hidden"
@@ -175,7 +160,7 @@ export function Community() {
           >
             <Logo className="size-7" /> Doop
           </Button>
-          <label className="order-2 flex h-10 max-w-none flex-1 basis-full items-center gap-[9px] rounded-[10px] border border-line bg-surface px-[11px] text-ink-faint focus-within:border-ink-faint md:order-none md:h-[34px] md:max-w-[400px] md:basis-auto">
+          <label className="order-2 flex h-10 max-w-none flex-1 basis-full items-center gap-[7px] rounded-[8px] bg-surface px-[10px] text-ink-faint shadow-ring focus-within:shadow-ring-hover md:order-none md:h-[30px] md:max-w-[320px] md:basis-auto">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="7" />
               <path d="m20 20-3.2-3.2" />
@@ -195,18 +180,15 @@ export function Community() {
             </kbd>
           </label>
           <span className="flex-1" />
-          <Button variant="ghost" className="min-h-10 md:min-h-0" onClick={() => navigate('/')}>
-            ← My canvases
-          </Button>
-          <AccountMenu />
+          <span className="md:hidden">
+            <AccountMenu />
+          </span>
         </DashHeader>
 
         <DashContent>
           <div className="flex items-start gap-4 md:items-end">
             <div>
-              <DashTitle>
-                Community<em className="not-italic text-brand">.</em>
-              </DashTitle>
+              <DashTitle className={pageTitleCls}>Community</DashTitle>
               <DashSubtitle>
                 {items === null
                   ? '…'

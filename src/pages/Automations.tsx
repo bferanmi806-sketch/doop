@@ -13,6 +13,7 @@ import { clientIntegrations } from '../integrations'
 import { navigate } from '../App'
 import { posthog } from '../lib/posthog'
 import { AccountMenu, IconGrid } from '../components/DashShell'
+import { AppRail, pageTitleCls, railLayout } from '../components/AppRail'
 import {
   CanvasThumb,
   ClockTile,
@@ -20,11 +21,11 @@ import {
   RunDot,
   StepChain,
   Toggle,
-  WorkspaceRail,
   formatRunTime,
 } from '../components/AutomateShell'
 import { RoleMark } from '../components/RoleMark'
 import { Button } from '../components/ui/button'
+import { PlusIcon } from '../components/ui/icons'
 import { Skeleton } from '../components/ui/skeleton'
 import { Toast } from '../components/ui/toast'
 import { ConfirmDialog } from '../components/ui/alert-dialog'
@@ -63,7 +64,6 @@ function everyLine(a: Automation): string {
 export function Automations() {
   const [items, setItems] = useState<Automation[] | null>(null)
   const [canvases, setCanvases] = useState<CanvasMeta[]>([])
-  const [integrationCount, setIntegrationCount] = useState(0)
   const [busy, setBusy] = useState(false)
   const [remove, setRemove] = useState<Automation | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -71,12 +71,6 @@ export function Automations() {
   useEffect(() => {
     api.listAutomations().then(setItems).catch(console.error)
     api.listCanvases().then(setCanvases).catch(console.error)
-    api
-      .integrations()
-      .then((s) =>
-        setIntegrationCount(Number(s.meta.connected) + clientIntegrations.filter((i) => i.isConnected(s)).length),
-      )
-      .catch(console.error)
   }, [])
 
   function showToast(message: string) {
@@ -137,26 +131,26 @@ export function Automations() {
   const empty = items !== null && items.length === 0
 
   return (
-    <DashLayout>
-      <WorkspaceRail
-        active="automations"
-        canvases={canvases}
-        automationCount={items?.length}
-        integrationCount={integrationCount}
-      />
-      <DashMain>
-        <DashHeader>
+    <DashLayout className={railLayout}>
+      <AppRail active="automations" canvases={canvases} />
+      <DashMain className="[background:var(--paper)]">
+        <DashHeader className="border-b-0 bg-transparent backdrop-blur-none">
           <span className="flex-1" />
-          <Button variant="primary" className="min-h-10 md:min-h-0" disabled={busy} onClick={() => create()}>
-            + New automation
+          <Button
+            variant="primary"
+            className="h-10 gap-[7px] rounded-[8px] pl-2.5 pr-3 text-[12.5px] md:h-8"
+            disabled={busy}
+            onClick={() => create()}
+          >
+            <PlusIcon width={15} height={15} strokeWidth={1.75} /> New automation
           </Button>
-          <AccountMenu />
+          <span className="md:hidden">
+            <AccountMenu />
+          </span>
         </DashHeader>
 
-        <DashContent>
-          <DashTitle className="mb-[26px]">
-            Automations<em className="not-italic text-brand">.</em>
-          </DashTitle>
+        <DashContent className="pt-2 md:pt-3">
+          <DashTitle className={pageTitleCls}>Automations</DashTitle>
 
           {items === null ? (
             <div className="flex flex-col gap-2">
