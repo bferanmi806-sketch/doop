@@ -92,6 +92,10 @@ export const FRAME_BOOTSTRAP = `<!doctype html>
       /* the incoming html carries no root style, so the sync drops our
          crisp-render zoom — put it back before the page reflows */
       if (curZoom !== 1) document.documentElement.style.zoom = String(curZoom)
+      /* the body's own attributes carry whole design systems (<body class="glaze">
+         with every rule scoped under .glaze) — morphing only its children left
+         those designs unstyled on the canvas */
+      syncAttrs(document.body, doc.body)
       morphChildren(document.head, doc.head)
       morphChildren(document.body, doc.body)
       activateScripts()
