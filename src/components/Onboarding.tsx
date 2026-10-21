@@ -171,9 +171,9 @@ export function Onboarding({ canvasId }: { canvasId: string }) {
   }
 
   return (
-    /* top right of the open canvas, beside the panels (--chrome-right) — clear
-       of the zoom control at the bottom */
-    <div className="pointer-events-auto absolute top-3.5 right-[var(--chrome-right,14px)] z-40 flex w-[300px] flex-col gap-2.5 rounded-[14px] bg-surface px-4 pt-3.5 pb-4 shadow-pop transition-[right] duration-150 max-md:top-auto max-md:right-4 max-md:bottom-4">
+    /* bottom left of the open canvas, beside the Layers panel and tool rail
+       (--chrome-left) — clear of the zoom control on the right */
+    <div className="pointer-events-auto absolute bottom-3.5 left-[var(--chrome-left,14px)] z-40 flex w-[300px] flex-col gap-2.5 rounded-[14px] bg-surface px-4 pt-3.5 pb-4 shadow-pop transition-[left] duration-150 max-md:right-4 max-md:bottom-4 max-md:left-auto">
       <header className="flex items-center justify-between">
         <span className="text-[13px] font-medium">Getting started</span>
         <Button variant="bare" size="icon-sm" className="text-xs" onClick={dismiss} title="Dismiss">
