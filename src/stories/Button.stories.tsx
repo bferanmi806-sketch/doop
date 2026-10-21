@@ -67,6 +67,7 @@ export const Sizes: Story = {
       <Button size="sm">Small</Button>
       <Button size="md">Medium</Button>
       <Button size="lg">Large</Button>
+      <Button size="bar">Bar</Button>
       <Button size="icon" aria-label="Search">
         <SearchIcon />
       </Button>

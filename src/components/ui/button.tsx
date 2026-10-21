@@ -42,6 +42,8 @@ const buttonVariants = cva(
         sm: 'px-2.5 py-[5px] text-xs',
         md: 'px-3.5 py-2 text-body/4',
         lg: 'justify-center px-4 py-[11px] text-sm',
+        /* the 32px header and toolbar action with a leading glyph (Import, New canvas) */
+        bar: 'h-8 rounded-control pl-2.5 pr-3 text-body',
         icon: 'size-9 p-0',
         'icon-sm': 'size-7 rounded-sm p-0',
       },

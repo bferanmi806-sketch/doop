@@ -56,6 +56,7 @@ import {
   MessageSquare,
   Monitor,
   Moon,
+  PanelLeft,
   PanelLeftClose,
   PanelLeftOpen,
   PanelRightClose,
@@ -137,6 +138,7 @@ export const SparkIcon = icon(Sparkles)
 export const SearchIcon = icon(Search)
 export const PlusIcon = icon(Plus)
 export const CollapseAllIcon = icon(ChevronsDownUp)
+export const PanelLeftIcon = icon(PanelLeft)
 export const PanelCollapseIcon = icon(PanelLeftClose)
 export const PanelExpandIcon = icon(PanelLeftOpen)
 export const PanelCollapseRightIcon = icon(PanelRightClose)

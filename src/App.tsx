@@ -1,4 +1,5 @@
 import { startLocalAgent } from './lib/localAgent'
+import { navigate } from './lib/navigate'
 import { useEffect, useRef, useState } from 'react'
 import { Home } from './pages/Home'
 import { Community } from './pages/Community'
@@ -27,10 +28,7 @@ import { DesktopTabs, ShellDragBar } from './components/DesktopTabs'
 import { setTabsUser } from './lib/desktop'
 import { isDesktopShell } from './lib/shell'
 
-export function navigate(path: string) {
-  history.pushState(null, '', path)
-  window.dispatchEvent(new PopStateEvent('popstate'))
-}
+export { navigate }
 
 export function App() {
   const [route, setRoute] = useState(location.pathname + location.search)

@@ -4,7 +4,6 @@ import { colorFor } from '../../shared/types'
 import { api, errorMessage, paywalledWorkspace } from '../lib/api'
 import { authClient } from '../lib/auth'
 import { navigate } from '../App'
-import { Logo } from '../components/Logo'
 import { timeAgo } from '../lib/time'
 import { useStore } from '../lib/store'
 import { isResidentLimit } from '../components/TeamAllowance'
@@ -19,10 +18,8 @@ import { importSources } from '../components/importSourceList'
 import { Modal } from '../components/ui/modal'
 import { ShareModal } from '../components/ShareModal'
 import { CreateWorkspaceModal, MoveCanvasModal, UpgradeModal } from '../components/WorkspaceModals'
-import { AccountMenu } from '../components/DashShell'
 import { posthog } from '../lib/posthog'
 import { closeTab, openCanvasTab, pruneTabs } from '../lib/desktop'
-import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { AvatarStack } from '../components/ui/avatar'
 import { EmptyState } from '../components/ui/empty-state'
 import { Button } from '../components/ui/button'
@@ -52,7 +49,6 @@ import {
   ShareIcon,
   TrashIcon,
   UploadIcon,
-  WebIcon,
 } from '../components/ui/icons'
 import { ConfirmDialog } from '../components/ui/alert-dialog'
 import { Toast } from '../components/ui/toast'
@@ -270,12 +266,6 @@ export function Home() {
   }
 
   const first = session?.user.name?.split(' ')[0]
-  const counts = {
-    all: canvases?.length ?? 0,
-    mine: canvases?.filter((c) => !c.shared).length ?? 0,
-    shared: canvases?.filter((c) => c.shared).length ?? 0,
-  }
-
   const scopedWorkspace = workspaceOf(scope)
   const currentWorkspace = scopedWorkspace ? workspaces.find((w) => w.id === scopedWorkspace) : undefined
   /* a workspace that vanished (deleted, or left) drops the view back to all */
@@ -316,14 +306,6 @@ export function Home() {
       />
       <DashMain className="[background:var(--paper)]">
         <DashHeader className="border-b-0 bg-transparent backdrop-blur-none">
-          <Button
-            variant="bare"
-            className="min-h-10 gap-2 p-0 font-display text-base font-extrabold text-ink hover:bg-transparent md:hidden"
-            onClick={() => navigate('/')}
-            aria-label="Doop home"
-          >
-            <Logo className="size-7" /> Doop
-          </Button>
           <span className="flex-1" />
           {currentWorkspace && (
             <Button
@@ -334,27 +316,14 @@ export function Home() {
               <BuildingIcon /> Manage
             </Button>
           )}
-          <Button
-            variant="default"
-            className="h-10 gap-[7px] rounded-control pl-2.5 pr-3 text-body md:h-8"
-            disabled={starting}
-            onClick={() => setImporting(true)}
-          >
+          <Button variant="default" size="bar" disabled={starting} onClick={() => setImporting(true)}>
             <UploadIcon width={15} height={15} className="text-ink-soft" /> Import
           </Button>
-          <Button
-            variant="primary"
-            className="h-10 gap-[7px] rounded-control pl-2.5 pr-3 text-body md:h-8"
-            onClick={createCanvas}
-          >
+          <Button variant="primary" size="bar" onClick={createCanvas}>
             <PlusIcon width={15} height={15} strokeWidth={1.75} />
             <span className="max-md:hidden">New canvas</span>
             <span className="hidden max-md:inline">New</span>
           </Button>
-          {/* on a phone there is no rail to hold the account face */}
-          <span className="md:hidden">
-            <AccountMenu />
-          </span>
         </DashHeader>
 
         <DashContent className="px-0 pt-0 md:px-0 md:pt-0">
@@ -387,23 +356,6 @@ export function Home() {
                 )}
               </Callout>
             )}
-
-            <div className="mb-4 flex items-center gap-2 md:hidden">
-              <Tabs
-                value={scopedWorkspace ? 'all' : scope}
-                onValueChange={(next) => setScope(next as Scope)}
-                className="flex min-w-0 flex-1"
-              >
-                <TabsList className="h-10 w-full border border-line bg-surface p-1 shadow-card">
-                  <TabsTrigger value="all">All · {counts.all}</TabsTrigger>
-                  <TabsTrigger value="mine">Mine · {counts.mine}</TabsTrigger>
-                  <TabsTrigger value="shared">Shared · {counts.shared}</TabsTrigger>
-                </TabsList>
-              </Tabs>
-              <Button variant="ghost" className="h-10 flex-none gap-1.5" onClick={() => navigate('/community')}>
-                <WebIcon width={15} height={15} /> Community
-              </Button>
-            </div>
 
             {/* the list's own header: what is listed, and the controls that narrow it */}
             <div className="flex flex-wrap items-center gap-2 md:flex-nowrap">
@@ -500,7 +452,7 @@ export function Home() {
                 ))}
                 {canvases !== null && (
                   <Pressable
-                    className="grid min-h-16 place-items-center content-center gap-2 rounded-panel border border-dashed border-line text-body text-ink-faint transition-colors hover:border-ink-faint hover:text-ink xs:min-h-full"
+                    className="grid min-h-[132px] place-items-center content-center gap-2.5 rounded-panel border border-dashed border-line p-6 text-body text-ink-faint transition-colors hover:border-ink-faint hover:text-ink xs:min-h-full"
                     aria-label="Create a new canvas"
                     onClick={createCanvas}
                   >

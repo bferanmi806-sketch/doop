@@ -3,7 +3,8 @@ import type { CanvasMeta, WorkspaceSummary } from '../../shared/types'
 import { colorFor } from '../../shared/types'
 import { api } from '../lib/api'
 import { authClient } from '../lib/auth'
-import { navigate } from '../App'
+import { navigate } from '../lib/navigate'
+import { useRailDrawer } from '../lib/railDrawer'
 import { timeAgo } from '../lib/time'
 import { openCanvasTab } from '../lib/desktop'
 import { cn } from '@/lib/utils'
@@ -15,6 +16,7 @@ import { Logo } from './Logo'
 import { DashNavItem, DashSectionLabel, DashSidebar } from './ui/dash'
 import { Dot } from './ui/dot'
 import { IconButton } from './ui/icon-button'
+import { Sheet, SheetContent, SheetTitle } from './ui/sheet'
 import {
   BlocksIcon,
   BuildingIcon,
@@ -43,6 +45,9 @@ import {
  * state (remembered per browser). A page that needs its own group — the
  * settings panes, the community shelves — passes it as children, and it
  * lands after Resources.
+ *
+ * Below md the same rail slides in as a drawer over the page; the header's
+ * brand row (DashBrand) opens it, and any row that leads somewhere closes it.
  */
 
 /** which row is lit: a home scope, a workspace, or one of the other pages */
@@ -95,6 +100,24 @@ export function AppRail({
   const spaces = workspaces ?? own?.workspaces ?? []
 
   const [open, setOpen] = useState(readRailOpen)
+  const drawer = useRailDrawer((s) => s.open)
+  const setDrawer = useRailDrawer((s) => s.setOpen)
+  const setMounted = useRailDrawer((s) => s.setMounted)
+  /* tells DashHeader a rail is here to open */
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [setMounted])
+  /* widening past md hides the drawer panel but not its backdrop, so the
+     drawer closes the moment the desktop rail takes over */
+  useEffect(() => {
+    const desktop = window.matchMedia('(min-width: 56.25rem)')
+    function onChange(e: MediaQueryListEvent) {
+      if (e.matches) setDrawer(false)
+    }
+    desktop.addEventListener('change', onChange)
+    return () => desktop.removeEventListener('change', onChange)
+  }, [setDrawer])
   const [searching, setSearching] = useState(false)
   const [connecting, setConnecting] = useState(false)
   /* a clock the render can read: an agent that just worked shows as live */
@@ -130,14 +153,32 @@ export function AppRail({
     }
   }
 
+  /* every row that leads somewhere also puts the phone drawer away */
+  function go(path: string) {
+    setDrawer(false)
+    navigate(path)
+  }
+
   function scope(next: 'all' | 'mine' | 'shared' | `ws:${string}`) {
+    setDrawer(false)
     if (onScope) onScope(next)
     else navigate(next === 'all' ? '/' : `/?scope=${encodeURIComponent(next)}`)
   }
 
   function createWorkspace() {
+    setDrawer(false)
     if (onCreateWorkspace) onCreateWorkspace()
     else navigate('/?workspace=new')
+  }
+
+  function openSearch() {
+    setDrawer(false)
+    setSearching(true)
+  }
+
+  function connect() {
+    setDrawer(false)
+    setConnecting(true)
   }
 
   function openCanvas(c: CanvasMeta) {
@@ -190,7 +231,7 @@ export function AppRail({
       <IconButton aria-label="Show sidebar" onClick={() => setRail(true)}>
         <PanelExpandIcon width={15} height={15} />
       </IconButton>
-      <IconButton aria-label="Search canvases (⌘K)" onClick={() => setSearching(true)}>
+      <IconButton aria-label="Search canvases (⌘K)" onClick={openSearch}>
         <SearchIcon width={15} height={15} />
       </IconButton>
       <Rule />
@@ -213,13 +254,13 @@ export function AppRail({
         <FolderPlusIcon {...rail} />
       </IconButton>
       <Rule />
-      <IconButton aria-label="Community" on={active === 'community'} onClick={() => navigate('/community')}>
+      <IconButton aria-label="Community" on={active === 'community'} onClick={() => go('/community')}>
         <WebIcon {...rail} />
       </IconButton>
-      <IconButton aria-label="Automations" on={active === 'automations'} onClick={() => navigate('/automations')}>
+      <IconButton aria-label="Automations" on={active === 'automations'} onClick={() => go('/automations')}>
         <WorkflowIcon {...rail} />
       </IconButton>
-      <IconButton aria-label="Integrations" on={active === 'integrations'} onClick={() => navigate('/integrations')}>
+      <IconButton aria-label="Integrations" on={active === 'integrations'} onClick={() => go('/integrations')}>
         <BlocksIcon {...rail} />
       </IconButton>
       <Rule />
@@ -228,7 +269,7 @@ export function AppRail({
           <AgentIcon name={a.name} size={14} color={colorFor(a.name)} />
         </span>
       ))}
-      <IconButton aria-label="Connect an agent" onClick={() => setConnecting(true)}>
+      <IconButton aria-label="Connect an agent" onClick={connect}>
         <CirclePlusIcon {...rail} />
       </IconButton>
       <div className="mt-auto pt-4">
@@ -237,21 +278,27 @@ export function AppRail({
     </div>
   )
 
-  const wide = (
+  /* the full rail; in the phone drawer the hide control closes the drawer
+     instead of narrowing the rail */
+  const wide = (inDrawer: boolean) => (
     <div key="wide" className="flex min-h-full w-full animate-[fade-in_0.25s_ease] flex-col motion-reduce:animate-none">
       <div className="mb-2.5 flex h-[30px] items-center gap-2 px-1.5">
         <IconButton
           aria-label="Doop home"
           className="size-[26px] rounded-row hover:bg-transparent"
-          onClick={() => navigate('/')}
+          onClick={() => go('/')}
         >
           <Logo className="size-[26px] rounded-row" />
         </IconButton>
         <span className="ml-auto flex items-center gap-2.5 text-ink-soft">
-          <IconButton size="sm" aria-label="Search canvases (⌘K)" onClick={() => setSearching(true)}>
+          <IconButton size="sm" aria-label="Search canvases (⌘K)" onClick={openSearch}>
             <SearchIcon width={15} height={15} />
           </IconButton>
-          <IconButton size="sm" aria-label="Hide sidebar" onClick={() => setRail(false)}>
+          <IconButton
+            size="sm"
+            aria-label="Hide sidebar"
+            onClick={() => (inDrawer ? setDrawer(false) : setRail(false))}
+          >
             <PanelCollapseIcon width={15} height={15} />
           </IconButton>
         </span>
@@ -302,7 +349,7 @@ export function AppRail({
           icon={<WebIcon {...rail} />}
           label="Community"
           on={active === 'community'}
-          go={() => navigate('/community')}
+          go={() => go('/community')}
         />
       </nav>
 
@@ -312,13 +359,13 @@ export function AppRail({
           icon={<WorkflowIcon {...rail} />}
           label="Automations"
           on={active === 'automations'}
-          go={() => navigate('/automations')}
+          go={() => go('/automations')}
         />
         <RailItem
           icon={<BlocksIcon {...rail} />}
           label="Integrations"
           on={active === 'integrations'}
-          go={() => navigate('/integrations')}
+          go={() => go('/integrations')}
         />
       </nav>
 
@@ -345,12 +392,7 @@ export function AppRail({
             )}
           </div>
         ))}
-        <RailItem
-          icon={<CirclePlusIcon {...rail} />}
-          label="Connect an agent"
-          on={false}
-          go={() => setConnecting(true)}
-        />
+        <RailItem icon={<CirclePlusIcon {...rail} />} label="Connect an agent" on={false} go={connect} />
       </div>
 
       <div className="mt-auto flex items-center gap-2.5 px-1 pt-4">
@@ -370,8 +412,19 @@ export function AppRail({
           open ? 'px-3 md:w-[236px]' : 'px-2 md:w-14',
         )}
       >
-        {open ? wide : narrow}
+        {open ? wide(false) : narrow}
       </DashSidebar>
+      {/* on a phone the rail is a drawer over the page, opened from the header */}
+      <Sheet open={drawer} onOpenChange={setDrawer}>
+        <SheetContent
+          side="left"
+          showCloseButton={false}
+          className="w-[280px] max-w-[85vw] gap-0 overflow-y-auto bg-sub px-3 pb-3 pt-3.5 text-ink md:hidden"
+        >
+          <SheetTitle className="sr-only">Navigation</SheetTitle>
+          {wide(true)}
+        </SheetContent>
+      </Sheet>
       {modals}
     </>
   )

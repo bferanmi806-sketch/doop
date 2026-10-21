@@ -94,7 +94,8 @@ Screens compose these; they do not draw their own buttons, fields or sizes (an E
 `no-restricted-syntax` rule in `eslint.config.js` holds `src/pages/**` and `src/components/**` to
 it, with the not-yet-migrated editor chrome listed in `LEGACY_CHROME`). Each has a story.
 
-- `Button` - the ring button, one black `primary` per screen; `IconButton` - a glyph in a quiet
+- `Button` - the ring button, one black `primary` per screen (`size="bar"` is the 32px header
+  and toolbar action with a leading glyph: Import, New canvas); `IconButton` - a glyph in a quiet
   square (sm 24px / md 32px, `round` for row actions, `on` keeps the paper-deep fill, `aria-label`
   required); `Pressable` - the chrome-less button a card tile, list row or inline text action is
   made of (focus ring only); `MenuButton` - a dropdown trigger with a trailing chevron (`ring` in a
@@ -107,7 +108,9 @@ it, with the not-yet-migrated editor chrome listed in `LEGACY_CHROME`). Each has
 - `Card` (`tone` default/flat/raised/dashed, `shape` hero for the 18px empty-state corner),
   `EmptyState` (`card` hero on a list page, `dashed` with an `illustration` row on a table page:
   title, description, one `action`), `Callout`, `Note`, `Badge`, `Dot`, `Progress`, `Skeleton`,
-  `CodeBlock`, `List`, `Tabs`, `Dash*` (the dashboard frame) - surfaces and content.
+  `CodeBlock`, `List`, `Tabs`, `Dash*` (the dashboard frame; on a phone `DashHeader` draws the
+  brand row itself, a rail toggle plus wordmark, whenever an `AppRail` is mounted, and the rail
+  opens as a left drawer that closes on any pick) - surfaces and content.
   `src/components/FramePreview.tsx` is the one frame-image-with-fallbacks (empty / failed, failure
   keyed per frame id) every thumbnail, card cover and gallery figure renders through.
 - `Modal`, `Sheet`, `AlertDialog`, `DropdownMenu`, `ContextMenu`, `Tooltip`, `Toast` - overlays.

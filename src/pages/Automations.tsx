@@ -11,7 +11,7 @@ import {
 import { api } from '../lib/api'
 import { navigate } from '../App'
 import { posthog } from '../lib/posthog'
-import { AccountMenu, IconGrid } from '../components/DashShell'
+import { IconGrid } from '../components/DashShell'
 import { AppRail, railLayout } from '../components/AppRail'
 import { CanvasThumb, ClockTile, MetaTile, RunDot, StepChain, Toggle, formatRunTime } from '../components/AutomateShell'
 import { RoleMark } from '../components/RoleMark'
@@ -129,17 +129,9 @@ export function Automations() {
       <DashMain className="[background:var(--paper)]">
         <DashHeader className="border-b-0 bg-transparent backdrop-blur-none">
           <span className="flex-1" />
-          <Button
-            variant="primary"
-            className="h-10 gap-[7px] rounded-control pl-2.5 pr-3 text-body md:h-8"
-            disabled={busy}
-            onClick={() => create()}
-          >
+          <Button variant="primary" size="bar" disabled={busy} onClick={() => create()}>
             <PlusIcon width={15} height={15} strokeWidth={1.75} /> New automation
           </Button>
-          <span className="md:hidden">
-            <AccountMenu />
-          </span>
         </DashHeader>
 
         <DashContent className="pt-2 md:pt-3">

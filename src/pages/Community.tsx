@@ -8,9 +8,7 @@ import {
 } from '../../shared/types'
 import { api } from '../lib/api'
 import { navigate } from '../App'
-import { Logo } from '../components/Logo'
 import { timeAgo } from '../lib/time'
-import { AccountMenu } from '../components/DashShell'
 import { AppRail, railLayout } from '../components/AppRail'
 import { FramePreview } from '../components/FramePreview'
 import { posthog } from '../lib/posthog'
@@ -131,14 +129,6 @@ export function Community() {
 
       <DashMain className="[background:var(--paper)]">
         <DashHeader className="border-b-0 bg-transparent backdrop-blur-none max-md:min-h-[104px]">
-          <Button
-            variant="bare"
-            className="min-h-10 gap-2 p-0 font-display text-base font-extrabold text-ink hover:bg-transparent md:hidden"
-            onClick={() => navigate('/')}
-            aria-label="Doop home"
-          >
-            <Logo className="size-7" /> Doop
-          </Button>
           <SearchField
             ref={searchRef}
             className="order-2 h-10 max-w-none flex-1 basis-full md:order-none md:h-[30px] md:max-w-[320px] md:basis-auto"
@@ -149,9 +139,6 @@ export function Community() {
             trailing={<Kbd className="hidden md:inline-flex">⌘K</Kbd>}
           />
           <span className="flex-1" />
-          <span className="md:hidden">
-            <AccountMenu />
-          </span>
         </DashHeader>
 
         <DashContent>

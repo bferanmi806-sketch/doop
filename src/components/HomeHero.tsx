@@ -178,12 +178,11 @@ export function HomeHero({
 
   return (
     <section className="relative overflow-hidden" data-slot="home-hero">
-      {/* the wave: 2 copies of 28 bars, blurred, fading in from the top */}
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-[460px] overflow-hidden dark:opacity-60"
-        aria-hidden
-      >
-        <div className="hero-wave absolute bottom-10 left-0 flex h-[250px] w-[200%] items-end opacity-90 blur-[22px] saturate-[1.15] [mask-image:linear-gradient(to_bottom,transparent_0%,#000_42%,#000_82%,transparent)]">
+      {/* the wave: 2 copies of 28 bars, blurred, fading in from the top. It is
+          sized to the section, not to pixels, so it ends faded inside the hero
+          on a phone as it does on desktop instead of being cut at the edge */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden dark:opacity-60" aria-hidden>
+        <div className="hero-wave absolute left-0 top-[20%] flex h-[56%] w-[200%] md:top-[38%] items-end opacity-90 blur-[22px] saturate-[1.15] [mask-image:linear-gradient(to_bottom,transparent_0%,#000_42%,#000_82%,transparent)]">
           {[...WAVE, ...WAVE].map((h, i) => (
             <i key={i} style={{ height: `${h}%` }} />
           ))}
@@ -270,7 +269,7 @@ export function HomeHero({
             onKeyDown={onKeyDown}
             className="min-h-[52px] text-lead leading-[1.45] placeholder:text-ink-ghost md:text-lead"
           />
-          <div className="mt-1 flex items-center gap-5 text-body text-ink-soft">
+          <div className="mt-1 flex items-center gap-3 text-body text-ink-soft md:gap-5">
             <Pressable
               layout="inline"
               focus="ring"
@@ -286,6 +285,7 @@ export function HomeHero({
                 <MenuButton
                   variant="quiet"
                   aria-label={`Drafts per prompt: ${drafts}`}
+                  className="whitespace-nowrap"
                   icon={<CopyIcon width={14} height={14} />}
                 >
                   {drafts} {drafts === 1 ? 'draft' : 'drafts'}
@@ -312,7 +312,7 @@ export function HomeHero({
             <Button
               variant="primary"
               size="icon"
-              className="size-[34px] rounded-full"
+              className="size-[34px] flex-none rounded-full"
               aria-label="Send"
               disabled={busy || !text.trim()}
               onClick={submit}

@@ -1,11 +1,17 @@
 import * as React from 'react'
 
 import { cn } from '@/lib/utils'
+import { navigate } from '@/lib/navigate'
+import { useRailDrawer } from '@/lib/railDrawer'
+import { IconButton } from './icon-button'
+import { PanelLeftIcon } from './icons'
+import { Wordmark } from './wordmark'
 
 /* The signed-in shell: a fixed rail on the left, a dot-grid working area on
    the right. Home, Settings and Admin all wear it, so the rail's width, the
    header's height and the phone breakpoint live here once. Below md the rail
-   is hidden and each page surfaces its navigation in the header instead. */
+   is hidden; on a page that mounts the AppRail the header draws the brand row
+   (rail toggle + wordmark) that opens it as a drawer. */
 
 function DashLayout({ className, ...props }: React.ComponentProps<'div'>) {
   return (
@@ -88,9 +94,37 @@ function DashMain({ className, ...props }: React.ComponentProps<'section'>) {
   )
 }
 
+/** The phone's stand-in for the rail: the toggle that opens it as a drawer
+ *  and the wordmark home link. Renders nothing on desktop, and nothing on a
+ *  page without an AppRail (those draw their own sidebar or breadcrumb). */
+function DashBrand() {
+  const mounted = useRailDrawer((s) => s.mounted)
+  const setOpen = useRailDrawer((s) => s.setOpen)
+  if (!mounted) return null
+  return (
+    <span data-slot="dash-brand" className="flex items-center gap-2 md:hidden">
+      <IconButton aria-label="Show sidebar" onClick={() => setOpen(true)}>
+        <PanelLeftIcon width={16} height={16} />
+      </IconButton>
+      <a
+        href="/"
+        aria-label="Doop home"
+        className="rounded-control focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
+        onClick={(e) => {
+          e.preventDefault()
+          navigate('/')
+        }}
+      >
+        <Wordmark size="sm" className="text-ink" />
+      </a>
+    </span>
+  )
+}
+
 /** Sticky top bar. It wraps to two rows on a phone, where pages put their
- *  breadcrumb on one line and their actions on the next. */
-function DashHeader({ className, ...props }: React.ComponentProps<'header'>) {
+ *  breadcrumb on one line and their actions on the next. The brand row
+ *  (DashBrand) leads it on a phone whenever the AppRail is mounted. */
+function DashHeader({ className, children, ...props }: React.ComponentProps<'header'>) {
   return (
     <header
       data-slot="dash-header"
@@ -99,7 +133,10 @@ function DashHeader({ className, ...props }: React.ComponentProps<'header'>) {
         className,
       )}
       {...props}
-    />
+    >
+      <DashBrand />
+      {children}
+    </header>
   )
 }
 
@@ -137,6 +174,7 @@ function DashSubtitle({ className, ...props }: React.ComponentProps<'p'>) {
 }
 
 export {
+  DashBrand,
   DashLayout,
   DashSidebar,
   DashSectionLabel,

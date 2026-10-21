@@ -151,7 +151,7 @@ export function Settings() {
 
       <DashMain className="[background:var(--paper)]">
         <DashHeader className="border-b-0 bg-transparent backdrop-blur-none md:hidden">
-          <Button variant="ghost" className="h-10 gap-[7px] rounded-control text-body" onClick={() => navigate(back)}>
+          <Button variant="ghost" size="bar" onClick={() => navigate(back)}>
             <IconBack /> {back === '/' ? 'Canvases' : 'Canvas'}
           </Button>
           <span className="flex-1" />

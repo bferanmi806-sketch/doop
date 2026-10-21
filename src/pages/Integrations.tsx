@@ -3,7 +3,6 @@ import type { CanvasMeta } from '../../shared/types'
 import type { Automation } from '../../shared/automations'
 import { api, type IntegrationsStatus } from '../lib/api'
 import { posthog } from '../lib/posthog'
-import { AccountMenu } from '../components/DashShell'
 import { MetaTile } from '../components/AutomateShell'
 import { AppRail, railLayout } from '../components/AppRail'
 import { clientIntegrations } from '../integrations'
@@ -107,9 +106,6 @@ export function Integrations() {
       <DashMain className="[background:var(--paper)]">
         <DashHeader className="border-b-0 bg-transparent backdrop-blur-none">
           <span className="flex-1" />
-          <span className="md:hidden">
-            <AccountMenu />
-          </span>
         </DashHeader>
 
         <DashContent className="pt-2 md:pt-3">
