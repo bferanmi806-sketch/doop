@@ -40,7 +40,6 @@ const LEGACY_CHROME = [
   /* the modals and flows that open over the editor */
   'src/components/ConnectModal.tsx',
   'src/components/CursorInstall.tsx',
-  'src/components/ExportModal.tsx',
   'src/components/FrameExportModal.tsx',
   'src/components/FrameHistoryModal.tsx',
   'src/components/ImportSources.tsx',
@@ -129,7 +128,7 @@ const COMPONENT_LAYER_SELECTORS = [
    JavaScript that no type check sees (oxlint's is still a nursery rule).
    No type information is loaded, so this run is cheap. */
 export default tseslint.config(
-  { ignores: ['dist/', 'node_modules/', 'desktop/src-tauri/target/', 'public/figma-plugin/', 'storybook-static/'] },
+  { ignores: ['dist/', 'node_modules/', 'desktop/src-tauri/target/', 'storybook-static/'] },
   {
     files: ['**/*.{js,mjs,cjs}'],
     rules: { 'no-undef': 'error' },

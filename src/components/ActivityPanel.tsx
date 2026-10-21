@@ -202,12 +202,7 @@ function TaskGroup({ label, tasks }: { label: string; tasks: AgentTask[] }) {
 function taskTime(task: AgentTask): string {
   if (task.failedAt) return timeAgo(task.failedAt)
   if (task.endedAt) return timeAgo(task.endedAt)
-  if (task.progress) return `${jobPercent(task)}%`
   return duration(task)
-}
-
-function jobPercent(task: AgentTask): number {
-  return task.progress ? Math.round((task.progress.done / task.progress.total) * 100) : 0
 }
 
 /** One task: who, for whom, one time figure; then its mark and what it is doing.
@@ -219,7 +214,6 @@ function RecentTaskRow({ task }: { task: AgentTask }) {
   const goToFrame = () => {
     if (frameId) useStore.getState().requestFlyTo(frameId)
   }
-  const running = !task.endedAt && !task.failedAt
   return (
     <div
       role={frameId ? 'button' : undefined}
@@ -274,21 +268,6 @@ function RecentTaskRow({ task }: { task: AgentTask }) {
           </Button>
         )}
       </span>
-      {running && task.progress && (
-        <span
-          className="col-span-2 ml-[22px] block h-[3px] overflow-hidden rounded-full bg-line-soft"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={jobPercent(task)}
-          aria-label={`${task.status} — ${jobPercent(task)}%`}
-        >
-          <span
-            className="block h-full rounded-full transition-[width] duration-300 ease-out"
-            style={{ width: `${Math.max(3, jobPercent(task))}%`, background: task.color }}
-          />
-        </span>
-      )}
     </div>
   )
 }

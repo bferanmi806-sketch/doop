@@ -5,7 +5,6 @@ import { RadioTowerIcon, WebIcon } from '@/components/ui/icons'
 import { BRANDS, BrandMark } from '@/components/ui/brand-mark'
 import { MetaTile } from '@/components/AutomateShell'
 import { ClockTile } from '@/components/AutomateShell'
-import { FigmaTile } from '@/integrations/figma/Tile'
 import { colorFor } from '../../shared/types'
 
 /**
@@ -80,7 +79,6 @@ export const Tiles: Story = {
       <span className="grid size-4 place-items-center rounded-[4px] bg-surface shadow-ring">
         <BrandMark brand="figma" size={12} />
       </span>
-      <FigmaTile size={24} />
       <MetaTile size={24} />
       <ClockTile size={24} />
       <WebIcon className="size-5 text-ink" />

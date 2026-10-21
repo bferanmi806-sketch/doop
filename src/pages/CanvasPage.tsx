@@ -37,7 +37,7 @@ import { MobilePanelTabs, SideRail } from '../components/SideRail'
 import { LayersPanel, LayersRailToggle } from '../components/LayersPanel'
 import { Onboarding } from '../components/Onboarding'
 import { ShareModal } from '../components/ShareModal'
-import { CanvaMark, ImportStepFooter, ImportStepHeader, SourcePicker } from '../components/ImportSources'
+import { ImportStepFooter, ImportStepHeader, SourcePicker } from '../components/ImportSources'
 import { importSources } from '../components/importSourceList'
 import { PresentMode } from '../components/PresentMode'
 import { getIdentity, setName } from '../lib/identity'
@@ -779,10 +779,6 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
             const imported = frameIds.length === 1 ? '1 item imported' : `${frameIds.length} items imported`
             showToast(failedCount ? `${imported} · ${failedCount} failed` : imported)
           }}
-          onImporting={(frameCount) => {
-            setShowImport(false)
-            showToast(`Importing ${frameCount} ${frameCount === 1 ? 'frame' : 'frames'} from Figma — Doop is on it`)
-          }}
           onQueued={(cardCount) => {
             setShowImport(false)
             setGhInstallPass(null)
@@ -1204,49 +1200,6 @@ function ImportModal({
                   </Button>
                 </ImportStepFooter>
               </>
-            ) : source === 'canva' ? (
-              <>
-                <ImportStepHeader icon={<CanvaMark size={26} />} title="Import a Canva design" />
-                <ModalLede>
-                  Paste a link to a Canva design. Every page of the design lands as its own editable frame.
-                </ModalLede>
-                <Field className="mt-[22px]" label="Design link" labelVariant="form" htmlFor="import-canva-url">
-                  <Input
-                    id="import-canva-url"
-                    variant="well"
-                    inputSize="lg"
-                    className="font-mono"
-                    autoFocus
-                    placeholder="https://www.canva.com/design/…"
-                    value={url}
-                    disabled={!!busy}
-                    onChange={(e) => {
-                      setUrl(e.target.value)
-                      setError(null)
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && canvaLink) void runSinglePage()
-                    }}
-                  />
-                </Field>
-                {busy === 'importing' && (
-                  <p className={cn(importNoteCls, 'text-accent-ink')}>
-                    Importing from Canva — each page lands as a frame; this can take a minute…
-                  </p>
-                )}
-                {error && <p className={errorNoteCls}>{error}</p>}
-                <ImportStepFooter
-                  note="Needs Canva connected once on the Integrations page. Text and layout stay editable."
-                  onBack={() => setSource(null)}
-                  backDisabled={!!busy}
-                >
-                  <Button variant="primary" disabled={!!busy || !canvaLink} onClick={runSinglePage}>
-                    {busy === 'importing' ? 'Importing…' : 'Import design'}
-                  </Button>
-                </ImportStepFooter>
-              </>
-            ) : source === 'psd' ? (
-              <PsdSection canvasId={canvasId} onDone={onDone} onBack={() => setSource(null)} />
             ) : source === 'liveapp' ? (
               <SyncKeysSection canvasId={canvasId} onBack={() => setSource(null)} />
             ) : source === 'github' ? (

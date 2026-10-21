@@ -739,10 +739,7 @@ function PullNode({
               ))}
             </SelectContent>
           </Select>
-          <Select
-            value={step.filter}
-            onValueChange={(filter) => onChange({ filter: filter as MetaPullStep['filter'] })}
-          >
+          <Select value={step.filter} onValueChange={(filter) => onChange({ filter: filter as PullStep['filter'] })}>
             <SelectTrigger size="sm" className="w-full" aria-label="Which ads">
               <SelectValue />
             </SelectTrigger>
@@ -869,21 +866,6 @@ function StepPicker({ onPick, onCancel }: { onPick: (type: Step['type']) => void
           <b className="text-body font-semibold tracking-[-0.012em]">Meta Ads</b>
           <span className="text-caption leading-[1.45] text-ink-soft">Pull Meta ad creatives onto a canvas.</span>
         </button>
-        {clientIntegrations.map(
-          (integration) =>
-            integration.automationPull && (
-              <button
-                key={integration.id}
-                type="button"
-                className={tile}
-                onClick={() => onPick(`pull:${integration.id}`)}
-              >
-                {integration.Tile && <integration.Tile size={22} />}
-                <b className="text-body font-semibold tracking-[-0.012em]">{integration.name}</b>
-                <span className="text-caption leading-[1.45] text-ink-soft">{integration.automationPull.blurb}</span>
-              </button>
-            ),
-        )}
         <button type="button" className={tile} onClick={() => onPick('agent')}>
           <span className="flex">
             {AGENT_ROLES.slice(0, 4).map((r, i) => (

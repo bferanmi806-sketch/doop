@@ -1,7 +1,5 @@
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
-import { CanvaTile } from '@/integrations/canva/Tile'
-import { BrandMark } from './ui/brand-mark'
 import { Button } from './ui/button'
 import { ArrowLeftIcon, ArrowRightIcon } from './ui/icons'
 import { ModalLede, ModalTitle } from './ui/modal'
@@ -95,14 +93,4 @@ export function ImportStepFooter({
       {children}
     </div>
   )
-}
-
-/** Adobe's Ps app mark, from the BrandMark registry; kept for the import picker's callers. */
-export function PhotoshopMark({ size = 24 }: { size?: number }) {
-  return <BrandMark brand="photoshop" size={size} />
-}
-
-/** Canva's official round mark (see `src/integrations/canva/Tile.tsx`). */
-export function CanvaMark({ size = 24 }: { size?: number }) {
-  return <CanvaTile size={size} />
 }
