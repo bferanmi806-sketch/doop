@@ -22,7 +22,7 @@ import { Wordmark } from '../components/ui/wordmark'
 import { Segmented, SegmentedItem } from '../components/ui/segmented'
 import { ToggleChipGroup, ToggleChipItem } from '../components/ui/toggle-chip'
 import { Modal, ModalEyebrow, ModalTitle } from '../components/ui/modal'
-import { CopyIcon, XIcon } from '../components/ui/icons'
+import { CopyIcon } from '../components/ui/icons'
 import { Toast } from '../components/ui/toast'
 import {
   DashContent,
@@ -362,21 +362,16 @@ function DesignModal({
 }) {
   return (
     <Modal size="xl" onClose={onClose}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <ModalEyebrow>{COMMUNITY_CATEGORY_LABELS[item.category]}</ModalEyebrow>
-          <ModalTitle className="mt-1.5 truncate">{item.name}</ModalTitle>
-          <p className="mt-1 text-[12.5px] text-ink-faint">
-            by {item.authorName} · published {timeAgo(item.publishedAt)} · {item.copyCount}{' '}
-            {item.copyCount === 1 ? 'copy' : 'copies'}
-          </p>
-        </div>
-        <Button variant="ghost" size="icon" className="size-10 flex-none" aria-label="Close" onClick={onClose}>
-          <XIcon />
-        </Button>
+      <div className="min-w-0">
+        <ModalEyebrow>{COMMUNITY_CATEGORY_LABELS[item.category]}</ModalEyebrow>
+        <ModalTitle className="mt-1.5 truncate">{item.name}</ModalTitle>
+        <p className="mt-1 text-[12.5px] text-ink-faint">
+          by {item.authorName} · published {timeAgo(item.publishedAt)} · {item.copyCount}{' '}
+          {item.copyCount === 1 ? 'copy' : 'copies'}
+        </p>
       </div>
       {item.description && <p className="mt-3 text-sm leading-[1.6] text-ink-soft">{item.description}</p>}
-      <div className="-mx-5 mt-4 flex gap-3 overflow-x-auto px-5 pb-2 sm:-mx-7 sm:px-7">
+      <div className="-mx-5 mt-4 flex gap-3 overflow-x-auto px-5 pb-2">
         {item.frames.map((frame) => (
           <figure key={frame.id} className="flex-none">
             {/* one shared height so mixed artboards read as a row, not a

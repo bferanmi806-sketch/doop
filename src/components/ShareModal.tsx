@@ -15,7 +15,7 @@ import { posthog } from '../lib/posthog'
 import { Avatar } from './ui/avatar'
 import { Button } from './ui/button'
 import { Checkbox } from './ui/checkbox'
-import { BuildingIcon, CopyIcon, XIcon } from './ui/icons'
+import { BuildingIcon, CopyIcon } from './ui/icons'
 import { Input } from './ui/input'
 import { Modal, ModalTitle } from './ui/modal'
 import { Textarea } from './ui/textarea'
@@ -155,12 +155,7 @@ export function ShareModal({
   return (
     <Modal size="sm" onClose={onClose}>
       <>
-        <div className="flex items-start justify-between gap-3">
-          <ModalTitle className="min-w-0">Share “{canvas.name}”</ModalTitle>
-          <Button variant="ghost" size="icon" className="size-10" aria-label="Close sharing" onClick={onClose}>
-            <XIcon />
-          </Button>
-        </div>
+        <ModalTitle className="min-w-0">Share “{canvas.name}”</ModalTitle>
         {isOwner && (
           <>
             <div className="mt-4 flex flex-col items-stretch gap-2 sm:flex-row">

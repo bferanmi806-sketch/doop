@@ -5,17 +5,19 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 import { XIcon } from './icons'
 
-/* Doop's modal: a hairline card lifted on the soft pop shadow, over a dimmed
-   canvas. Built on Radix so it brings a focus trap, Escape and scroll-locking
+/* Doop's modal, measured off Octolane's: a white card with 22px corners on a
+   half-pixel ring and a short layered shadow, over a canvas dimmed only 15%.
+   20px padding, a 15px medium title with a lede under it, the × a 24px soft
+   circle in the corner, the actions bottom-right. Built on Radix so it brings a focus trap, Escape and scroll-locking
    with it — the hand-rolled backdrop divs it replaces had none of that. Call
    sites mount it conditionally, so `open` defaults to true and `onClose` is
    the only dismissal wiring they need. */
 const modalVariants = cva(
   [
     'fixed left-1/2 top-1/2 z-[60] w-full -translate-x-1/2 -translate-y-1/2 overflow-y-auto',
-    'rounded-[14px] border border-line bg-surface p-5 text-ink shadow-pop',
+    'rounded-[22px] bg-surface p-5 text-ink shadow-modal',
     'outline-none motion-safe:data-[state=open]:animate-[modal-in_250ms_var(--ease-out-quint)] motion-safe:data-[state=closed]:animate-[modal-out_150ms_var(--ease-out-quint)_forwards]',
-    'max-h-[calc(100dvh-24px)] sm:max-h-[calc(100vh-96px)] sm:rounded-[16px] sm:p-7',
+    'max-h-[calc(100dvh-24px)] sm:max-h-[calc(100vh-96px)]',
   ],
   {
     variants: {
@@ -31,7 +33,7 @@ const modalVariants = cva(
 )
 
 const overlayCls =
-  'fixed inset-0 z-[60] bg-[rgba(18,18,23,0.45)] motion-safe:data-[state=open]:animate-[fade-in_250ms_ease-out] motion-safe:data-[state=closed]:animate-[fade-out_150ms_ease-out_forwards]'
+  'fixed inset-0 z-[60] bg-black/15 motion-safe:data-[state=open]:animate-[fade-in_250ms_ease-out] motion-safe:data-[state=closed]:animate-[fade-out_150ms_ease-out_forwards]'
 
 /* Call sites mount a Modal while it is open and unmount it to close, so by
    the time Radix could play a closing animation the node is gone. Instead,
@@ -91,7 +93,7 @@ function leaveGhost(node: HTMLElement | null) {
 function Modal({
   open = true,
   onClose,
-  showClose = false,
+  showClose = true,
   size,
   className,
   children,
@@ -100,9 +102,9 @@ function Modal({
   VariantProps<typeof modalVariants> & {
     open?: boolean
     onClose: () => void
-    /** an × in the top-right corner. On a phone a wide modal leaves almost
-     *  no backdrop to tap and there is no Escape key, so a modal without a
-     *  Cancel of its own needs this to be closable at all */
+    /** the × in the top-right corner, on by default: every modal closes the
+     *  same way, and on a phone a wide modal leaves almost no backdrop to
+     *  tap. Off only for a modal whose header draws its own */
     showClose?: boolean
   }) {
   const overlayRef = React.useRef<HTMLDivElement>(null)
@@ -127,9 +129,9 @@ function Modal({
           {showClose && (
             <DialogPrimitive.Close
               aria-label="Close"
-              className="absolute top-3 right-3 z-[1] grid size-9 place-items-center rounded-[9px] text-ink-soft transition-colors hover:bg-paper-deep hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-faint sm:top-4 sm:right-4"
+              className="absolute top-2.5 right-2.5 z-[1] grid size-6 place-items-center rounded-full bg-ink/[0.06] text-ink/50 transition-colors hover:bg-ink/10 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-faint"
             >
-              <XIcon className="size-4" />
+              <XIcon className="size-3" />
             </DialogPrimitive.Close>
           )}
           {children}
@@ -145,7 +147,7 @@ function ModalEyebrow({ className, ...props }: React.ComponentProps<'span'>) {
     <span
       data-slot="modal-eyebrow"
       className={cn(
-        'font-mono text-[10px] font-[650] uppercase leading-none tracking-[0.14em] text-accent-ink',
+        'font-mono text-[10px] font-[650] uppercase leading-none tracking-[0.14em] text-ink-soft',
         className,
       )}
       {...props}
@@ -157,7 +159,7 @@ function ModalTitle({ className, ...props }: React.ComponentProps<typeof DialogP
   return (
     <DialogPrimitive.Title
       data-slot="modal-title"
-      className={cn('font-serif text-[26px] font-normal tracking-[-0.012em] sm:text-[28px]', className)}
+      className={cn('pr-8 text-[15px] font-medium leading-5', className)}
       {...props}
     />
   )
@@ -167,7 +169,7 @@ function ModalLede({ className, ...props }: React.ComponentProps<typeof DialogPr
   return (
     <DialogPrimitive.Description
       data-slot="modal-lede"
-      className={cn('mt-2 text-sm leading-[1.55] text-ink-soft', className)}
+      className={cn('mt-1 text-[14px] leading-[22px] text-ink-soft', className)}
       {...props}
     />
   )
@@ -179,7 +181,7 @@ function ModalActions({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="modal-actions"
       className={cn(
-        'mt-[26px] flex flex-wrap justify-end gap-2.5 [&>*]:max-xs:flex-1 [&>*]:max-xs:justify-center',
+        'mt-6 flex flex-wrap justify-end gap-2.5 [&>*]:max-xs:flex-1 [&>*]:max-xs:justify-center',
         className,
       )}
       {...props}

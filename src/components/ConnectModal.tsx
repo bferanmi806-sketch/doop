@@ -14,7 +14,8 @@ import { Button } from './ui/button'
 import { CodeBlock } from './ui/code-block'
 import { Dot } from './ui/dot'
 import { ChevronLeftIcon, PuzzleIcon } from './ui/icons'
-import { Modal, ModalActions, ModalEyebrow, ModalLede, ModalSpacer, ModalTitle } from './ui/modal'
+import { Modal, ModalActions, ModalLede, ModalSpacer, ModalTitle } from './ui/modal'
+import { barPrimaryBtn } from './TopBar'
 import { cn } from '@/lib/utils'
 
 /**
@@ -101,8 +102,7 @@ function AgentPicker({ onPick }: { onPick: (agent: AgentId) => void }) {
   return (
     <>
       <div className={body}>
-        <ModalEyebrow>Connect AI</ModalEyebrow>
-        <ModalTitle className="mt-2">Choose your agent</ModalTitle>
+        <ModalTitle>Choose your agent</ModalTitle>
         <ModalLede>
           Let an agent you already use work on this canvas via MCP. Choose yours to see its connection instructions.
         </ModalLede>
@@ -123,13 +123,14 @@ function AgentPicker({ onPick }: { onPick: (agent: AgentId) => void }) {
 
       <ModalActions className={footer}>
         <Button
-          variant="solid"
+          variant="primary"
+          className={barPrimaryBtn}
           onClick={() => {
             posthog.capture('connect_ai_agent_chosen', { agent })
             onPick(agent)
           }}
         >
-          Connect →
+          Connect
         </Button>
       </ModalActions>
     </>
@@ -499,8 +500,8 @@ function AgentSteps({
    action row sits on the bottom edge, so the back button and the main action
    stay in reach on the long agent screens (the JSON config plus the headless
    note runs past a laptop viewport). */
-const body = 'min-h-0 flex-1 overflow-y-auto p-5 sm:p-7'
-const footer = 'mt-0 shrink-0 items-center border-t border-line-soft bg-surface px-5 py-4 sm:px-7'
+const body = 'min-h-0 flex-1 overflow-y-auto p-5'
+const footer = 'mt-0 shrink-0 items-center border-t border-line-soft bg-surface px-5 py-4'
 
 function ChoiceCard({
   selected,

@@ -31,6 +31,7 @@
   --font-serif: var(--font-serif);
   --shadow-card: var(--shadow-card);
   --shadow-pop: var(--shadow-pop);
+  --shadow-modal: var(--shadow-modal);
   --shadow-ring: var(--shadow-ring);
   --shadow-ring-hover: var(--shadow-ring-hover);
   --shadow-float: var(--shadow-float);
@@ -138,6 +139,10 @@
   --shadow-float: 0 12px 40px -10px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06);
   --shadow-card: var(--shadow-ring);
   --shadow-pop: 0 25px 80px -12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  /* modal card: a half-pixel ring and three short soft shadows (Octolane) */
+  --shadow-modal:
+    0 0 0 0.5px rgba(0, 0, 0, 0.07), 0 2px 3px -2px rgba(0, 0, 0, 0.1), 0 3px 12px -4px rgba(0, 0, 0, 0.1),
+    0 4px 16px -8px rgba(0, 0, 0, 0.1);
   --shadow-elevation-1: var(--shadow-ring);
   --shadow-elevation-1-hover: var(--shadow-ring-hover);
   --shadow-elevation-1-focus:
@@ -338,6 +343,9 @@
   --shadow-float: 0 0 0 1px rgba(255, 255, 255, 0.09), 0 12px 40px -10px rgba(0, 0, 0, 0.7);
   --shadow-pop:
     0 0 0 1px rgba(255, 255, 255, 0.11), 0 4px 12px rgba(0, 0, 0, 0.45), 0 24px 56px -16px rgba(0, 0, 0, 0.75);
+  --shadow-modal:
+    0 0 0 0.5px rgba(255, 255, 255, 0.14), 0 2px 3px -2px rgba(0, 0, 0, 0.5), 0 3px 12px -4px rgba(0, 0, 0, 0.5),
+    0 4px 16px -8px rgba(0, 0, 0, 0.6);
   --shadow-elevation-1-focus:
     0 0 0 2px color-mix(in srgb, var(--brand) 32%, transparent), 0 0 0 1px rgba(255, 255, 255, 0.12),
     0 4px 14px -3px rgba(0, 0, 0, 0.4);

@@ -1003,7 +1003,7 @@ function ImportModal({
     .sort((a, b) => KIND_ORDER[a.kind] - KIND_ORDER[b.kind])
 
   return (
-    <Modal size="xl" showClose className="sm:max-w-[820px]" onClose={() => !busy && onClose()}>
+    <Modal size="xl" className="sm:max-w-[820px]" onClose={() => !busy && onClose()}>
       <>
         {repoReview ? (
           <>

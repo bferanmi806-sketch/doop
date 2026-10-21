@@ -28,7 +28,7 @@ async function openChatGPT(origin: string, canvasId?: string) {
   })
   await act(async () => {
     Array.from(document.body.querySelectorAll('button'))
-      .find((button) => button.textContent?.trim() === 'Connect →')!
+      .find((button) => button.textContent?.trim() === 'Connect')!
       .click()
   })
 }

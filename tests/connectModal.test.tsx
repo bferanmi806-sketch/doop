@@ -58,10 +58,10 @@ it('opens on the agent picker and walks to an agent’s own steps and back', asy
   await mount('c1')
   expect(text()).toContain('Choose your agent')
   expect(text()).not.toContain('Connect your plan')
-  expect(button('Connect →')).toBeDefined()
+  expect(button('Connect')).toBeDefined()
 
   await pickCard('Codex')
-  await click('Connect →')
+  await click('Connect')
   expect(mocks.capture).toHaveBeenCalledWith('connect_ai_agent_chosen', { agent: 'codex' })
   expect(text()).toContain('Connect Codex')
   expect(text()).toContain(`codex mcp add doop --url ${location.origin}/mcp`)
@@ -74,7 +74,7 @@ it('opens on the agent picker and walks to an agent’s own steps and back', asy
 
 it('defaults to Claude Code and shows its command plus the sign-in step', async () => {
   await mount('c1')
-  await click('Connect →')
+  await click('Connect')
   expect(text()).toContain('Connect Claude Code')
   expect(text()).toContain(`claude mcp add --transport http doop "${location.origin}/mcp"`)
   expect(text()).toContain('/mcp')
@@ -85,7 +85,7 @@ it('defaults to Claude Code and shows its command plus the sign-in step', async 
 it('keeps the headless agent-key path on the generic MCP screen and returns to the canvas from Settings', async () => {
   await mount('c1')
   await pickCard('Other MCP client')
-  await click('Connect →')
+  await click('Connect')
   expect(text()).toContain('"mcpServers"')
   await click('Settings → Agent keys')
   expect(mocks.navigate).toHaveBeenCalledWith('/settings?pane=keys&from=%2Fc%2Fc1')
@@ -93,7 +93,7 @@ it('keeps the headless agent-key path on the generic MCP screen and returns to t
 
 it('skips the canvas prompt and the arrival status when opened without a canvas', async () => {
   await mount()
-  await click('Connect →')
+  await click('Connect')
   expect(text()).not.toContain('Work on Doop canvas')
   expect(text()).not.toContain('listening for')
   expect(text()).toContain('Open a canvas and tell the agent to work on it')
@@ -102,7 +102,7 @@ it('skips the canvas prompt and the arrival status when opened without a canvas'
 it('explains the local desktop path and keeps file installation as a collapsed fallback', async () => {
   await mount('desktop-canvas')
   await pickCard('Add Doop to Claude')
-  await click('Connect →')
+  await click('Connect')
   expect(button('Desktop app')?.getAttribute('aria-pressed')).toBe('true')
   const download = document.querySelector<HTMLAnchorElement>('a[download="doop.mcpb"]')
   expect(download?.getAttribute('href')).toBe('/claude-extension/doop.mcpb')
@@ -124,7 +124,7 @@ it('defaults to a prefilled Add to Claude link on hosted Doop, without a downloa
   vi.stubGlobal('location', new URL('https://design.example.com'))
   await mount('hosted-canvas')
   await pickCard('Add Doop to Claude')
-  await click('Connect →')
+  await click('Connect')
   expect(button('Connect online')?.getAttribute('aria-pressed')).toBe('true')
   const link = document.querySelector<HTMLAnchorElement>('a[href*="claude.ai"]')!
   const url = new URL(link.href)
@@ -146,7 +146,7 @@ it('opens Claude directly in a capable shell and waits for Claude’s confirmati
   )
   await mount('local-canvas')
   await pickCard('Add Doop to Claude')
-  await click('Connect →')
+  await click('Connect')
   await click('Add to Claude')
   expect(button('Opening Claude…')?.disabled).toBe(true)
   expect(mocks.addToDesktop).toHaveBeenCalledExactlyOnceWith('http://localhost:4301/mcp')
@@ -160,7 +160,7 @@ it('shows native handoff errors and allows retry', async () => {
   mocks.addToDesktop.mockRejectedValue(new Error('Install Claude Desktop first.'))
   await mount()
   await pickCard('Add Doop to Claude')
-  await click('Connect →')
+  await click('Connect')
   await click('Add to Claude')
   expect(document.querySelector('[role="alert"]')?.textContent).toBe('Install Claude Desktop first.')
   expect(button('Add to Claude')?.disabled).toBe(false)
@@ -173,7 +173,7 @@ it.each(['https://doop.design', 'http://localhost:4301'])(
     vi.stubGlobal('location', new URL(origin))
     await mount('cursor-canvas')
     await pickCard('Cursor')
-    await click('Connect →')
+    await click('Connect')
 
     const link = Array.from(document.body.querySelectorAll('a')).find((a) => a.textContent === 'Add to Cursor')!
     const installUrl = new URL(link.href)

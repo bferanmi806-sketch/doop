@@ -7,7 +7,7 @@ import { authClient } from '../lib/auth'
 import { posthog } from '../lib/posthog'
 import { Button } from './ui/button'
 import { Callout } from './ui/callout'
-import { CheckIcon, XIcon } from './ui/icons'
+import { CheckIcon } from './ui/icons'
 import { Input } from './ui/input'
 import { Modal, ModalActions, ModalEyebrow, ModalLede, ModalTitle } from './ui/modal'
 import { Segmented, SegmentedItem } from './ui/segmented'
@@ -146,15 +146,8 @@ export function UpgradeModal({
   return (
     <Modal size="xl" onClose={onClose}>
       <>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <ModalEyebrow>Team plan · {formatUsd(TEAM_SEAT_PRICE.month)} per seat per month</ModalEyebrow>
-            <ModalTitle className="mt-2">{title}</ModalTitle>
-          </div>
-          <Button variant="ghost" size="icon" className="size-10 flex-none" aria-label="Close" onClick={onClose}>
-            <XIcon />
-          </Button>
-        </div>
+        <ModalEyebrow>Team plan · {formatUsd(TEAM_SEAT_PRICE.month)} per seat per month</ModalEyebrow>
+        <ModalTitle className="mt-2">{title}</ModalTitle>
         <ModalLede>
           {reason ?? 'Shared workspaces are the paid part of doop.'} Everyone in a workspace opens every canvas in it —
           no per-canvas invites, no links to pass around. Seats are billed as people join and refunded as they leave.
