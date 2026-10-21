@@ -15,3 +15,4 @@ ios/DerivedData*/
 ios/.build/
 ios/BlitzKit/rust/target/
 ios/BlitzKit/lib/
+storybook-static/

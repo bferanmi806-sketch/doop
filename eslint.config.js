@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
    JavaScript that no type check sees (oxlint's is still a nursery rule).
    No type information is loaded, so this run is cheap. */
 export default tseslint.config(
-  { ignores: ['dist/', 'node_modules/', 'desktop/src-tauri/target/'] },
+  { ignores: ['dist/', 'node_modules/', 'desktop/src-tauri/target/', 'public/figma-plugin/', 'storybook-static/'] },
   {
     files: ['**/*.{js,mjs,cjs}'],
     rules: { 'no-undef': 'error' },

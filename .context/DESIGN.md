@@ -74,6 +74,17 @@ White system (Doop UI v2, canvas guideline `doop-ui-system`): neutral greys, no 
   `text-paper`, never `text-white`, so it flips with the theme. `text-white` is for brand and
   accent fills and for dark overlays, which stay dark in both themes.
 
+## Component catalogue (Storybook)
+
+- `bun run storybook` serves the catalogue on :6006; `bun run build-storybook` writes
+  `storybook-static/`. Config in `.storybook/`, stories in `src/stories/` (CSF3, `*.stories.tsx`).
+  It rides on the app's own `vite.config.ts`, so Tailwind, the `@` alias and the fonts need no second
+  setup, and the toolbar's theme switch flips `.dark` the way `src/lib/theme.ts` does.
+- Foundations (colours, the type scale, radii, shadows, every icon) render from the live tokens;
+  Primitives cover `src/components/ui`; Marks is the one page every logo and avatar comes from;
+  Shell shows the rail and the search palette with sample data. A new primitive is not done until it
+  has a story, and a new screen starts from this catalogue rather than from a blank file.
+
 ## Aliases (`components.json`)
 
 - `@/components` -> `src/components`, `@/components/ui` -> `src/components/ui`,

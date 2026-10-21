@@ -14,3 +14,7 @@ desktop/src-tauri/gen
 .claude/settings.local.json
 .claude/.current-tool
 chatgpt-plugin/dist/
+
+# the built component catalogue
+storybook-static/
+*storybook.log
