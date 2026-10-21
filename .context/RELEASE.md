@@ -10,7 +10,9 @@ per package, driven by conventional commits (`release-please-config.json`,
   merging it creates the `vX.Y.Z` tag and a GitHub Release. Tag + notes only - nothing is built
   or deployed from it.
 - `desktop/` -> "chore(desktop): release x.y.z" bumps `desktop/package.json`,
-  `src-tauri/tauri.conf.json`, `Cargo.toml`, `Cargo.lock` + `desktop/CHANGELOG.md`. It does NOT
+  `src-tauri/tauri.conf.json`, `Cargo.toml` + `desktop/CHANGELOG.md`. It cannot bump
+  `Cargo.lock`, so `desktop.yml` copies the shell's version line from `Cargo.toml` into the
+  lock ahead of `cargo test --locked`; the lock catches up in the next commit that builds the shell. It does NOT
   tag: the `desktop-v*` tag is pushed by hand after merging (next section). Since no GitHub
   Release is cut, the workflow's last step flips the merged desktop PR's label from
   `autorelease: pending` to `autorelease: tagged` itself; a merged PR left `pending` makes every

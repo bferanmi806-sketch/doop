@@ -160,8 +160,10 @@ Intel) DMG for macOS and an NSIS installer for Windows:
 
 Versions are bumped by release-please: commits touching `desktop/` open a
 "chore(desktop): release x.y.z" PR that updates `package.json`,
-`src-tauri/tauri.conf.json`, `Cargo.toml` and `Cargo.lock` together, plus
-`desktop/CHANGELOG.md`. Merging it does not tag — push the tag by hand:
+`src-tauri/tauri.conf.json` and `Cargo.toml` together, plus `desktop/CHANGELOG.md`
+(`Cargo.lock` lags one version until the next local build; CI copies the shell's version line
+from `Cargo.toml` into the lock before `cargo test --locked`). Merging it
+does not tag — push the tag by hand:
 
 ```sh
 # after the release PR is merged; X.Y.Z is the version that PR set in desktop/package.json
