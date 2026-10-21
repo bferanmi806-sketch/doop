@@ -238,8 +238,8 @@ export function Inspector({
           <CollapsibleContent className="relative flex min-h-0 flex-col">
             <Textarea
               ref={textareaRef}
-              variant="bare"
-              className="h-[320px] flex-none bg-[#17171b] p-3 font-mono text-[11px] leading-[1.55] text-[#e9e9ee] [tab-size:2] max-md:h-auto max-md:min-h-[160px] max-md:flex-1 md:text-[11px]"
+              variant="code"
+              className="h-[320px] flex-none max-md:h-auto max-md:min-h-[160px] max-md:flex-1"
               value={draft}
               spellCheck={false}
               placeholder="<!doctype html>…"

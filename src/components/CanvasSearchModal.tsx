@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import type { CanvasMeta } from '../../shared/types'
 import { cn } from '@/lib/utils'
 import { timeAgo } from '../lib/time'
-import { FramePreview } from './FramePreview'
+import { FrameThumb } from './FramePreview'
 import { Modal } from './ui/modal'
 import { Pressable } from './ui/pressable'
 import { SearchField } from './ui/search-field'
@@ -86,9 +86,7 @@ export function CanvasSearchModal({
                 i === active ? 'bg-paper-deep' : 'hover:bg-paper',
               )}
             >
-              <span className="grid h-10 w-16 flex-none place-items-center overflow-hidden rounded-row bg-paper-deep shadow-[0_0_0_1px_rgba(0,0,0,0.06)]">
-                <FramePreview frameId={c.previewFrameId} empty="empty" className="text-micro" />
-              </span>
+              <FrameThumb frameId={c.previewFrameId} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-body font-medium text-ink">{c.name}</span>
                 <span className="mt-px block text-caption text-ink-faint">

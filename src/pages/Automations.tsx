@@ -11,15 +11,17 @@ import {
 import { api } from '../lib/api'
 import { navigate } from '../App'
 import { posthog } from '../lib/posthog'
-import { IconGrid } from '../components/DashShell'
 import { AppRail, railLayout } from '../components/AppRail'
-import { CanvasThumb, ClockTile, MetaTile, RunDot, StepChain, Toggle, formatRunTime } from '../components/AutomateShell'
+import { ClockTile, MetaTile, RunDot, StepChain, formatRunTime } from '../components/AutomateShell'
+import { FrameThumb } from '../components/FramePreview'
 import { RoleMark } from '../components/RoleMark'
 import { Button } from '../components/ui/button'
 import { EmptyState } from '../components/ui/empty-state'
 import { IconButton } from '../components/ui/icon-button'
-import { PlusIcon } from '../components/ui/icons'
+import { GridIcon, PlusIcon } from '../components/ui/icons'
+import { Pressable } from '../components/ui/pressable'
 import { Skeleton } from '../components/ui/skeleton'
+import { Switch } from '../components/ui/switch'
 import { Toast } from '../components/ui/toast'
 import { ConfirmDialog } from '../components/ui/alert-dialog'
 import {
@@ -127,7 +129,7 @@ export function Automations() {
     <DashLayout className={railLayout}>
       <AppRail active="automations" canvases={canvases} />
       <DashMain className="[background:var(--paper)]">
-        <DashHeader className="border-b-0 bg-transparent backdrop-blur-none">
+        <DashHeader variant="bare">
           <span className="flex-1" />
           <Button variant="primary" size="bar" disabled={busy} onClick={() => create()}>
             <PlusIcon width={15} height={15} strokeWidth={1.75} /> New automation
@@ -140,7 +142,7 @@ export function Automations() {
           {items === null ? (
             <div className="flex flex-col gap-2">
               {[0, 1, 2].map((i) => (
-                <Skeleton key={i} index={i} className="h-14 rounded-card" />
+                <Skeleton key={i} index={i} shape="row" />
               ))}
             </div>
           ) : empty ? (
@@ -150,11 +152,11 @@ export function Automations() {
                 illustration={
                   <>
                     <ClockTile size={36} />
-                    <span className="h-px w-[22px] bg-[#b9b5ac]" aria-hidden />
+                    <span className="h-px w-[22px] bg-ink-ghost" aria-hidden />
                     <MetaTile size={36} className="border border-line bg-surface" />
-                    <span className="h-px w-[22px] bg-[#b9b5ac]" aria-hidden />
+                    <span className="h-px w-[22px] bg-ink-ghost" aria-hidden />
                     <span className="grid size-9 place-items-center rounded-pill border border-line bg-surface text-ink">
-                      <IconGrid />
+                      <GridIcon />
                     </span>
                   </>
                 }
@@ -185,13 +187,18 @@ export function Automations() {
                 return (
                   <div
                     key={a.id}
-                    role="link"
-                    tabIndex={0}
                     className="grid cursor-pointer grid-cols-[52px_minmax(0,1fr)_36px] items-center gap-3 border-b border-line-soft px-4 py-3 transition-colors last:border-b-0 hover:bg-paper md:grid-cols-[52px_minmax(0,1.7fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)_36px]"
                     onClick={() => navigate(`/automations/${a.id}`)}
-                    onKeyDown={(e) => e.key === 'Enter' && navigate(`/automations/${a.id}`)}
                   >
-                    <Toggle on={a.enabled} onChange={(on) => toggle(a, on)} label={`${a.name} on or off`} />
+                    {/* a click anywhere on the row opens the automation, and its name is
+                        the keyboard's way in; flipping the switch must not open it */}
+                    <Switch
+                      checked={a.enabled}
+                      onCheckedChange={(on) => toggle(a, on)}
+                      aria-label={`${a.name} on or off`}
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    />
                     <div className="flex min-w-0 items-center gap-2.5">
                       {first?.type === 'pull' ? (
                         <MetaTile size={24} className="border border-line bg-surface" />
@@ -203,7 +210,17 @@ export function Automations() {
                         <ClockTile size={24} />
                       )}
                       <span className="min-w-0 truncate text-copy text-ink-soft">
-                        <b className="font-medium text-ink">{a.name}</b>
+                        <Pressable
+                          layout="inline"
+                          focus="ring"
+                          className="inline font-medium text-ink"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            navigate(`/automations/${a.id}`)
+                          }}
+                        >
+                          {a.name}
+                        </Pressable>
                         {first?.type === 'agent' && first.roles.length === 1 && <> · @{first.roles[0]}</>} ·{' '}
                         {everyLine(a)}
                       </span>
@@ -211,7 +228,7 @@ export function Automations() {
                     <span className="hidden min-w-0 items-center gap-2.5 text-body text-ink-soft md:flex">
                       {canvasIds.length ? (
                         <>
-                          <CanvasThumb canvas={canvas} className="h-[22px] w-[34px]" />
+                          <FrameThumb size="xs" frameId={canvas?.previewFrameId} />
                           <span className="truncate">
                             {canvas?.name ?? 'Canvas'}
                             {canvasIds.length > 1 ? ` +${canvasIds.length - 1}` : ''}
@@ -265,7 +282,7 @@ export function Automations() {
                           <MoreHorizontalIcon className="size-4" />
                         </IconButton>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-[170px]" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuContent width="sm" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenuItem tone="danger" onSelect={() => setRemove(a)}>
                           <TrashIcon className="size-4" /> Delete
                         </DropdownMenuItem>
@@ -303,27 +320,20 @@ export function Examples({ onUse, busy }: { onUse: (example: AutomationExample) 
       <h2 className="text-caption text-ink-faint">Start from an example</h2>
       <div className="mt-3 grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
         {AUTOMATION_EXAMPLES.map((e) => (
-          <div
+          <Pressable
             key={e.id}
-            role="button"
-            tabIndex={0}
-            className="group flex cursor-pointer flex-col gap-2 rounded-card border border-line bg-surface px-4 pb-3.5 pt-4 shadow-card transition-[translate,border-color] duration-150 hover:-translate-y-[3px] hover:border-ink-faint focus-visible:outline-2 focus-visible:outline-brand"
+            focus="ring"
+            className="group flex flex-col gap-2 rounded-card border border-line bg-surface px-4 pb-3.5 pt-4 shadow-card transition-[translate,border-color] duration-150 hover:-translate-y-[3px] hover:border-ink-faint"
             onClick={() => !busy && onUse(e)}
-            onKeyDown={(ev) => {
-              if (ev.key === 'Enter' || ev.key === ' ') {
-                ev.preventDefault()
-                if (!busy) onUse(e)
-              }
-            }}
           >
             <StepChain steps={e.steps} size={26} />
-            <b className="mt-1 text-copy font-semibold tracking-[-0.012em]">{e.name}</b>
-            <p className="text-body leading-[1.5] text-ink-soft">{e.blurb}</p>
+            <b className="mt-1 text-copy font-semibold">{e.name}</b>
+            <span className="text-body text-ink-soft">{e.blurb}</span>
             <div className="mt-auto flex items-center pt-1.5 text-caption text-ink-faint">
               {describeSchedule({ ...e.schedule, tz: 'UTC' }).replace(' at ', ' ')}
               <b className="ml-auto font-sans text-body font-semibold text-ink group-hover:text-accent-ink">Use →</b>
             </div>
-          </div>
+          </Pressable>
         ))}
       </div>
     </section>

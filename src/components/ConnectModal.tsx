@@ -12,6 +12,7 @@ import { CursorInstall } from './CursorInstall'
 import { CodexInstall } from './CodexInstall'
 import { Button } from './ui/button'
 import { CodeBlock } from './ui/code-block'
+import { Disclosure } from './ui/collapsible'
 import { Dot } from './ui/dot'
 import { ChevronLeftIcon, PuzzleIcon } from './ui/icons'
 import { Modal, ModalActions, ModalLede, ModalSpacer, ModalTitle } from './ui/modal'
@@ -451,14 +452,13 @@ function AgentSteps({
         </ol>
 
         {agent === 'claude' && claudeConnection === 'web' && claudeConnectorInstallUrl(mcpUrl) && (
-          <details className="mt-4 text-xs leading-relaxed text-ink-soft">
-            <summary className="cursor-pointer">Connection help</summary>
-            <p className="mt-2">
+          <Disclosure label="Connection help" className="mt-4 text-label leading-relaxed text-ink-soft">
+            <p>
               If Claude asks you to sign in first, return here and click Add to Claude again. You can also use{' '}
               <strong>Customize → Connectors → Add custom connector</strong> in Claude with this address:
             </p>
             <CodeBlock text={mcpUrl} className="mt-2" />
-          </details>
+          </Disclosure>
         )}
 
         {agent === 'mcp' && (

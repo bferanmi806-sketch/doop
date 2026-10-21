@@ -1,9 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { AgentIcon } from '@/components/AgentIcon'
 import { DoopMark, Logo } from '@/components/Logo'
-import { GlobeIcon, RadioTowerIcon } from '@/components/ImportSources'
+import { RadioTowerIcon, WebIcon } from '@/components/ui/icons'
 import { BRANDS, BrandMark } from '@/components/ui/brand-mark'
-import { ClockTile, MetaTile } from '@/components/AutomateShell'
+import { MetaTile } from '@/components/AutomateShell'
+import { ClockTile } from '@/components/AutomateShell'
 import { FigmaTile } from '@/integrations/figma/Tile'
 import { colorFor } from '../../shared/types'
 
@@ -23,6 +24,16 @@ export const Doop: Story = {
       <Logo className="size-[26px] rounded-row" />
       <DoopMark size={24} />
       <DoopMark size={13} />
+    </div>
+  ),
+}
+
+/** The Disc-D with its dot hopping: the home greeting's mark, and the loading mark. */
+export const DoopAnimated: Story = {
+  render: () => (
+    <div className="flex items-end gap-6 text-ink">
+      <DoopMark animated size={62} className="block" />
+      <DoopMark animated size={24} className="block" />
     </div>
   ),
 }
@@ -72,7 +83,7 @@ export const Tiles: Story = {
       <FigmaTile size={24} />
       <MetaTile size={24} />
       <ClockTile size={24} />
-      <GlobeIcon className="size-5 text-ink" />
+      <WebIcon className="size-5 text-ink" />
       <RadioTowerIcon className="size-5 text-ink" />
     </div>
   ),

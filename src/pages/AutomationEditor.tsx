@@ -20,18 +20,9 @@ import {
 import { api, ApiError, type IntegrationsStatus } from '../lib/api'
 import { navigate } from '../App'
 import { posthog } from '../lib/posthog'
+import { FrameThumb } from '../components/FramePreview'
 import { BarDivider, TopBar, TopBarHome, TopBarTitle, barGhostBtn, barPrimaryBtn } from '../components/TopBar'
-import {
-  CanvasThumb,
-  Chevron,
-  ClockTile,
-  MetaTile,
-  RunDot,
-  Sel,
-  StepChain,
-  Toggle,
-  formatRunTime,
-} from '../components/AutomateShell'
+import { ClockTile, MetaTile, RunDot, StepChain, formatRunTime } from '../components/AutomateShell'
 import { RoleMark } from '../components/RoleMark'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
@@ -46,7 +37,10 @@ import {
   PanelTabsRoot,
 } from '../components/ui/panel'
 import { ListItem, ListMeta, ListSummary, ListTitle } from '../components/ui/list'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 import { Skeleton } from '../components/ui/skeleton'
+import { Switch } from '../components/ui/switch'
+import { StatusLabel } from '../components/ui/status-label'
 import { Toast } from '../components/ui/toast'
 import { Tooltip } from '../components/ui/tooltip'
 import {
@@ -56,7 +50,14 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu'
-import { PanelCollapseRightIcon, PanelExpandRightIcon, PlayIcon, PulseIcon, XIcon } from '../components/ui/icons'
+import {
+  ChevronDownIcon,
+  PanelCollapseRightIcon,
+  PanelExpandRightIcon,
+  PlayIcon,
+  PulseIcon,
+  XIcon,
+} from '../components/ui/icons'
 import { cn } from '@/lib/utils'
 
 /** A draft is the automation minus what the server owns. */
@@ -351,7 +352,10 @@ export function AutomationEditor({ automationId }: { automationId: string }) {
         </div>
         {automation && (
           <div className="ml-auto flex items-center gap-2.5">
-            <Toggle caption on={automation.enabled} onChange={setEnabled} label="Automation on or off" />
+            <span className="inline-flex items-center gap-2">
+              <span className="text-caption text-ink-soft">{automation.enabled ? 'On' : 'Off'}</span>
+              <Switch checked={automation.enabled} onCheckedChange={setEnabled} aria-label="Automation on or off" />
+            </span>
             <BarDivider />
             <Button
               variant="ghost"
@@ -383,8 +387,8 @@ export function AutomationEditor({ automationId }: { automationId: string }) {
           </div>
         ) : !draft || !automation ? (
           <div className="mx-auto flex w-[360px] flex-col gap-11 pt-14">
-            <Skeleton className="h-[94px] rounded-pill" />
-            <Skeleton index={1} className="h-[240px] rounded-pill" />
+            <Skeleton shape="card" />
+            <Skeleton index={1} shape="card" />
           </div>
         ) : (
           <>
@@ -568,38 +572,45 @@ function WhenNode({ schedule, onChange }: { schedule: Schedule; onChange: (s: Sc
       </div>
       <div className="mt-2.5 flex items-center gap-2 text-copy">
         <span className="text-ink-soft">Every</span>
-        <Sel
-          aria-label="Which days"
+        <Select
           value={dayValue}
-          onChange={(e) => {
-            const v = e.target.value
+          onValueChange={(v) => {
             if (v === 'daily' || v === 'weekdays') onChange({ ...schedule, kind: v })
             else onChange({ ...schedule, kind: 'weekly', weekday: Number(v) })
           }}
         >
-          {WEEKDAYS.map((d, i) => (
-            <option key={d} value={i}>
-              {d}
-            </option>
-          ))}
-          <option value="weekdays">weekday</option>
-          <option value="daily">day</option>
-        </Sel>
+          <SelectTrigger size="sm" aria-label="Which days">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {WEEKDAYS.map((d, i) => (
+              <SelectItem key={d} value={String(i)}>
+                {d}
+              </SelectItem>
+            ))}
+            <SelectItem value="weekdays">weekday</SelectItem>
+            <SelectItem value="daily">day</SelectItem>
+          </SelectContent>
+        </Select>
         <span className="text-ink-soft">at</span>
-        <Sel
-          aria-label="Time"
+        <Select
           value={time}
-          onChange={(e) => {
-            const [h, m] = e.target.value.split(':').map(Number)
+          onValueChange={(v) => {
+            const [h, m] = v.split(':').map(Number)
             onChange({ ...schedule, hour: h ?? 9, minute: m ?? 0 })
           }}
         >
-          {times.map((t) => (
-            <option key={t} value={t}>
-              {clockLabel(t)}
-            </option>
-          ))}
-        </Sel>
+          <SelectTrigger size="sm" aria-label="Time">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {times.map((t) => (
+              <SelectItem key={t} value={t}>
+                {clockLabel(t)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </div>
   )
@@ -631,12 +642,12 @@ function CanvasPicker({
               !current && 'font-medium text-ink-faint',
             )}
           >
-            {current && <CanvasThumb canvas={current} />}
+            {current && <FrameThumb size="xs" frameId={current.previewFrameId} />}
             <span className="min-w-0 flex-1 truncate">{current?.name ?? 'Choose a canvas'}</span>
-            <Chevron className="text-ink-faint" />
+            <ChevronDownIcon width={12} height={12} className="flex-none text-ink-faint" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="max-h-[320px] w-[300px] overflow-y-auto">
+        <DropdownMenuContent align="start" width="lg" className="max-h-[320px] overflow-y-auto">
           {canvases.length === 0 && (
             <DropdownMenuLabel className="text-label font-normal text-ink-faint">No canvases yet</DropdownMenuLabel>
           )}
@@ -646,7 +657,7 @@ function CanvasPicker({
               onSelect={() => onChange(c.id)}
               className={cn(c.id === value && 'bg-paper-deep')}
             >
-              <CanvasThumb canvas={c} />
+              <FrameThumb size="xs" frameId={c.previewFrameId} />
               <span className="min-w-0 flex-1 truncate">{c.name}</span>
             </DropdownMenuItem>
           ))}
@@ -698,15 +709,9 @@ function PullNode({
           <div className="text-copy font-semibold tracking-[-0.012em]">Ad creatives</div>
         </div>
         {meta && (
-          <span
-            className={cn(
-              'ml-auto inline-flex items-center gap-1.5 text-caption',
-              meta.connected ? 'text-ink-soft' : 'text-ink-faint',
-            )}
-          >
-            <span className={cn('size-[6px] rounded-full', meta.connected ? 'bg-success' : 'bg-line')} />
+          <StatusLabel tone={meta.connected ? 'done' : 'muted'} className="ml-auto">
             {meta.connected ? 'connected' : 'not connected'}
-          </span>
+          </StatusLabel>
         )}
         <RemoveStep onRemove={onRemove} />
       </div>
@@ -721,106 +726,32 @@ function PullNode({
         </div>
       ) : (
         <div className="mt-2.5 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2.5">
-          <Sel
-            aria-label="Ad account"
-            className={cn(!step.accountId && '[&>select]:text-ink-faint')}
-            value={step.accountId}
-            onChange={(e) => onChange({ accountId: e.target.value })}
-          >
-            <option value="">Ad account</option>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name} · {a.id.replace(/^act_/, '')}
-              </option>
-            ))}
-          </Sel>
-          <Sel
-            aria-label="Which ads"
+          {/* an unset account is '' — Radix shows the placeholder for it */}
+          <Select value={step.accountId} onValueChange={(accountId) => onChange({ accountId })}>
+            <SelectTrigger size="sm" className="w-full" aria-label="Ad account">
+              <SelectValue placeholder="Ad account" />
+            </SelectTrigger>
+            <SelectContent>
+              {accounts.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.name} · {a.id.replace(/^act_/, '')}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
             value={step.filter}
-            onChange={(e) => onChange({ filter: e.target.value as PullStep['filter'] })}
+            onValueChange={(filter) => onChange({ filter: filter as MetaPullStep['filter'] })}
           >
-            <option value="active">Active ads</option>
-            <option value="all">All ads</option>
-          </Sel>
+            <SelectTrigger size="sm" className="w-full" aria-label="Which ads">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active ads</SelectItem>
+              <SelectItem value="all">All ads</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-      )}
-      <CanvasPicker
-        word="into"
-        value={step.canvasId}
-        canvases={canvases}
-        onChange={(canvasId) => onChange({ canvasId })}
-      />
-    </div>
-  )
-}
-
-/** A pull owned by a registered integration (see src/integrations): one
- *  source field, the integration's own tile and connection state. */
-function ExtensionPullNode({
-  step,
-  canvases,
-  integrations,
-  onChange,
-  onRemove,
-}: {
-  step: Extract<PullStep, { provider: string }>
-  canvases: CanvasMeta[]
-  integrations: IntegrationsStatus | null
-  onChange: (patch: Partial<{ url: string; canvasId: string }>) => void
-  onRemove: () => void
-}) {
-  const integration = clientIntegrations.find((i) => i.id === step.provider)
-  const pull = integration?.automationPull
-  if (!integration || !pull) {
-    return (
-      <div className={nodeCls}>
-        <Port side="in" />
-        <Port side="out" />
-        <div className="text-body text-ink-faint">No integration handles a “{step.provider}” pull.</div>
-        <RemoveStep onRemove={onRemove} />
-      </div>
-    )
-  }
-  const connected = integrations ? integration.isConnected(integrations) : false
-  const source = 'url' in step ? step.url : ''
-  return (
-    <div className={nodeCls}>
-      <Port side="in" />
-      <Port side="out" />
-      <div className="flex items-center gap-[9px]">
-        {integration.Tile && <integration.Tile size={24} />}
-        <div className="min-w-0">
-          <div className={kCls}>Pull · {integration.name}</div>
-          <div className="text-copy font-semibold tracking-[-0.012em]">{pull.subtitle}</div>
-        </div>
-        {integrations && (
-          <span
-            className={cn(
-              'ml-auto inline-flex items-center gap-1.5 text-caption',
-              connected ? 'text-ink-soft' : 'text-ink-faint',
-            )}
-          >
-            <span className={cn('size-[6px] rounded-full', connected ? 'bg-success-ink' : 'bg-line')} />
-            {connected ? 'connected' : 'not connected'}
-          </span>
-        )}
-        <RemoveStep onRemove={onRemove} />
-      </div>
-      {integrations && !connected ? (
-        <div className="mt-2.5 flex items-center gap-3">
-          <span className="text-body text-ink-soft">Not connected yet</span>
-          <Button variant="solid" size="sm" className="ml-auto h-8" onClick={() => navigate('/integrations')}>
-            Connect {integration.name}
-          </Button>
-        </div>
-      ) : (
-        <Input
-          aria-label={`${integration.name} link`}
-          className="mt-2.5 h-9 bg-paper text-body focus:ring-0"
-          placeholder={pull.placeholder}
-          value={source}
-          onChange={(e) => onChange({ [pull.field]: e.target.value } as { url: string })}
-        />
       )}
       <CanvasPicker
         word="into"
@@ -1050,7 +981,7 @@ function RunsPanel({
             </ListItem>
             {runs === null ? (
               <div className="px-4 py-3">
-                <Skeleton className="h-10 rounded-md" />
+                <Skeleton shape="row" />
               </div>
             ) : runs.length === 0 ? (
               <div className="px-4 py-3 text-xs leading-[1.5] text-ink-faint">

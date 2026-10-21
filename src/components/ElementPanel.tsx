@@ -433,8 +433,8 @@ function HtmlTab({ frame, selector }: { frame: Frame; selector: string }) {
 
   return (
     <Textarea
-      variant="bare"
-      className="min-h-[320px] flex-1 bg-[#17171b] p-3 font-mono text-[11.5px] leading-[1.55] text-[#e9e9ee] [tab-size:2] md:text-[11.5px]"
+      variant="code"
+      className="min-h-[320px] flex-1"
       value={draft}
       spellCheck={false}
       onFocus={() => setTyping(true)}

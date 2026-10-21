@@ -2,15 +2,15 @@ import { useEffect, useState } from 'react'
 import { adminApi, type AdminCanvas, type AdminUser } from '../lib/api'
 import { navigate } from '../App'
 import { timeAgo } from '../lib/time'
-import { AccountMenu, ConnectCard, IconBack, IconChevron, IconGrid, IconShare } from '../components/DashShell'
+import { AppRail, railLayout } from '../components/AppRail'
+import { ChevronRightIcon, GridIcon, UsersIcon } from '../components/ui/icons'
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { cn } from '@/lib/utils'
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
-import { Input } from '../components/ui/input'
-import { Wordmark } from '../components/ui/wordmark'
-import { cardVariants } from '../components/ui/card'
+import { SearchField } from '../components/ui/search-field'
+import { MetaLine, Tile, TileBody, TileCover } from '../components/ui/tile'
 import { Skeleton } from '../components/ui/skeleton'
+import { FramePreview } from '../components/FramePreview'
 import {
   DashContent,
   DashHeader,
@@ -18,13 +18,9 @@ import {
   DashMain,
   DashNavItem,
   DashSectionLabel,
-  DashSidebar,
   DashSubtitle,
   DashTitle,
 } from '../components/ui/dash'
-
-/* rows and tiles share the Card surface */
-const cardShell = cn(cardVariants(), 'overflow-hidden text-left transition-[transform,box-shadow,border-color]')
 
 /**
  * The instance index: every canvas, every account. Read-only — the way to
@@ -109,24 +105,14 @@ export function Admin() {
   )
 
   return (
-    <DashLayout>
-      <DashSidebar>
-        <Wordmark size="sm" className="px-2 pb-5 text-heading">
-          Doop <Badge tone="admin">admin</Badge>
-        </Wordmark>
-
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-[9px] rounded-[9px] px-2.5 py-2 text-body text-ink-soft hover:bg-paper hover:text-ink"
-          onClick={() => navigate('/')}
-        >
-          <IconBack /> Back to my canvases
-        </Button>
-
-        <DashSectionLabel>Instance</DashSectionLabel>
+    <DashLayout className={railLayout}>
+      {/* the app rail, with the two indexes as the page's group */}
+      <AppRail active={null}>
+        <DashSectionLabel density="rail">Instance</DashSectionLabel>
         <nav className="flex flex-col gap-0.5">
           <DashNavItem
-            icon={<IconGrid />}
+            density="rail"
+            icon={<GridIcon size="rail" />}
             count={stats?.canvases ?? ''}
             active={tab === 'canvases'}
             onClick={() => setTab('canvases')}
@@ -134,7 +120,8 @@ export function Admin() {
             Canvases
           </DashNavItem>
           <DashNavItem
-            icon={<IconShare />}
+            density="rail"
+            icon={<UsersIcon size="rail" />}
             count={stats?.users ?? ''}
             active={tab === 'users'}
             onClick={() => setTab('users')}
@@ -142,13 +129,10 @@ export function Admin() {
             Accounts
           </DashNavItem>
         </nav>
+      </AppRail>
 
-        <div className="min-h-6 flex-1" />
-        <ConnectCard />
-      </DashSidebar>
-
-      <DashMain>
-        <DashHeader className="max-md:min-h-[104px]">
+      <DashMain className="[background:var(--paper)]">
+        <DashHeader variant="bare" className="max-md:min-h-[104px]">
           <nav className="flex items-center gap-2 text-body text-ink-faint" aria-label="Breadcrumb">
             <Button
               variant="link"
@@ -158,26 +142,16 @@ export function Admin() {
             >
               Home
             </Button>
-            <IconChevron />
+            <ChevronRightIcon size={12} />
             <b className="font-semibold text-ink">Admin</b>
           </nav>
-          <label className="order-2 flex h-10 max-w-none flex-1 basis-full items-center gap-[9px] rounded-pill border border-line bg-surface px-[11px] text-ink-faint focus-within:border-ink-faint md:order-none md:h-[34px] md:max-w-[400px] md:basis-auto">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="7" />
-              <path d="m20 20-3.2-3.2" />
-            </svg>
-            <Input
-              variant="bare"
-              inputSize="auto"
-              className="flex-1 md:text-body"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder={tab === 'canvases' ? 'Search canvases or owners…' : 'Search accounts…'}
-              aria-label={tab === 'canvases' ? 'Search canvases or owners' : 'Search accounts'}
-            />
-          </label>
-          <span className="flex-1" />
-          <AccountMenu />
+          <SearchField
+            size="header"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={tab === 'canvases' ? 'Search canvases or owners…' : 'Search accounts…'}
+            aria-label={tab === 'canvases' ? 'Search canvases or owners' : 'Search accounts'}
+          />
         </DashHeader>
 
         <DashContent>
@@ -201,12 +175,12 @@ export function Admin() {
             onValueChange={(next) => setTab(next as 'canvases' | 'users')}
             className="mt-4 flex md:hidden"
           >
-            <TabsList className="h-10 w-full border border-line bg-surface p-1 shadow-card">
+            <TabsList variant="card">
               <TabsTrigger value="canvases">
-                <IconGrid /> Canvases · {stats?.canvases ?? '…'}
+                <GridIcon size="rail" /> Canvases · {stats?.canvases ?? '…'}
               </TabsTrigger>
               <TabsTrigger value="users">
-                <IconShare /> Accounts · {stats?.users ?? '…'}
+                <UsersIcon size="rail" /> Accounts · {stats?.users ?? '…'}
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -221,38 +195,34 @@ export function Admin() {
                 </div>
               )}
               <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-3.5 xs:grid-cols-[repeat(auto-fill,minmax(214px,1fr))] md:gap-4">
-                {data === null &&
-                  [0, 1, 2, 3].map((i) => <Skeleton key={i} index={i} className={cn(cardShell, 'min-h-[230px]')} />)}
+                {data === null && [0, 1, 2, 3].map((i) => <Skeleton key={i} index={i} shape="tile" aspect="4/3" />)}
                 {canvases.map((c) => (
-                  <div key={c.id} className={cn(cardShell, 'flex flex-col')}>
-                    <div className="relative grid aspect-[4/3] place-items-center overflow-hidden border-b border-line-soft [background:radial-gradient(circle,var(--dot)_1px,transparent_1px)_0_0/18px_18px,var(--paper-deep)]">
-                      <CanvasPreview frameId={c.previewFrameId} />
-                    </div>
-                    <div className="flex flex-1 flex-col px-3 pt-2.5 pb-3">
+                  <Tile key={c.id} tone="solid">
+                    <TileCover aspect="4/3">
+                      <FramePreview frameId={c.previewFrameId} />
+                    </TileCover>
+                    <TileBody className="flex flex-1 flex-col">
                       <div className="truncate font-display text-copy font-semibold">{c.name}</div>
-                      <div className="mt-[5px] flex min-h-0 flex-wrap content-start items-center gap-1.5 text-caption text-ink-faint xs:min-h-[30px]">
+                      <MetaLine
+                        className="mt-[5px] min-h-0 flex-wrap content-start xs:min-h-[30px]"
+                        trailing={
+                          c.linkAccess === 'edit' && (
+                            <Badge
+                              className="px-[5px] py-px text-micro"
+                              title="Anyone with the link can edit this canvas"
+                            >
+                              link on
+                            </Badge>
+                          )
+                        }
+                      >
                         <span>{c.owner ? c.owner.name : 'unclaimed'}</span>
-                        <span className="opacity-60">·</span>
                         <span>
                           {c.frameCount} frame{c.frameCount === 1 ? '' : 's'}
                         </span>
-                        <span className="opacity-60">·</span>
                         <span>{timeAgo(c.updatedAt)}</span>
-                        {c.linkAccess === 'edit' && (
-                          <Badge
-                            className="px-[5px] py-px text-micro"
-                            title="Anyone with the link can edit this canvas"
-                          >
-                            link on
-                          </Badge>
-                        )}
-                        {c.memberCount > 0 && (
-                          <>
-                            <span className="opacity-60">·</span>
-                            <span>{c.memberCount} invited</span>
-                          </>
-                        )}
-                      </div>
+                        {c.memberCount > 0 && <span>{c.memberCount} invited</span>}
+                      </MetaLine>
                       {c.owner && (
                         <Button
                           variant="ghost"
@@ -263,8 +233,8 @@ export function Admin() {
                           View as {c.owner.name.split(' ')[0]}
                         </Button>
                       )}
-                    </div>
-                  </div>
+                    </TileBody>
+                  </Tile>
                 ))}
               </div>
             </>
@@ -311,25 +281,5 @@ export function Admin() {
         </DashContent>
       </DashMain>
     </DashLayout>
-  )
-}
-
-/** Same contract as the Home dashboard's Preview: a failed render must look
- *  different from an empty canvas, and cards request the cheap ?preview
- *  render rather than the full-size og:image one. */
-function CanvasPreview({ frameId }: { frameId?: string }) {
-  /* which frame failed, not whether — a new previewFrameId must retry
-     rather than inherit the old frame's failure */
-  const [failedId, setFailedId] = useState<string | null>(null)
-  if (!frameId) return <span className="text-label text-ink-faint">empty canvas</span>
-  if (failedId === frameId) return <span className="text-label text-ink-faint">preview unavailable</span>
-  return (
-    <img
-      className="h-full w-full object-cover object-top"
-      src={`/i/${frameId}.jpg?preview`}
-      alt=""
-      loading="lazy"
-      onError={() => setFailedId(frameId)}
-    />
   )
 }

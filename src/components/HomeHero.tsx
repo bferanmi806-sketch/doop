@@ -1,24 +1,25 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
-import { DRAFT_OPTIONS, DRAFTS_STORAGE_KEY, readStoredDrafts, type DraftCount } from '../lib/homePrompt'
+import { DRAFT_OPTIONS, DRAFTS_STORAGE_KEY, isDraftCount, readStoredDrafts, type DraftCount } from '../lib/homePrompt'
+import { DoopMark } from './Logo'
 import { ModelPicker } from './ModelPicker'
 import { BrandMark } from './ui/brand-mark'
-import { Button } from './ui/button'
+import { IconButton } from './ui/icon-button'
 import { Chip } from './ui/chip'
 import { MenuButton } from './ui/menu-button'
 import { Pressable } from './ui/pressable'
 import { Textarea } from './ui/textarea'
 import {
   DropdownMenu,
+  DropdownMenuCaption,
   DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
 import {
   ArrowUpIcon,
   AttachmentIcon,
   CalendarIcon,
-  CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   CirclePlusIcon,
@@ -190,22 +191,10 @@ export function HomeHero({
       </div>
 
       <div className="relative px-4 pt-10 text-center md:pt-14">
-        <svg
-          className="mx-auto mb-4 block h-[52px] w-[40px] overflow-visible md:mb-5 md:h-[62px] md:w-[48px]"
-          viewBox="42 20 118 149"
-          aria-hidden
-        >
-          <g className="fill-ink" transform="translate(14,0)">
-            <path d="M78 36 A 64 64 0 0 1 78 164 Z" />
-            <circle
-              className="origin-center animate-[disc-hop_2.4s_cubic-bezier(.5,0,.5,1)_infinite] [transform-box:fill-box] motion-reduce:animate-none"
-              cx="50"
-              cy="146"
-              r="19"
-            />
-          </g>
-        </svg>
-        <h1 className="font-hero text-title font-light leading-none tracking-[-0.02em] md:text-display">
+        <span className="mx-auto mb-4 block h-[52px] w-[40px] text-ink md:mb-5 md:h-[62px] md:w-[48px]">
+          <DoopMark animated size="fill" className="block" />
+        </span>
+        <h1 className="font-hero text-title font-light leading-none md:text-display">
           Ask me what to design{firstName ? ', ' : ''}
           {firstName && <span className="text-ink-faint">{firstName}</span>}
         </h1>
@@ -267,13 +256,13 @@ export function HomeHero({
             aria-label="Ask Doop what to design"
             onChange={(e) => setText(e.target.value)}
             onKeyDown={onKeyDown}
-            className="min-h-[52px] text-lead leading-[1.45] placeholder:text-ink-ghost md:text-lead"
+            className="min-h-[52px] text-lead placeholder:text-ink-ghost md:text-lead"
           />
           <div className="mt-1 flex items-center gap-3 text-body text-ink-soft md:gap-5">
             <Pressable
               layout="inline"
               focus="ring"
-              className="gap-[7px] rounded-md text-ink-soft transition-colors hover:text-ink"
+              className="gap-[7px] rounded-row text-ink-soft transition-colors hover:text-ink"
               onClick={actions.onImport}
               title="Attach a design to start from"
             >
@@ -291,34 +280,38 @@ export function HomeHero({
                   {drafts} {drafts === 1 ? 'draft' : 'drafts'}
                 </MenuButton>
               </DropdownMenuTrigger>
-              <DropdownMenuContent side="top" align="end" className="w-[220px]">
-                <DropdownMenuLabel className="px-2.5 pb-1 pt-1.5 text-caption text-ink-faint">
-                  Drafts per prompt
-                </DropdownMenuLabel>
-                {DRAFT_OPTIONS.map((n) => (
-                  <DropdownMenuItem key={n} onSelect={() => pickDrafts(n)}>
-                    <span className="flex-1">
+              <DropdownMenuContent side="top" align="end" width="md">
+                <DropdownMenuCaption>Drafts per prompt</DropdownMenuCaption>
+                <DropdownMenuRadioGroup
+                  value={String(drafts)}
+                  onValueChange={(next) => {
+                    const n = Number(next)
+                    if (isDraftCount(n)) pickDrafts(n)
+                  }}
+                >
+                  {DRAFT_OPTIONS.map((n) => (
+                    <DropdownMenuRadioItem
+                      key={n}
+                      value={String(n)}
+                      description={n === 1 ? 'One take on the brief' : `${n} takes, side by side, to pick from`}
+                    >
                       {n} {n === 1 ? 'draft' : 'drafts'}
-                      <span className="block text-caption text-ink-faint">
-                        {n === 1 ? 'One take on the brief' : `${n} takes, side by side, to pick from`}
-                      </span>
-                    </span>
-                    {n === drafts && <CheckIcon className="size-3.5 flex-none" />}
-                  </DropdownMenuItem>
-                ))}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
               </DropdownMenuContent>
             </DropdownMenu>
             <ModelPicker disabled={busy} />
-            <Button
+            <IconButton
               variant="primary"
-              size="icon"
-              className="size-[34px] flex-none rounded-full"
+              size="lg"
+              shape="round"
               aria-label="Send"
               disabled={busy || !text.trim()}
               onClick={submit}
             >
               <ArrowUpIcon width={14} height={14} strokeWidth={1.75} />
-            </Button>
+            </IconButton>
           </div>
         </div>
         <Pressable
@@ -339,7 +332,7 @@ export function HomeHero({
             className="marks ml-auto flex items-center gap-[9px] [&>*]:opacity-75 [&>*]:saturate-[.8] [&>*]:transition-[opacity,filter,transform] [&>*]:duration-fast [&>*]:ease-out-quad group-hover:[&>*]:opacity-90 group-hover:[&>*]:saturate-[.95] [&>*:hover]:-translate-y-px [&>*:hover]:!opacity-100 [&>*:hover]:!saturate-100 motion-reduce:[&>*]:transition-none"
             aria-hidden
           >
-            <span className="grid size-4 place-items-center rounded-sm bg-surface shadow-ring">
+            <span className="grid size-4 place-items-center rounded-tag bg-surface shadow-ring">
               <BrandMark brand="figma" size={12} />
             </span>
             <BrandMark brand="github" size={16} className="text-ink" />

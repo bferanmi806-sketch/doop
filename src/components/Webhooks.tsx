@@ -8,11 +8,8 @@ import { Input } from './ui/input'
 import { Note } from './ui/note'
 import { Checkbox } from './ui/checkbox'
 import { CodeBlock } from './ui/code-block'
-import { Card, CardDescription, CardHeader, CardRow, CardTitle } from './ui/card'
+import { CardDescription, CardHeader, CardRow, CardTitle, SettingsCard } from './ui/card'
 import { TrashIcon } from './ui/icons'
-
-const settingsCard = 'mt-4 max-w-[1000px] overflow-hidden sm:mt-5'
-const settingsInput = 'w-full sm:w-[420px]'
 
 function hostOf(url: string): string {
   try {
@@ -39,7 +36,7 @@ function health(hook: WebhookInfo): { text: string; tone?: 'error' | 'success' }
 /** Picks events with the shared labels; used for the new-hook form. */
 function EventPicker({ value, onChange }: { value: WebhookEventType[]; onChange: (next: WebhookEventType[]) => void }) {
   return (
-    <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
+    <div className="grid gap-1.5 sm:grid-cols-2">
       {WEBHOOK_EVENTS.map((event) => {
         const on = value.includes(event)
         return (
@@ -168,7 +165,7 @@ export function Webhooks() {
     )
 
   return (
-    <Card className={settingsCard}>
+    <SettingsCard>
       <CardHeader>
         <CardTitle>Webhooks</CardTitle>
         <CardDescription>
@@ -187,10 +184,9 @@ export function Webhooks() {
             {saving ? 'Adding…' : 'Add webhook'}
           </Button>
         }
-      >
-        <div className="min-w-0 flex-1">
+        controlWidth="lg"
+        control={
           <Input
-            className={settingsInput}
             value={url}
             onChange={(e) => {
               setUrl(e.target.value)
@@ -200,6 +196,10 @@ export function Webhooks() {
             inputMode="url"
             aria-label="Webhook URL"
           />
+        }
+      >
+        {/* basis-full drops the picker onto its own line under the URL field */}
+        <div className="min-w-0 basis-full">
           <EventPicker value={events} onChange={setEvents} />
           {error && <Note tone="error">{error}</Note>}
         </div>
@@ -262,6 +262,6 @@ export function Webhooks() {
           <Note>Add one above — a quick way to try it is an n8n Webhook node or a request bin.</Note>
         </CardRow>
       )}
-    </Card>
+    </SettingsCard>
   )
 }

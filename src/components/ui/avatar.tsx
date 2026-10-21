@@ -20,7 +20,8 @@ function labelClass(size: number) {
   if (size <= 20) return 'text-[8px]'
   if (size <= 26) return 'text-[9px]'
   if (size <= 30) return 'text-micro'
-  return 'text-caption'
+  if (size < 34) return 'text-caption'
+  return 'text-body'
 }
 
 export interface AvatarProps extends Omit<React.ComponentProps<'span'>, 'color' | 'children'> {
@@ -28,6 +29,9 @@ export interface AvatarProps extends Omit<React.ComponentProps<'span'>, 'color' 
   /** the person's presence colour; their disc is a 22% tint of it */
   color?: string
   kind?: 'user' | 'agent'
+  /** `ink`: the account's own face on the dashboard, initials on an ink disc
+   *  with no collar, instead of the tint of a presence colour */
+  tone?: 'tint' | 'ink'
   /** the disc's diameter in px: 24 in the presence pill, 18 on a canvas card, 28–32 in menus and rows */
   size?: number
   /** an agent at work: the silver ring and the sweeping glaze */
@@ -48,6 +52,7 @@ function Avatar({
   name,
   color = 'var(--ink)',
   kind = 'user',
+  tone = 'tint',
   size = 24,
   glaze = false,
   glazeDelay = 0,
@@ -65,6 +70,7 @@ function Avatar({
         labelClass(size),
         'shadow-[0_0_0_2px_var(--surface),0_0_0_3px_rgba(0,0,0,0.07)] dark:shadow-[0_0_0_2px_var(--surface),0_0_0_3px_rgba(255,255,255,0.12)]',
         glaze && 'glaze-sweep z-[2] shadow-[0_0_0_2px_var(--surface),0_0_0_3px_var(--glaze-ring)]',
+        tone === 'ink' && 'bg-ink text-paper shadow-none dark:shadow-none',
         /* a gentle overlap: the collar still reads as a row, both initials stay legible */
         stacked && (size <= 20 ? '-ml-[3px] first:ml-0' : '-ml-1 first:ml-0'),
         className,
@@ -72,7 +78,9 @@ function Avatar({
       style={{
         width: size,
         height: size,
-        ...(kind === 'user' ? { background: `color-mix(in srgb, ${color} 22%, var(--surface))` } : {}),
+        ...(kind === 'user' && tone === 'tint'
+          ? { background: `color-mix(in srgb, ${color} 22%, var(--surface))` }
+          : {}),
         ...(glaze ? ({ '--glaze-delay': `${glazeDelay}s` } as CSSProperties) : {}),
         ...style,
       }}

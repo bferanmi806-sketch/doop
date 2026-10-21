@@ -134,8 +134,9 @@
   drafts, and opens the canvas; a card that cannot queue rides along as the canvas composer's draft.
   Import makes a canvas and opens it with `?import=1`, which `CanvasPage` turns into the import
   picker. `GET /api/canvases` adds `people` (owner, then members) for the tiles' avatar stacks.
-  The rail is `src/components/AppRail.tsx`, mounted by Home, Automations, Integrations, Community
-  and Settings alike (a page's own group, such as the settings panes, goes in as children); it owns
+  The rail is `src/components/AppRail.tsx`, mounted by Home, Automations, Integrations, Community,
+  Workspace and Admin alike (a page's own group, such as a workspace's panes, goes in as children;
+  Settings draws its own rail from the same `ui/dash.tsx` parts); it owns
   the ⌘K search palette (`CanvasSearchModal.tsx`), the connect-an-agent modal, the collapsed
   narrow state (remembered in `localStorage` under `doop-rail`) and the account face at the bottom.
   From another page the rail sends scope picks home as `/?scope=` and new workspaces as

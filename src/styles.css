@@ -18,6 +18,8 @@
   --color-ink-ghost: var(--ink-ghost);
   --color-line: var(--line);
   --color-line-soft: var(--line-soft);
+  --color-code: var(--code);
+  --color-code-ink: var(--code-ink);
   --color-brand: var(--brand);
   --color-accent-ink: var(--accent-ink);
   --color-dot: var(--dot);
@@ -91,9 +93,11 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
-  /* Named corners, by what they sit on: a row in a list or rail, a control
-     (button, field), a pill or chip, a card or tile, a floating panel. These
-     are the shapes the white system draws; `rounded-[Npx]` is for a one-off. */
+  /* Named corners, by what they sit on: a tag (badge, checkbox square), a row
+     in a list or rail, a control (button, field), a pill or chip, a card or
+     tile, a floating panel. These are the shapes the white system draws;
+     `rounded-[Npx]` is for a one-off. */
+  --radius-tag: 4px;
   --radius-row: 7px;
   --radius-control: 8px;
   --radius-pill: 10px;
@@ -139,6 +143,9 @@
   --ink-ghost: #b8b8b8;
   --line: #dcdcdc;
   --line-soft: #ececec;
+  /* the code well (CodeBlock, the HTML editors): dark in both themes */
+  --code: #17171b;
+  --code-ink: #e9e9ee;
   /* Selection blue is the one accent: selection, focus, the live-agent
      signal. Red only means "something failed", which --accent-ink carries. */
   --brand: #0177d3;

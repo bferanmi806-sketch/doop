@@ -68,7 +68,7 @@ export function ZoomControls({
             <span ref={labelRef}>100%</span>
           </ToolbarButton>
         </DropdownMenuTrigger>
-        <DropdownMenuContent side="top" align="end" className="w-[220px]">
+        <DropdownMenuContent side="top" align="end" width="md">
           <DropdownMenuItem onSelect={onZoomIn}>Zoom in{hint(`${MOD_KEY}+`)}</DropdownMenuItem>
           <DropdownMenuItem onSelect={onZoomOut}>Zoom out{hint(`${MOD_KEY}−`)}</DropdownMenuItem>
           <DropdownMenuSeparator />

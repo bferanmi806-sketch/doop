@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { authClient } from '../lib/auth'
 import { desktopHandoffURL, parseDesktopSignInQuery } from '../lib/desktopAuth'
-import { AuthScreen } from '../components/ui/screen'
-import { Wordmark } from '../components/ui/wordmark'
-import { DashTitle } from '../components/ui/dash'
+import { AuthCard, AuthCardText, AuthScreen } from '../components/ui/screen'
 import { Callout } from '../components/ui/callout'
 
 /* Step 1 of the desktop sign-in (src/lib/desktopAuth.ts), in the system
@@ -45,15 +43,13 @@ export function DesktopSignIn({ signedIn }: { signedIn: boolean }) {
 
   return (
     <AuthScreen>
-      <div className="flex w-[min(400px,100%)] flex-col gap-3.5 rounded-[12px] border border-line bg-surface p-6 pt-[30px] shadow-pop sm:p-9 sm:pb-7">
-        <Wordmark className="mb-1.5" />
-        <DashTitle>{error ? 'Something went wrong.' : 'Signing you in…'}</DashTitle>
+      <AuthCard title={error ? 'Something went wrong.' : 'Signing you in…'}>
         {error ? (
           <Callout tone="error">{error}</Callout>
         ) : (
-          <p className="text-sm text-ink-soft">Taking you to your identity provider for the doop app.</p>
+          <AuthCardText>Taking you to your identity provider for the doop app.</AuthCardText>
         )}
-      </div>
+      </AuthCard>
     </AuthScreen>
   )
 }

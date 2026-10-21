@@ -104,7 +104,7 @@ export function Integrations() {
     <DashLayout className={railLayout}>
       <AppRail active="integrations" canvases={canvases} />
       <DashMain className="[background:var(--paper)]">
-        <DashHeader className="border-b-0 bg-transparent backdrop-blur-none">
+        <DashHeader variant="bare">
           <span className="flex-1" />
         </DashHeader>
 
@@ -120,8 +120,8 @@ export function Integrations() {
           <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {!meta || !status ? (
               <>
-                <Skeleton className="min-h-[150px] rounded-panel" />
-                <Skeleton className="min-h-[150px] rounded-panel" />
+                <Skeleton shape="card" />
+                <Skeleton shape="card" />
               </>
             ) : (
               <>

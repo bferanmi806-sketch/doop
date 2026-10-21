@@ -77,7 +77,7 @@ export function SideRail({
               </Button>
             </DropdownMenuTrigger>
           </Tooltip>
-          <DropdownMenuContent side="left" align="end" className="w-[180px]">
+          <DropdownMenuContent side="left" align="end" width="sm">
             <DropdownMenuItem asChild>
               <a href="/docs" target="_blank" rel="noopener noreferrer">
                 <BookOpenIcon /> Docs

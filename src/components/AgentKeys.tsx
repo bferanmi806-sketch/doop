@@ -6,12 +6,10 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Note } from './ui/note'
 import { CodeBlock } from './ui/code-block'
-import { Card, CardDescription, CardHeader, CardRow, CardTitle } from './ui/card'
+import { CardDescription, CardHeader, CardRow, CardTitle, SettingsCard } from './ui/card'
 import { TrashIcon } from './ui/icons'
 
 /* same fixed-column-on-desktop rhythm as the other settings cards */
-const settingsCard = 'mt-4 max-w-[1000px] overflow-hidden sm:mt-5'
-const settingsInput = 'w-full sm:w-[280px]'
 
 /** The MCP config a headless client needs, with the key in place. Shown once,
  *  right after minting — the moment the person actually has the secret. */
@@ -80,7 +78,7 @@ export function AgentKeys() {
   }
 
   return (
-    <Card className={settingsCard}>
+    <SettingsCard>
       <CardHeader>
         <CardTitle>Agent keys</CardTitle>
         <CardDescription>
@@ -97,18 +95,19 @@ export function AgentKeys() {
             {minting ? 'Creating…' : 'Create key'}
           </Button>
         }
+        control={
+          <Input
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value)
+              setError('')
+            }}
+            placeholder="What will use it, e.g. mastra-prod"
+            maxLength={60}
+            aria-label="Agent key name"
+          />
+        }
       >
-        <Input
-          className={settingsInput}
-          value={name}
-          onChange={(e) => {
-            setName(e.target.value)
-            setError('')
-          }}
-          placeholder="What will use it, e.g. mastra-prod"
-          maxLength={60}
-          aria-label="Agent key name"
-        />
         {error && <Note tone="error">{error}</Note>}
       </CardRow>
 
@@ -117,9 +116,7 @@ export function AgentKeys() {
           <div className="min-w-0 flex-1">
             <Note tone="success">Copy it now — it is shown once and stored hashed.</Note>
             <CodeBlock className="mt-2" text={minted.secret} />
-            <p className="mb-1.5 mt-3 text-caption font-bold uppercase tracking-[0.14em] text-ink-faint">
-              MCP config for a headless client
-            </p>
+            <p className="mb-1.5 mt-3 text-caption font-medium text-ink-faint">MCP config for a headless client</p>
             <CodeBlock text={headlessConfig(minted.secret)} />
           </div>
         </CardRow>
@@ -147,6 +144,6 @@ export function AgentKeys() {
           <Note>Interactive clients (Claude Code, Codex) don’t need one — they sign in with OAuth.</Note>
         </CardRow>
       )}
-    </Card>
+    </SettingsCard>
   )
 }

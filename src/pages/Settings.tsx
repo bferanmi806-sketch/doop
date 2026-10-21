@@ -8,23 +8,22 @@ import { AccountSettings } from '../components/AccountSettings'
 import { AppearanceSettings } from '../components/AppearanceSettings'
 import { AgentKeys } from '../components/AgentKeys'
 import { Webhooks } from '../components/Webhooks'
-import { AccountMenu, IconBack, IconKey, IconSpark, IconTheme, IconUser, IconWebhooks } from '../components/DashShell'
-import { RailItem, RailLabel, railLayout } from '../components/AppRail'
-import { Logo } from '../components/Logo'
-import { BellIcon, KeyIcon, MoonIcon, SparkIcon, UserIcon } from '../components/ui/icons'
-
-const railIcon = { width: 14, height: 14, 'aria-hidden': true } as const
+import { AccountMenu } from '../components/DashShell'
+import { railLayout } from '../components/AppRail'
+import { BellIcon, ChevronLeftIcon, KeyIcon, MoonIcon, SparkIcon, UserIcon } from '../components/ui/icons'
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Button } from '../components/ui/button'
-import { IconButton } from '../components/ui/icon-button'
-import { Card, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
+import { CardDescription, CardHeader, CardTitle, SettingsCard } from '../components/ui/card'
 import { Progress } from '../components/ui/progress'
 import {
   DashContent,
   DashHeader,
   DashLayout,
   DashMain,
+  DashNavItem,
+  DashSectionLabel,
   DashSidebar,
+  DashSidebarBrand,
   DashSubtitle,
   DashTitle,
 } from '../components/ui/dash'
@@ -93,56 +92,55 @@ export function Settings() {
   return (
     <DashLayout className={railLayout}>
       {/* Settings is its own screen: a rail of its panes, and the way back */}
-      <DashSidebar className="overflow-x-hidden border-r-0 bg-sub px-3 pb-3 pt-3.5 md:w-[236px]">
-        <div className="mb-2.5 flex h-[30px] items-center gap-2 px-1.5">
-          <IconButton
-            aria-label="Doop home"
-            className="size-[26px] rounded-row hover:bg-transparent"
-            onClick={() => navigate('/')}
-          >
-            <Logo className="size-[26px] rounded-row" />
-          </IconButton>
-        </div>
+      <DashSidebar variant="rail">
+        <DashSidebarBrand />
         <nav className="flex flex-col gap-0.5">
-          <RailItem
-            icon={<IconBack />}
-            label={back === '/' ? 'Back to canvases' : 'Back to canvas'}
-            on={false}
-            go={() => navigate(back)}
-          />
+          <DashNavItem density="rail" icon={<ChevronLeftIcon size="rail" />} onClick={() => navigate(back)}>
+            {back === '/' ? 'Back to canvases' : 'Back to canvas'}
+          </DashNavItem>
         </nav>
-        <RailLabel>Settings</RailLabel>
+        <DashSectionLabel density="rail">Settings</DashSectionLabel>
         <nav className="flex flex-col gap-0.5">
-          <RailItem
-            icon={<SparkIcon {...railIcon} />}
-            label="Doop Agent"
-            on={pane === 'agent'}
-            go={() => setPane('agent')}
-          />
-          <RailItem
-            icon={<KeyIcon {...railIcon} />}
-            label="Agent keys"
-            on={pane === 'keys'}
-            go={() => setPane('keys')}
-          />
-          <RailItem
-            icon={<BellIcon {...railIcon} />}
-            label="Webhooks"
-            on={pane === 'webhooks'}
-            go={() => setPane('webhooks')}
-          />
-          <RailItem
-            icon={<UserIcon {...railIcon} />}
-            label="Your account"
-            on={pane === 'account'}
-            go={() => setPane('account')}
-          />
-          <RailItem
-            icon={<MoonIcon {...railIcon} />}
-            label="Appearance"
-            on={pane === 'appearance'}
-            go={() => setPane('appearance')}
-          />
+          <DashNavItem
+            density="rail"
+            icon={<SparkIcon size="rail" />}
+            active={pane === 'agent'}
+            onClick={() => setPane('agent')}
+          >
+            Doop Agent
+          </DashNavItem>
+          <DashNavItem
+            density="rail"
+            icon={<KeyIcon size="rail" />}
+            active={pane === 'keys'}
+            onClick={() => setPane('keys')}
+          >
+            Agent keys
+          </DashNavItem>
+          <DashNavItem
+            density="rail"
+            icon={<BellIcon size="rail" />}
+            active={pane === 'webhooks'}
+            onClick={() => setPane('webhooks')}
+          >
+            Webhooks
+          </DashNavItem>
+          <DashNavItem
+            density="rail"
+            icon={<UserIcon size="rail" />}
+            active={pane === 'account'}
+            onClick={() => setPane('account')}
+          >
+            Your account
+          </DashNavItem>
+          <DashNavItem
+            density="rail"
+            icon={<MoonIcon size="rail" />}
+            active={pane === 'appearance'}
+            onClick={() => setPane('appearance')}
+          >
+            Appearance
+          </DashNavItem>
         </nav>
         <div className="mt-auto flex items-center gap-2.5 px-1 pt-4">
           <AccountMenu face side="top" align="start" />
@@ -150,9 +148,9 @@ export function Settings() {
       </DashSidebar>
 
       <DashMain className="[background:var(--paper)]">
-        <DashHeader className="border-b-0 bg-transparent backdrop-blur-none md:hidden">
+        <DashHeader variant="bare" className="md:hidden">
           <Button variant="ghost" size="bar" onClick={() => navigate(back)}>
-            <IconBack /> {back === '/' ? 'Canvases' : 'Canvas'}
+            <ChevronLeftIcon size="rail" /> {back === '/' ? 'Canvases' : 'Canvas'}
           </Button>
           <span className="flex-1" />
           <AccountMenu />
@@ -167,28 +165,28 @@ export function Settings() {
           </div>
 
           <Tabs value={pane} onValueChange={(next) => setPane(next as Pane)} className="mt-4 flex md:hidden">
-            <TabsList className="h-10 w-full border border-line bg-surface p-1 shadow-card">
+            <TabsList variant="card">
               <TabsTrigger value="agent">
-                <IconSpark /> Doop Agent
+                <SparkIcon size="rail" /> Doop Agent
               </TabsTrigger>
               <TabsTrigger value="keys">
-                <IconKey /> Agent keys
+                <KeyIcon size="rail" /> Agent keys
               </TabsTrigger>
               <TabsTrigger value="webhooks">
-                <IconWebhooks /> Webhooks
+                <BellIcon size="rail" /> Webhooks
               </TabsTrigger>
               <TabsTrigger value="account">
-                <IconUser /> Account
+                <UserIcon size="rail" /> Account
               </TabsTrigger>
               <TabsTrigger value="appearance">
-                <IconTheme /> Appearance
+                <MoonIcon size="rail" /> Appearance
               </TabsTrigger>
             </TabsList>
           </Tabs>
 
           {pane === 'agent' ? (
             <>
-              <Card className="mt-4 max-w-[1000px] overflow-hidden sm:mt-5">
+              <SettingsCard>
                 <CardHeader>
                   <CardTitle>Doop Agent</CardTitle>
                   <CardDescription>
@@ -210,7 +208,7 @@ export function Settings() {
                   )}
                 </CardHeader>
                 <ModelAccountPanel onChange={refresh} />
-              </Card>
+              </SettingsCard>
               <ImageModelCard />
             </>
           ) : pane === 'keys' ? (

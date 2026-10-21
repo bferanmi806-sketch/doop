@@ -1,6 +1,6 @@
 import { clientIntegrations } from '@/integrations'
-import { GithubIcon } from './ui/icons'
-import { CanvaMark, GlobeIcon, PhotoshopMark, RadioTowerIcon, type ImportSource } from './ImportSources'
+import { GithubIcon, RadioTowerIcon, WebIcon } from './ui/icons'
+import { CanvaMark, PhotoshopMark, type ImportSource } from './ImportSources'
 
 /** The sources the import picker offers, in order — the canvas page's modal
  *  and Home's Import button show the same cards, so the list lives once. */
@@ -10,7 +10,7 @@ export function importSources(): ImportSource[] {
       id: 'website',
       title: 'Website',
       blurb: 'One page, or discover a whole site.',
-      icon: <GlobeIcon className="size-5 text-ink" />,
+      icon: <WebIcon className="size-5 text-ink" />,
     },
     ...clientIntegrations
       .filter((i) => i.ImportSection && i.importSource)

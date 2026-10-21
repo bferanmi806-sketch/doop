@@ -4,6 +4,7 @@ import { isDesktopShell } from '../lib/shell'
 import { posthog } from '../lib/posthog'
 import { Button } from './ui/button'
 import { CodeBlock } from './ui/code-block'
+import { InstallBlock } from './ui/install-block'
 
 export function CodexInstall({ mcpUrl, canvasId }: { mcpUrl: string; canvasId?: string }) {
   const [state, setState] = useState<'idle' | 'adding' | 'added'>('idle')
@@ -22,49 +23,49 @@ export function CodexInstall({ mcpUrl, canvasId }: { mcpUrl: string; canvasId?: 
     }
   }
 
-  return (
-    <div className="mt-2.5">
-      {canAddToCodex() ? (
-        <>
+  const manual = (
+    <>
+      <p>Run this in a terminal with Codex CLI installed:</p>
+      <CodeBlock text={`codex mcp add doop --url ${mcpUrl}`} className="mt-2" />
+    </>
+  )
+
+  if (canAddToCodex()) {
+    return (
+      <InstallBlock
+        action={
           <Button variant="solid" disabled={state !== 'idle'} onClick={() => void connect()}>
             {state === 'adding' ? 'Adding Doop…' : state === 'added' ? 'Added to Codex' : 'Add to Codex'}
           </Button>
-          {state === 'added' && (
-            <p className="mt-2 text-xs text-ink-soft" role="status">
-              Doop is configured. Open a new Codex chat, then sign in to Doop when prompted.
-            </p>
-          )}
-        </>
-      ) : isDesktopShell() ? (
-        <p className="text-xs text-ink-soft">
-          Update Doop Desktop to add Codex directly, or use the manual setup below.
-        </p>
-      ) : (
-        <>
-          <Button asChild variant="solid">
-            <a
-              href={codexDesktopLink(new URL(mcpUrl).origin, canvasId)}
-              onClick={() => posthog.capture('codex_desktop_setup_opened')}
-            >
-              Open Doop Desktop
-            </a>
-          </Button>
-          <p className="mt-2 text-xs text-ink-soft">
-            Requires the updated Doop desktop app. Click Add to Codex there to finish setup. If the app doesn’t open,
-            use the manual setup below.
-          </p>
-        </>
-      )}
-      {error && (
-        <p className="mt-2 text-xs text-accent-ink" role="alert">
-          {error}
-        </p>
-      )}
-      <details className="mt-3 text-xs leading-relaxed text-ink-soft">
-        <summary className="cursor-pointer">Set up manually</summary>
-        <p className="mt-2">Run this in a terminal with Codex CLI installed:</p>
-        <CodeBlock text={`codex mcp add doop --url ${mcpUrl}`} className="mt-2" />
-      </details>
-    </div>
+        }
+        status={state === 'added' && 'Doop is configured. Open a new Codex chat, then sign in to Doop when prompted.'}
+        error={error}
+        manual={manual}
+      />
+    )
+  }
+  if (isDesktopShell()) {
+    return (
+      <InstallBlock
+        action={<p>Update Doop Desktop to add Codex directly, or use the manual setup below.</p>}
+        manual={manual}
+      />
+    )
+  }
+  return (
+    <InstallBlock
+      action={
+        <Button asChild variant="solid">
+          <a
+            href={codexDesktopLink(new URL(mcpUrl).origin, canvasId)}
+            onClick={() => posthog.capture('codex_desktop_setup_opened')}
+          >
+            Open Doop Desktop
+          </a>
+        </Button>
+      }
+      status="Requires the updated Doop desktop app. Click Add to Codex there to finish setup. If the app doesn’t open, use the manual setup below."
+      manual={manual}
+    />
   )
 }

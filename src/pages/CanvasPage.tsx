@@ -37,13 +37,7 @@ import { MobilePanelTabs, SideRail } from '../components/SideRail'
 import { LayersPanel, LayersRailToggle } from '../components/LayersPanel'
 import { Onboarding } from '../components/Onboarding'
 import { ShareModal } from '../components/ShareModal'
-import {
-  GlobeIcon,
-  ImportStepFooter,
-  ImportStepHeader,
-  RadioTowerIcon,
-  SourcePicker,
-} from '../components/ImportSources'
+import { CanvaMark, ImportStepFooter, ImportStepHeader, SourcePicker } from '../components/ImportSources'
 import { importSources } from '../components/importSourceList'
 import { PresentMode } from '../components/PresentMode'
 import { getIdentity, setName } from '../lib/identity'
@@ -62,8 +56,7 @@ import { useIsMobile } from '../hooks/use-mobile'
 import { cn } from '@/lib/utils'
 import { Button } from '../components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '../components/ui/sheet'
-import { AuthScreen } from '../components/ui/screen'
-import { Wordmark } from '../components/ui/wordmark'
+import { AuthCard, AuthCardText, AuthScreen } from '../components/ui/screen'
 import {
   BrainIcon,
   CopyIcon,
@@ -75,15 +68,17 @@ import {
   PlayIcon,
   PlusIcon,
   GearIcon,
+  RadioTowerIcon,
   ShareIcon,
   ShareUpIcon,
+  WebIcon,
   XIcon,
 } from '../components/ui/icons'
 import { Badge } from '../components/ui/badge'
+import { SelectionBar, SelectionBarAction } from '../components/ui/selection-bar'
 import { Input } from '../components/ui/input'
 import { Field } from '../components/ui/field'
 import { PeerAvatars, PresenceFace } from '../components/PeerAvatars'
-import { DashTitle } from '../components/ui/dash'
 import { Checkbox, CheckboxCard } from '../components/ui/checkbox'
 import { Toast, ToastAction, ToastSpinner } from '../components/ui/toast'
 import { Tooltip } from '../components/ui/tooltip'
@@ -400,17 +395,15 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
   if (canvasNotFound) {
     return (
       <AuthScreen>
-        <div className="flex w-[min(400px,100%)] flex-col gap-3.5 rounded-[12px] border border-line bg-surface p-6 pt-[30px] text-center shadow-pop sm:p-9 sm:pb-7">
-          <Wordmark className="mb-1.5 self-center" />
-          <DashTitle>Canvas not found</DashTitle>
-          <p className="text-[14px] leading-[1.5] text-ink-soft">
+        <AuthCard title="Canvas not found" align="center">
+          <AuthCardText>
             &ldquo;{canvasId}&rdquo; doesn&rsquo;t match a canvas we know about. It may have been deleted, or the link
             may be wrong.
-          </p>
+          </AuthCardText>
           <Button className="self-center" onClick={() => navigate('/')}>
             Back to your canvases
           </Button>
-        </div>
+        </AuthCard>
       </AuthScreen>
     )
   }
@@ -1008,7 +1001,7 @@ function ImportModal({
                 <ModalEyebrow>Review before import</ModalEyebrow>
                 <ModalTitle>Import the design system</ModalTitle>
               </div>
-              <Badge className="max-w-full overflow-hidden text-ellipsis rounded-full bg-paper px-[9px] py-[5px] text-[10.5px] sm:max-w-[240px]">
+              <Badge shape="pill">
                 {repoReview.connection.repo}@{repoReview.connection.branch}
               </Badge>
             </div>
@@ -1025,31 +1018,24 @@ function ImportModal({
               title="Extract the design system into a style guide"
               description="Palette, type and spacing from the repo's theme — pinned to the canvas, followed by every agent."
             />
-            <div className="mt-4 flex items-center justify-between px-[2px] pb-[9px]">
-              <b className="text-[12px] text-ink-soft">
-                {repoSelected.size} of {visibleScreens.length} selected
-              </b>
-              <span className="flex gap-3">
-                <Button
-                  variant="bare"
-                  size="sm"
-                  className="p-0 font-mono text-[10.5px] hover:bg-transparent hover:text-accent-ink"
-                  disabled={!!busy}
-                  onClick={() => setRepoSelected(new Set(visibleScreens.map(screenKey)))}
-                >
-                  Select all
-                </Button>
-                <Button
-                  variant="bare"
-                  size="sm"
-                  className="p-0 font-mono text-[10.5px] hover:bg-transparent hover:text-accent-ink"
-                  disabled={!!busy}
-                  onClick={() => setRepoSelected(new Set())}
-                >
-                  Clear
-                </Button>
-              </span>
-            </div>
+            <SelectionBar
+              className="mt-4"
+              count={repoSelected.size}
+              total={visibleScreens.length}
+              actions={
+                <>
+                  <SelectionBarAction
+                    disabled={!!busy}
+                    onClick={() => setRepoSelected(new Set(visibleScreens.map(screenKey)))}
+                  >
+                    Select all
+                  </SelectionBarAction>
+                  <SelectionBarAction disabled={!!busy} onClick={() => setRepoSelected(new Set())}>
+                    Clear
+                  </SelectionBarAction>
+                </>
+              }
+            />
             <div
               className={cn(
                 'max-h-[calc(100dvh-390px)] overflow-y-auto rounded-[11px] border border-line bg-paper transition-opacity sm:max-h-[min(350px,calc(100vh-390px))]',
@@ -1093,8 +1079,8 @@ function ImportModal({
             {pageCount > 0 && (
               <Button
                 variant="bare"
-                size="sm"
-                className="mt-2 self-start p-0 font-mono text-[10.5px] text-ink-faint hover:bg-transparent hover:text-accent-ink"
+                size="inline"
+                className="mt-2 self-start text-ink-faint"
                 disabled={!!busy}
                 onClick={() => setShowPages((v) => !v)}
               >
@@ -1154,16 +1140,16 @@ function ImportModal({
               <SourcePicker onPick={setSource} sources={importSources()} />
             ) : source === 'website' ? (
               <>
-                <ImportStepHeader icon={<GlobeIcon className="size-[22px] text-ink" />} title="Import a website" />
+                <ImportStepHeader icon={<WebIcon className="size-[22px] text-ink" />} title="Import a website" />
                 <ModalLede>
                   Bring in one page, or discover a whole site and choose the pages you want before anything is added.
                 </ModalLede>
                 <Field className="mt-[22px]" label="Website URL" labelVariant="form" htmlFor="import-url">
                   <Input
                     id="import-url"
-                    variant="mono"
+                    variant="well"
                     inputSize="lg"
-                    className="bg-paper focus:border-ink focus:bg-surface focus:ring-0"
+                    className="font-mono"
                     autoFocus
                     placeholder="https://example.com"
                     value={url}
@@ -1218,6 +1204,49 @@ function ImportModal({
                   </Button>
                 </ImportStepFooter>
               </>
+            ) : source === 'canva' ? (
+              <>
+                <ImportStepHeader icon={<CanvaMark size={26} />} title="Import a Canva design" />
+                <ModalLede>
+                  Paste a link to a Canva design. Every page of the design lands as its own editable frame.
+                </ModalLede>
+                <Field className="mt-[22px]" label="Design link" labelVariant="form" htmlFor="import-canva-url">
+                  <Input
+                    id="import-canva-url"
+                    variant="well"
+                    inputSize="lg"
+                    className="font-mono"
+                    autoFocus
+                    placeholder="https://www.canva.com/design/…"
+                    value={url}
+                    disabled={!!busy}
+                    onChange={(e) => {
+                      setUrl(e.target.value)
+                      setError(null)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && canvaLink) void runSinglePage()
+                    }}
+                  />
+                </Field>
+                {busy === 'importing' && (
+                  <p className={cn(importNoteCls, 'text-accent-ink')}>
+                    Importing from Canva — each page lands as a frame; this can take a minute…
+                  </p>
+                )}
+                {error && <p className={errorNoteCls}>{error}</p>}
+                <ImportStepFooter
+                  note="Needs Canva connected once on the Integrations page. Text and layout stay editable."
+                  onBack={() => setSource(null)}
+                  backDisabled={!!busy}
+                >
+                  <Button variant="primary" disabled={!!busy || !canvaLink} onClick={runSinglePage}>
+                    {busy === 'importing' ? 'Importing…' : 'Import design'}
+                  </Button>
+                </ImportStepFooter>
+              </>
+            ) : source === 'psd' ? (
+              <PsdSection canvasId={canvasId} onDone={onDone} onBack={() => setSource(null)} />
             ) : source === 'liveapp' ? (
               <SyncKeysSection canvasId={canvasId} onBack={() => setSource(null)} />
             ) : source === 'github' ? (
@@ -1237,39 +1266,30 @@ function ImportModal({
                 <ModalEyebrow>Review before import</ModalEyebrow>
                 <ModalTitle>Choose pages</ModalTitle>
               </div>
-              <Badge className="max-w-full overflow-hidden text-ellipsis rounded-full bg-paper px-[9px] py-[5px] text-[10.5px] sm:max-w-[240px]">
-                {new URL(discovery.siteUrl).hostname}
-              </Badge>
+              <Badge shape="pill">{new URL(discovery.siteUrl).hostname}</Badge>
             </div>
             <ModalLede>
               {discovery.pages.length} {discovery.pages.length === 1 ? 'page' : 'pages'} found. Everything is selected
               by default; uncheck anything you don’t need.
             </ModalLede>
-            <div className="mt-5 flex items-center justify-between px-[2px] pb-[9px]">
-              <b className="text-[12px] text-ink-soft">
-                {selectedCount} of {discovery.pages.length} selected
-              </b>
-              <span className="flex gap-3">
-                <Button
-                  variant="bare"
-                  size="sm"
-                  className="p-0 font-mono text-[10.5px] hover:bg-transparent hover:text-accent-ink"
-                  disabled={!!busy}
-                  onClick={() => setSelected(new Set(discovery.pages.map((p) => p.url)))}
-                >
-                  Select all
-                </Button>
-                <Button
-                  variant="bare"
-                  size="sm"
-                  className="p-0 font-mono text-[10.5px] hover:bg-transparent hover:text-accent-ink"
-                  disabled={!!busy}
-                  onClick={() => setSelected(new Set())}
-                >
-                  Clear
-                </Button>
-              </span>
-            </div>
+            <SelectionBar
+              className="mt-5"
+              count={selectedCount}
+              total={discovery.pages.length}
+              actions={
+                <>
+                  <SelectionBarAction
+                    disabled={!!busy}
+                    onClick={() => setSelected(new Set(discovery.pages.map((p) => p.url)))}
+                  >
+                    Select all
+                  </SelectionBarAction>
+                  <SelectionBarAction disabled={!!busy} onClick={() => setSelected(new Set())}>
+                    Clear
+                  </SelectionBarAction>
+                </>
+              }
+            />
             <div
               className={cn(
                 'max-h-[calc(100dvh-390px)] overflow-y-auto rounded-[11px] border border-line bg-paper transition-opacity sm:max-h-[min(350px,calc(100vh-390px))]',
@@ -1508,8 +1528,8 @@ function SyncKeysSection({ canvasId, onBack }: { canvasId: string; onBack: () =>
         <Field className="flex-1" label="App name" labelVariant="form" htmlFor="sync-app-name">
           <Input
             id="sync-app-name"
+            variant="well"
             inputSize="lg"
-            className="bg-paper focus:border-ink focus:bg-surface focus:ring-0"
             placeholder="Admin dashboard"
             value={name}
             disabled={busy}
@@ -1747,8 +1767,8 @@ function GithubSection({
         {appEnabled && !showTokenForm && (
           <Button
             variant="bare"
-            size="sm"
-            className="self-start p-0 font-mono text-[10.5px] text-ink-faint hover:bg-transparent hover:text-accent-ink"
+            size="inline"
+            className="self-start text-ink-faint"
             onClick={() => setShowTokenForm(true)}
           >
             paste a token instead
@@ -1758,7 +1778,8 @@ function GithubSection({
           <div className="flex flex-col gap-2">
             <div className="flex flex-col items-stretch gap-2 sm:flex-row">
               <Input
-                className="flex-1 rounded-[10px] bg-paper font-mono text-[12px] focus:ring-0"
+                variant="well"
+                className="flex-1 font-mono text-[12px]"
                 placeholder="owner/repository"
                 value={repo}
                 disabled={!!busy}
@@ -1768,7 +1789,8 @@ function GithubSection({
                 }}
               />
               <Input
-                className="flex-1 rounded-[10px] bg-paper font-mono text-[12px] focus:ring-0"
+                variant="well"
+                className="flex-1 font-mono text-[12px]"
                 type="password"
                 placeholder="Fine-grained token (github_pat_…)"
                 value={token}

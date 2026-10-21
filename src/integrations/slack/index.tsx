@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { ClientIntegration, SettingsCardProps } from '../index'
 import { ApiError, req, type IntegrationsStatus } from '../../lib/api'
 import { Button } from '../../components/ui/button'
+import { Note } from '../../components/ui/note'
 import { DisconnectButton, IntegrationCard } from '../ui'
 import { BrandMark } from '@/components/ui/brand-mark'
 
@@ -65,9 +66,9 @@ function SlackSettingsCard({ status, busy, setBusy, requestDisconnect }: Setting
       }
     >
       {error && (
-        <p role="alert" className="text-[11.5px] text-accent-ink">
+        <Note role="alert" tone="error">
           {error}
-        </p>
+        </Note>
       )}
     </IntegrationCard>
   )

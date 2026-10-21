@@ -18,7 +18,7 @@ import { Badge } from '../components/ui/badge'
 import { Kbd } from '../components/ui/kbd'
 import { Pressable } from '../components/ui/pressable'
 import { SearchField } from '../components/ui/search-field'
-import { cardVariants } from '../components/ui/card'
+import { MetaLine, Tile, TileBody, TileCover } from '../components/ui/tile'
 import { EmptyState } from '../components/ui/empty-state'
 import { Skeleton } from '../components/ui/skeleton'
 import { Segmented, SegmentedItem } from '../components/ui/segmented'
@@ -27,17 +27,9 @@ import { Modal, ModalEyebrow, ModalTitle } from '../components/ui/modal'
 import { CopyIcon } from '../components/ui/icons'
 import { Toast } from '../components/ui/toast'
 import { DashContent, DashHeader, DashLayout, DashMain, DashSubtitle, DashTitle } from '../components/ui/dash'
-import { cn } from '@/lib/utils'
 
 type Shelf = 'all' | CommunityCategory
 type Sort = 'trending' | 'newest'
-
-/* a gallery tile: the raised Card surface, made clickable — the same tile as Home */
-const cardCls = cn(
-  cardVariants({ tone: 'raised' }),
-  'group relative z-[2] transform-gpu overflow-hidden rounded-panel p-0 text-left text-ink',
-  'bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] backdrop-blur-[6px]',
-)
 
 /** The community gallery: designs people have published for others to
  *  preview and copy. Browsing is read-only by construction — a card shows
@@ -128,10 +120,10 @@ export function Community() {
       <AppRail active="community" searchShortcut={false} />
 
       <DashMain className="[background:var(--paper)]">
-        <DashHeader className="border-b-0 bg-transparent backdrop-blur-none max-md:min-h-[104px]">
+        <DashHeader variant="bare" className="max-md:min-h-[104px]">
           <SearchField
             ref={searchRef}
-            className="order-2 h-10 max-w-none flex-1 basis-full md:order-none md:h-[30px] md:max-w-[320px] md:basis-auto"
+            size="header"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search the gallery"
@@ -169,11 +161,11 @@ export function Community() {
               value={shelf}
               onValueChange={(next) => setShelf(next as Shelf)}
             >
-              <ToggleChipItem value="all" className="px-2.5 py-1 text-label">
+              <ToggleChipItem value="all" size="sm">
                 All · {counts.get('all')}
               </ToggleChipItem>
               {shelves.map((c) => (
-                <ToggleChipItem key={c} value={c} className="px-2.5 py-1 text-label">
+                <ToggleChipItem key={c} value={c} size="sm">
                   {COMMUNITY_CATEGORY_LABELS[c]} · {counts.get(c)}
                 </ToggleChipItem>
               ))}
@@ -194,7 +186,7 @@ export function Community() {
           ) : (
             <>
               {items !== null && (query.trim() || shelf !== 'all') && (
-                <div className="mt-[18px] text-xs text-ink-faint">
+                <div className="mt-[18px] text-caption text-ink-faint">
                   {visible.length} of {items.length}
                 </div>
               )}
@@ -203,7 +195,7 @@ export function Community() {
               ) : (
                 <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-3.5 xs:grid-cols-[repeat(auto-fill,minmax(250px,1fr))] md:gap-4">
                   {items === null &&
-                    [0, 1, 2, 3].map((i) => <Skeleton key={i} index={i} className={cn(cardCls, 'min-h-[260px]')} />)}
+                    [0, 1, 2, 3].map((i) => <Skeleton key={i} index={i} shape="tile" aspect="16/10" />)}
                   {visible.map((item) => (
                     <GalleryCard
                       key={item.id}
@@ -247,27 +239,24 @@ function GalleryCard({
 }) {
   const cover = item.frames[0]
   return (
-    <div className={cardCls}>
+    <Tile>
       <Pressable onClick={onOpen}>
-        <div className="relative grid aspect-[16/10] place-items-center overflow-hidden border-b border-line-soft [background:radial-gradient(circle,var(--dot)_1px,transparent_1px)_0_0/18px_18px,var(--paper-deep)]">
+        <TileCover aspect="16/10">
           <FramePreview frameId={cover?.id} empty="no preview" />
           {item.frames.length > 1 && (
             <Badge className="absolute left-2 top-2 bg-surface/90">{item.frames.length} frames</Badge>
           )}
-        </div>
-        <div className="px-3 pb-3 pt-2.5">
+        </TileCover>
+        <TileBody>
           <div className="truncate font-display text-copy font-semibold">{item.name}</div>
-          {item.description && (
-            <p className="mt-1 line-clamp-2 text-label leading-[1.45] text-ink-soft">{item.description}</p>
-          )}
-          <div className="mt-[7px] flex items-center gap-1.5 text-caption text-ink-faint">
+          {item.description && <p className="mt-1 line-clamp-2 text-label text-ink-soft">{item.description}</p>}
+          <MetaLine className="mt-[7px]">
             <span className="truncate">by {item.authorName}</span>
-            <span className="opacity-60">·</span>
             <span className="flex-none">
               {item.copyCount} {item.copyCount === 1 ? 'copy' : 'copies'}
             </span>
-          </div>
-        </div>
+          </MetaLine>
+        </TileBody>
       </Pressable>
       <Button
         size="sm"
@@ -278,7 +267,7 @@ function GalleryCard({
       >
         <CopyIcon className="size-3.5" /> {copying ? 'Copying…' : 'Use this'}
       </Button>
-    </div>
+    </Tile>
   )
 }
 

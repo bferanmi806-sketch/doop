@@ -1,20 +1,17 @@
 import * as React from 'react'
-import { useState } from 'react'
 import { authClient } from '../lib/auth'
 import { navigate } from '../App'
 import { posthog } from '../lib/posthog'
 import { useMe } from '../lib/me'
 import { isDesktopShell } from '../lib/shell'
 import { isTheme, useTheme } from '../lib/theme'
-import { AgentIcon } from './AgentIcon'
 import { colorFor } from '../../shared/types'
-import { ConnectModal } from './ConnectModal'
 import { themeOptions } from './ThemePicker'
-import { CodeBlock } from './ui/code-block'
 import { Badge } from './ui/badge'
-import { Avatar, initials } from './ui/avatar'
-import { Button } from './ui/button'
+import { Avatar } from './ui/avatar'
 import { IconButton } from './ui/icon-button'
+import { Pressable } from './ui/pressable'
+import { PersonRow } from './ui/list'
 import {
   DropdownMenu,
   DropdownMenuCaption,
@@ -26,34 +23,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
-import {
-  BuildingIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ClockIcon,
-  CreditCardIcon,
-  LockIcon,
-  CompassIcon,
-  GearIcon,
-  GridIcon,
-  HelpIcon,
-  KeyIcon,
-  ListIcon,
-  LogOutIcon,
-  MoonIcon,
-  PulseIcon,
-  ShieldIcon,
-  SparkIcon,
-  UserIcon,
-  UsersIcon,
-  BellIcon,
-} from './ui/icons'
+import { GearIcon, HelpIcon, LogOutIcon, ShieldIcon } from './ui/icons'
 
-/** Pieces the signed-in shell repeats on every page: the account menu in the
- *  top bar and the connect card pinned to the bottom of the rail. They live
- *  here so Home and Settings cannot drift apart. */
-
-export { initials }
+/** The account menu the signed-in shell repeats on every page: in the rail
+ *  and in the settings header. It lives here so they cannot drift apart. */
 
 export function AccountMenu({
   face = false,
@@ -83,22 +56,18 @@ export function AccountMenu({
             <Avatar name={name} color={colorFor(session?.user.id ?? name)} size={28} className="shadow-none" />
           </IconButton>
         ) : (
-          <Button
-            variant="bare"
-            className="grid size-10 flex-none place-items-center rounded-pill bg-ink font-display text-body font-bold text-paper hover:bg-ink hover:text-paper hover:opacity-90 sm:size-[34px]"
-            aria-label="Account"
-          >
-            {initials(name)}
-          </Button>
+          <Pressable aria-label="Account" title={name} layout="inline" focus="ring" className="flex-none rounded-full">
+            <Avatar tone="ink" name={name} size={34} />
+          </Pressable>
         )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent side={side} align={align} className="w-[240px]">
-        <DropdownMenuLabel className="flex items-center gap-2.5 px-2.5 pb-2.5 pt-2">
-          <Avatar name={name} color={colorFor(session?.user.id ?? name)} size={32} className="shadow-none" />
-          <span className="flex min-w-0 flex-col">
-            <span className="truncate text-body font-medium text-ink">{name}</span>
-            <span className="truncate text-caption font-normal text-ink-faint">{me?.email ?? session?.user.email}</span>
-          </span>
+      <DropdownMenuContent side={side} align={align} width="lg">
+        <DropdownMenuLabel className="px-2.5 pb-2.5 pt-2">
+          <PersonRow
+            avatar={<Avatar name={name} color={colorFor(session?.user.id ?? name)} size={32} className="shadow-none" />}
+            name={name}
+            detail={me?.email ?? session?.user.email}
+          />
         </DropdownMenuLabel>
         {/* the plan is a workspace thing; this line says which side of it the
             account is on — a member of a live paid workspace is on Team */}
@@ -115,16 +84,16 @@ export function AccountMenu({
         </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => navigate('/settings')}>
-          <IconGear /> Settings
+          <GearIcon size="rail" /> Settings
         </DropdownMenuItem>
         {me?.admin && (
           <DropdownMenuItem onSelect={() => navigate('/admin')}>
-            <IconShield /> Admin
+            <ShieldIcon size="rail" /> Admin
           </DropdownMenuItem>
         )}
         <DropdownMenuItem asChild>
-          <a href="https://doop.design/docs" target="_blank" rel="noopener noreferrer">
-            <IconHelp /> Help &amp; docs
+          <a href="/docs" target="_blank" rel="noopener noreferrer">
+            <HelpIcon size="rail" /> Help &amp; docs
           </a>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
@@ -134,7 +103,7 @@ export function AccountMenu({
         <DropdownMenuRadioGroup value={theme} onValueChange={(next) => isTheme(next) && setTheme(next)}>
           {themeOptions.map(({ value, label, Icon }) => (
             <DropdownMenuRadioItem key={value} value={value} onSelect={(e) => e.preventDefault()}>
-              <Icon {...rail} /> {label}
+              <Icon size="rail" /> {label}
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>
@@ -152,75 +121,9 @@ export function AccountMenu({
             })
           }
         >
-          <IconOut /> Log out
+          <LogOutIcon size="rail" /> Log out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )
 }
-
-/** The rail's bottom slot. Same card on every page — the quick command for the
- *  common case, and the full per-client instructions a click away. */
-export function ConnectCard() {
-  const [showConnect, setShowConnect] = useState(false)
-  return (
-    <>
-      <div className="rounded-card border border-dashed border-line px-[13px] py-3">
-        <b className="block font-display text-body">Connect an agent</b>
-        <p className="mt-[3px] text-caption leading-[1.45] text-ink-faint">
-          Any MCP client — one command, one browser approval.
-        </p>
-        <span className="mt-[9px] flex items-center gap-2">
-          <AgentIcon name="claude" size={14} />
-          <AgentIcon name="codex" size={14} color="var(--ink)" />
-          <em className="text-micro not-italic text-ink-faint">+ any MCP</em>
-        </span>
-        <CodeBlock
-          density="rail"
-          className="mt-2"
-          text={`claude mcp add --transport http doop "${location.origin}/mcp"`}
-        />
-        <Button
-          variant="link"
-          size="sm"
-          className="mt-[9px] px-0 py-0 text-caption text-accent-ink underline-offset-[3px]"
-          onClick={() => setShowConnect(true)}
-        >
-          Codex &amp; other clients →
-        </Button>
-      </div>
-      {showConnect && <ConnectModal onClose={() => setShowConnect(false)} />}
-    </>
-  )
-}
-
-/* ---- icons ----
-   The shell's nav glyphs, at the rail's 15px, drawn from the shared set. */
-
-const rail = { width: 15, height: 15, 'aria-hidden': true } as const
-
-export const IconGrid = () => <GridIcon {...rail} />
-export const IconList = () => <ListIcon {...rail} />
-export const IconUser = () => <UserIcon {...rail} />
-export const IconKey = () => <KeyIcon {...rail} />
-export const IconWebhooks = () => <BellIcon {...rail} />
-export const IconShare = () => <UsersIcon {...rail} />
-/** the gallery: a compass — designs to steer by */
-export const IconCommunity = () => <CompassIcon {...rail} />
-/** a clock — things that happen on a schedule */
-export const IconAutomations = () => <ClockIcon {...rail} />
-/** a pulse line — a live connection */
-export const IconIntegrations = () => <PulseIcon {...rail} />
-export const IconSpark = () => <SparkIcon {...rail} />
-/** a shared workspace — the org's building */
-export const IconWorkspace = () => <BuildingIcon {...rail} />
-export const IconBilling = () => <CreditCardIcon {...rail} />
-export const IconLock = () => <LockIcon width={12} height={12} aria-hidden />
-export const IconGear = () => <GearIcon {...rail} />
-export const IconShield = () => <ShieldIcon {...rail} />
-export const IconHelp = () => <HelpIcon {...rail} />
-export const IconOut = () => <LogOutIcon {...rail} />
-/** the appearance pane: a half moon, the theme switch's own glyph */
-export const IconTheme = () => <MoonIcon {...rail} />
-export const IconBack = () => <ChevronLeftIcon width={14} height={14} aria-hidden />
-export const IconChevron = () => <ChevronRightIcon width={12} height={12} aria-hidden />

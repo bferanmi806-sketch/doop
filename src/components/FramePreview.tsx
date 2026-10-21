@@ -37,3 +37,51 @@ export function FramePreview({
     />
   )
 }
+
+/** The well per size: xs sits in a table row or menu item, sm leads a list
+ *  row, md is a strip tile that takes its column's width. */
+const THUMB_SIZE = {
+  xs: 'h-[22px] w-[34px]',
+  sm: 'h-10 w-16',
+  md: 'h-24 w-full',
+} as const
+
+type FrameThumbSize = keyof typeof THUMB_SIZE
+
+/** What each size says when there is nothing to preview; xs is too small for words. */
+const THUMB_EMPTY: Record<FrameThumbSize, ReactNode> = {
+  xs: null,
+  sm: 'empty',
+  md: 'empty canvas',
+}
+
+/**
+ * A `FramePreview` in a boxed well: the one thumbnail a list row, menu item
+ * or frame strip shows, so every list draws the same corner, ring and fill.
+ */
+export function FrameThumb({
+  frameId,
+  size = 'sm',
+  empty = THUMB_EMPTY[size],
+  className,
+}: {
+  frameId?: string | null
+  size?: FrameThumbSize
+  /** what an empty well says; defaults per size, `null` for a plain blank */
+  empty?: ReactNode
+  /** placement only (margins, flex); the box comes from `size` */
+  className?: string
+}) {
+  return (
+    <span
+      className={cn(
+        'grid flex-none place-items-center overflow-hidden rounded-row bg-paper-deep shadow-ring',
+        THUMB_SIZE[size],
+        className,
+      )}
+      aria-hidden
+    >
+      <FramePreview frameId={frameId} empty={empty} className="text-micro" />
+    </span>
+  )
+}

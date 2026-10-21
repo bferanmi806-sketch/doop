@@ -5,7 +5,7 @@ import { extendTailwindMerge } from 'tailwind-merge'
    shapes (src/styles.css @theme), or it files `text-body` under colours and
    drops the real colour class that sits beside it. */
 const TEXT_SCALE = ['micro', 'caption', 'label', 'body', 'copy', 'lead', 'heading', 'title', 'display']
-const RADIUS_SHAPES = ['row', 'control', 'pill', 'card', 'panel']
+const RADIUS_SHAPES = ['tag', 'row', 'control', 'pill', 'card', 'panel']
 
 const twMerge = extendTailwindMerge({
   extend: {

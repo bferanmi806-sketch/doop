@@ -1,8 +1,9 @@
-import type { ReactNode, SVGProps } from 'react'
+import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { CanvaTile } from '@/integrations/canva/Tile'
 import { BrandMark } from './ui/brand-mark'
 import { Button } from './ui/button'
+import { ArrowLeftIcon, ArrowRightIcon } from './ui/icons'
 import { ModalLede, ModalTitle } from './ui/modal'
 
 /**
@@ -93,51 +94,6 @@ export function ImportStepFooter({
       </Button>
       {children}
     </div>
-  )
-}
-
-/* ---- source marks the app doesn't already carry ---- */
-
-function ArrowRightIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden {...props}>
-      <path d="M5 12h14M13 6l6 6-6 6" />
-    </svg>
-  )
-}
-
-function ArrowLeftIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden {...props}>
-      <path d="M19 12H5M11 6l-6 6 6 6" />
-    </svg>
-  )
-}
-
-export function GlobeIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden {...props}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M3 12h18M12 3a14.5 14.5 0 0 1 0 18M12 3a14.5 14.5 0 0 0 0 18" />
-    </svg>
-  )
-}
-
-export function RadioTowerIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden {...props}>
-      <path d="M4.9 16.1a7 7 0 0 1 0-9.9M7.8 13.2a3 3 0 0 1 0-5.7M19.1 16.1a7 7 0 0 0 0-9.9M16.2 13.2a3 3 0 0 0 0-5.7" />
-      <circle cx="12" cy="10.5" r="1.5" fill="currentColor" stroke="none" />
-      <path d="M12 12v9M9 21l3-6.5L15 21" />
-    </svg>
-  )
-}
-
-export function UploadIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden {...props}>
-      <path d="M12 16V4M6 9l6-6 6 6M4 21h16" />
-    </svg>
   )
 }
 

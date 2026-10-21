@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AuthScreen } from '../components/ui/screen'
-import { Wordmark } from '../components/ui/wordmark'
+import { AuthCard, AuthCardText, AuthScreen } from '../components/ui/screen'
 import { Button } from '../components/ui/button'
 import { Callout } from '../components/ui/callout'
 
@@ -45,16 +44,12 @@ export function OAuthConsent({ email }: { email: string }) {
 
   return (
     <AuthScreen>
-      <div className="flex w-[min(440px,100%)] flex-col gap-4 rounded-xl border border-line bg-surface p-6 shadow-pop sm:p-9">
-        <Wordmark />
-        <h1 className="break-words font-heading text-3xl">
-          {client ? `Connect ${client.name}?` : 'Connect your agent'}
-        </h1>
-        <p className="break-all text-sm text-ink-soft">Signed in as {email}</p>
-        <p className="text-sm leading-relaxed text-ink-soft">
+      <AuthCard title={client ? `Connect ${client.name}?` : 'Connect your agent'}>
+        <AuthCardText className="break-all">Signed in as {email}</AuthCardText>
+        <AuthCardText>
           This agent will be able to read your profile and read, create, edit and delete designs on the canvases you can
           access. Its changes will be attributed to your account.
-        </p>
+        </AuthCardText>
         {error && <Callout tone="error">{error}</Callout>}
         <div className="flex justify-end gap-2">
           <Button disabled={!client || busy} onClick={() => void respond(false)}>
@@ -64,7 +59,7 @@ export function OAuthConsent({ email }: { email: string }) {
             {busy ? 'Connecting…' : 'Connect'}
           </Button>
         </div>
-      </div>
+      </AuthCard>
     </AuthScreen>
   )
 }

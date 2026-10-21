@@ -9,16 +9,11 @@ import { CODEX_SETUP_PATH } from '../lib/codexConnection'
 import { FIRST_CANVAS_PATH } from '../../shared/firstCanvas'
 import { isDesktopShell } from '../lib/shell'
 import { posthog } from '../lib/posthog'
-import { AuthScreen } from '../components/ui/screen'
-import { Wordmark } from '../components/ui/wordmark'
-import { DashTitle } from '../components/ui/dash'
+import { AuthCard, AuthCardText, AuthScreen } from '../components/ui/screen'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Field } from '../components/ui/field'
 import { Callout } from '../components/ui/callout'
-
-/* the auth form's fields sit on paper and soften their focus ring */
-const authInput = 'rounded-lg bg-paper focus:border-ink-soft focus:ring-0 md:text-sm'
 
 /* If login interrupted an MCP OAuth authorize redirect, send the browser
    back into the flow so the agent connection completes. */
@@ -63,6 +58,14 @@ function resumeOAuthFlow(): boolean {
 }
 
 type AuthMode = 'signin' | 'signup' | 'forgot' | 'reset'
+
+/** the card's title for each mode */
+const TITLES: Record<AuthMode, string> = {
+  signin: 'Welcome back.',
+  signup: 'Create your account.',
+  forgot: 'Reset your password.',
+  reset: 'Pick a new password.',
+}
 
 /** The redirect knobs shared by better-auth's social and oauth2 sign-ins. */
 interface ProviderStart extends ProviderRedirects {
@@ -324,18 +327,8 @@ export function AuthPage() {
 
   return (
     <AuthScreen>
-      <form
-        className="flex w-[min(400px,100%)] flex-col gap-3.5 rounded-[12px] border border-line bg-surface p-6 pt-[30px] shadow-pop sm:p-9 sm:pb-7"
-        onSubmit={submit}
-      >
-        <Wordmark className="mb-1.5" />
-        <DashTitle>
-          {mode === 'signin' && 'Welcome back.'}
-          {mode === 'signup' && 'Create your account.'}
-          {mode === 'forgot' && 'Reset your password.'}
-          {mode === 'reset' && 'Pick a new password.'}
-        </DashTitle>
-        <p className="mb-2 text-[14px] leading-[1.5] text-ink-soft">
+      <AuthCard as="form" title={TITLES[mode]} onSubmit={submit}>
+        <AuthCardText className="mb-2">
           {mode === 'forgot' ? (
             <>Enter your account email and we&rsquo;ll send you a reset link.</>
           ) : mode === 'reset' ? (
@@ -346,7 +339,7 @@ export function AuthPage() {
               {mode === 'signin' ? 'in to your canvases' : 'up to start designing'}.
             </>
           )}
-        </p>
+        </AuthCardText>
         {(oidc.enabled || oidc.google || oidc.microsoft || oidc.apple) && (mode === 'signin' || mode === 'signup') && (
           <>
             {oidc.google && (
@@ -414,7 +407,7 @@ export function AuthPage() {
         {mode === 'signup' && (
           <Field label="Name" labelVariant="form">
             <Input
-              className={authInput}
+              variant="well"
               value={name}
               onChange={(e) => setNameField(e.target.value)}
               placeholder="Kevin"
@@ -425,7 +418,7 @@ export function AuthPage() {
         {mode !== 'reset' && (
           <Field label="Email" labelVariant="form">
             <Input
-              className={authInput}
+              variant="well"
               type="email"
               required
               value={email}
@@ -438,7 +431,7 @@ export function AuthPage() {
         {mode !== 'forgot' && (
           <Field label={mode === 'reset' ? 'New password' : 'Password'} labelVariant="form">
             <Input
-              className={authInput}
+              variant="well"
               type="password"
               required
               minLength={8}
@@ -452,8 +445,8 @@ export function AuthPage() {
         {mode === 'signin' && (
           <Button
             variant="link"
-            size="sm"
-            className="-mt-1.5 self-end px-0 py-0 text-xs font-normal text-ink-faint hover:text-ink"
+            size="inline"
+            className="-mt-1.5 self-end font-normal text-ink-faint hover:text-ink"
             onClick={() => switchMode('forgot')}
           >
             Forgot password?
@@ -466,8 +459,8 @@ export function AuthPage() {
             {suggestMode && (
               <Button
                 variant="link"
-                size="sm"
-                className="mt-1.5 block px-0 py-0 text-accent-ink underline underline-offset-[3px]"
+                size="inline"
+                className="mt-1.5 block text-accent-ink underline"
                 onClick={() => switchMode(suggestMode)}
               >
                 {suggestMode === 'signup' ? 'Create an account instead →' : 'Sign in instead →'}
@@ -476,8 +469,8 @@ export function AuthPage() {
             {unverified && (
               <Button
                 variant="link"
-                size="sm"
-                className="mt-1.5 block px-0 py-0 text-accent-ink underline underline-offset-[3px]"
+                size="inline"
+                className="mt-1.5 block text-accent-ink underline"
                 onClick={resendVerification}
                 disabled={busy}
               >
@@ -505,7 +498,7 @@ export function AuthPage() {
         >
           {mode === 'signin' ? 'No account yet? Sign up' : 'Have an account? Sign in'}
         </Button>
-      </form>
+      </AuthCard>
     </AuthScreen>
   )
 }

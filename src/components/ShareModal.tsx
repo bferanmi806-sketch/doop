@@ -8,16 +8,18 @@ import {
 import { navigate } from '../App'
 import type { WorkspaceSummary } from '../../shared/types'
 import { api, ApiError, paywalledWorkspace, type CanvasMember } from '../lib/api'
-import { UpgradeModal } from './WorkspaceModals'
-import { Sel } from './AutomateShell'
+import { PERSONAL_WORKSPACE, UpgradeModal } from './WorkspaceModals'
 import { authClient } from '../lib/auth'
 import { posthog } from '../lib/posthog'
 import { Avatar } from './ui/avatar'
 import { Button } from './ui/button'
 import { Checkbox } from './ui/checkbox'
-import { BuildingIcon, CopyIcon } from './ui/icons'
+import { IconButton } from './ui/icon-button'
+import { BuildingIcon, CopyIcon, XIcon } from './ui/icons'
 import { Input } from './ui/input'
+import { PersonRow } from './ui/list'
 import { Modal, ModalTitle } from './ui/modal'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { Textarea } from './ui/textarea'
 import { ToggleChipGroup, ToggleChipItem } from './ui/toggle-chip'
 
@@ -160,7 +162,8 @@ export function ShareModal({
           <>
             <div className="mt-4 flex flex-col items-stretch gap-2 sm:flex-row">
               <Input
-                className="flex-1 rounded-pill bg-paper focus:ring-0"
+                variant="well"
+                className="flex-1"
                 autoFocus
                 placeholder="Invite by email (doop account)"
                 value={email}
@@ -182,51 +185,48 @@ export function ShareModal({
         {error && <p className="mx-[2px] mt-2 text-label text-accent-ink">{error}</p>}
         <div className="mt-[14px] mb-1 flex max-h-[40vh] flex-col gap-[2px] overflow-y-auto">
           {(people ?? []).map((person) => (
-            <div key={person.userId} className="flex items-center gap-2.5 px-[2px] py-1.5">
-              <Avatar name={person.name} size={28} />
-              <span className="flex min-w-0 flex-1 flex-col leading-[1.3]">
-                <b className="overflow-hidden whitespace-nowrap text-ellipsis text-body font-semibold">
-                  {person.name}
-                  {person.userId === meId ? ' (you)' : ''}
-                </b>
-                <span className="overflow-hidden whitespace-nowrap text-ellipsis text-label text-ink-faint">
-                  {person.email}
-                </span>
-              </span>
-              {person.owner ? (
-                <span className="flex-none text-label text-ink-faint">Owner</span>
-              ) : isOwner || person.userId === meId ? (
-                <Button
-                  variant="bare"
-                  size="icon-sm"
-                  className="flex-none text-body hover:bg-accent-ink/10 hover:text-accent-ink"
-                  title={person.userId === meId ? 'Leave this canvas' : 'Remove'}
-                  disabled={busy}
-                  onClick={() => remove(person.userId)}
-                >
-                  ✕
-                </Button>
-              ) : (
-                <span className="flex-none text-label text-ink-faint">Can edit</span>
-              )}
-            </div>
+            <PersonRow
+              key={person.userId}
+              className="px-[2px] py-1.5"
+              avatar={<Avatar name={person.name} size={28} />}
+              name={`${person.name}${person.userId === meId ? ' (you)' : ''}`}
+              detail={person.email}
+              trailing={
+                person.owner ? (
+                  <span className="text-label text-ink-faint">Owner</span>
+                ) : isOwner || person.userId === meId ? (
+                  <IconButton
+                    variant="danger"
+                    size="sm"
+                    aria-label={person.userId === meId ? 'Leave this canvas' : `Remove ${person.name}`}
+                    disabled={busy}
+                    onClick={() => remove(person.userId)}
+                  >
+                    <XIcon width={14} height={14} />
+                  </IconButton>
+                ) : (
+                  <span className="text-label text-ink-faint">Can edit</span>
+                )
+              }
+            />
           ))}
           {people === null && <p className="text-label text-ink-faint">Loading…</p>}
           {canvas.workspaceId && (
-            <div className="flex items-center gap-2.5 px-[2px] py-1.5">
-              <span className="grid size-7 flex-none place-items-center rounded-full bg-paper-deep text-ink-soft">
-                <BuildingIcon width={14} height={14} aria-hidden />
-              </span>
-              <span className="flex min-w-0 flex-1 flex-col leading-[1.3]">
-                <b className="truncate text-body font-semibold">Everyone in {workspace?.name ?? 'the workspace'}</b>
-                <span className="truncate text-label text-ink-faint">
-                  {workspace
-                    ? `${workspace.memberCount} ${workspace.memberCount === 1 ? 'person' : 'people'}`
-                    : 'workspace members'}
+            <PersonRow
+              className="px-[2px] py-1.5"
+              avatar={
+                <span className="grid size-7 flex-none place-items-center rounded-full bg-paper-deep text-ink-soft">
+                  <BuildingIcon width={14} height={14} aria-hidden />
                 </span>
-              </span>
-              <span className="flex-none text-label text-ink-faint">Can edit</span>
-            </div>
+              }
+              name={`Everyone in ${workspace?.name ?? 'the workspace'}`}
+              detail={
+                workspace
+                  ? `${workspace.memberCount} ${workspace.memberCount === 1 ? 'person' : 'people'}`
+                  : 'workspace members'
+              }
+              trailing={<span className="text-label text-ink-faint">Can edit</span>}
+            />
           )}
         </div>
         {/* filing: a workspace canvas is open to the whole team, so the
@@ -234,21 +234,24 @@ export function ShareModal({
         {isOwner && workspaces.length > 0 && (
           <div className="mt-2.5 flex flex-col gap-2 border-t border-line-soft pt-3.5 sm:flex-row sm:items-center">
             <span className="text-body font-medium text-ink">Workspace</span>
-            <Sel
-              className="sm:ml-auto sm:w-[240px]"
-              value={canvas.workspaceId ?? ''}
+            <Select
+              value={canvas.workspaceId ?? PERSONAL_WORKSPACE}
               disabled={busy}
-              onChange={(event) => move(event.target.value)}
-              aria-label="Workspace this canvas lives in"
+              onValueChange={(value) => void move(value === PERSONAL_WORKSPACE ? '' : value)}
             >
-              <option value="">Personal — invite-only</option>
-              {workspaces.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.name}
-                  {w.active ? '' : ' (needs a plan)'}
-                </option>
-              ))}
-            </Sel>
+              <SelectTrigger className="sm:ml-auto sm:w-[240px]" aria-label="Workspace this canvas lives in">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={PERSONAL_WORKSPACE}>Personal — invite-only</SelectItem>
+                {workspaces.map((w) => (
+                  <SelectItem key={w.id} value={w.id}>
+                    {w.name}
+                    {w.active ? '' : ' (needs a plan)'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
         <div className="mt-2.5 flex flex-col items-stretch justify-between gap-2.5 border-t border-line-soft pt-3.5 sm:flex-row sm:items-center">
@@ -261,7 +264,7 @@ export function ShareModal({
               Anyone with the link can edit
             </label>
           ) : (
-            <span className="text-xs text-ink-faint">
+            <span className="text-label text-ink-faint">
               {linkEdits ? 'Anyone with the link can edit' : 'Invite-only canvas'}
             </span>
           )}
@@ -344,7 +347,7 @@ function CommunityListing({
           <Textarea
             rows={2}
             maxLength={280}
-            className="rounded-pill bg-paper text-body focus:ring-0"
+            variant="well"
             placeholder="What is this design? One or two lines helps people find it."
             value={description}
             disabled={busy}
@@ -357,7 +360,7 @@ function CommunityListing({
             onValueChange={(next) => setCategory(next as CommunityCategory)}
           >
             {COMMUNITY_CATEGORIES.map((value) => (
-              <ToggleChipItem key={value} value={value} className="px-2.5 py-1 text-label" disabled={busy}>
+              <ToggleChipItem key={value} value={value} size="sm" disabled={busy}>
                 {COMMUNITY_CATEGORY_LABELS[value]}
               </ToggleChipItem>
             ))}

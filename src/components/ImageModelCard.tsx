@@ -4,7 +4,7 @@ import type { ImageModelStatus } from '../lib/api'
 import { IMAGE_MODELS } from '../../shared/modelMenu'
 import { posthog } from '../lib/posthog'
 import { useStore } from '../lib/store'
-import { Card, CardDescription, CardHeader, CardTitle } from './ui/card'
+import { CardDescription, CardHeader, CardTitle, SettingsCard } from './ui/card'
 import { ToggleChip, ToggleChipGroup, ToggleChipItem } from './ui/toggle-chip'
 import { CheckIcon } from './ui/icons'
 
@@ -55,7 +55,7 @@ export function ImageModelCard() {
   }
 
   return (
-    <Card className="mt-4 max-w-[1000px] overflow-hidden sm:mt-5">
+    <SettingsCard>
       <CardHeader>
         <CardTitle>Image model</CardTitle>
         <CardDescription>
@@ -91,6 +91,6 @@ export function ImageModelCard() {
         )}
         {error && <p className="mt-[10px] text-body text-accent-ink">{error}</p>}
       </div>
-    </Card>
+    </SettingsCard>
   )
 }

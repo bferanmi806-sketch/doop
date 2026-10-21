@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { cn } from '@/lib/utils'
 import { Button } from '../components/ui/button'
+import { StatusLabel } from '../components/ui/status-label'
 
 /** One provider's card: identity row, whatever the provider needs to say or
  *  ask in the middle, and a footer of note + actions. */
@@ -26,18 +26,12 @@ export function IntegrationCard({
       <div className="flex items-center gap-[11px]">
         {tile}
         <div className="min-w-0">
-          <div className="text-copy font-medium tracking-[-0.01em]">{name}</div>
+          <div className="text-copy font-medium">{name}</div>
           <div className="mt-0.5 truncate text-label text-ink-soft">{detail}</div>
         </div>
-        <span
-          className={cn(
-            'ml-auto inline-flex flex-none items-center gap-1.5 text-caption',
-            connected ? 'text-ink-soft' : 'text-ink-faint',
-          )}
-        >
-          <span className={cn('size-[7px] rounded-full', connected ? 'bg-success' : 'bg-line')} />
+        <StatusLabel tone={connected ? 'done' : 'muted'} className="ml-auto">
           {connected ? 'connected' : 'not connected'}
-        </span>
+        </StatusLabel>
       </div>
       {children}
       <div className="mt-auto flex items-center gap-2">

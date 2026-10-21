@@ -6,8 +6,11 @@ import { Kbd } from '@/components/ui/kbd'
 import { SearchField } from '@/components/ui/search-field'
 import { MenuButton } from '@/components/ui/menu-button'
 import { Pressable } from '@/components/ui/pressable'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import {
+  ArrowUpIcon,
   CalendarIcon,
   CopyIcon,
   GridIcon,
@@ -17,6 +20,7 @@ import {
   PanelCollapseIcon,
   SearchIcon,
   UserIcon,
+  XIcon,
 } from '@/components/ui/icons'
 
 /**
@@ -57,6 +61,28 @@ function IconButtonDemo() {
         <span className="text-caption text-ink-faint">
           md · 32px; `on` keeps the paper-deep fill; round for row actions
         </span>
+      </div>
+      <div className="flex items-center gap-2.5">
+        <IconButton variant="primary" size="lg" shape="round" aria-label="Send">
+          <ArrowUpIcon width={14} height={14} strokeWidth={1.75} />
+        </IconButton>
+        <IconButton variant="primary" size="lg" shape="round" aria-label="Send" disabled>
+          <ArrowUpIcon width={14} height={14} strokeWidth={1.75} />
+        </IconButton>
+        <IconButton variant="danger" size="sm" aria-label="Remove Mia Chen">
+          <XIcon width={14} height={14} />
+        </IconButton>
+        <span className="text-caption text-ink-faint">
+          lg · 34px primary, the composer's send; danger for a row's remove
+        </span>
+      </div>
+      <div className="flex items-center gap-2.5">
+        <div className="relative grid h-[120px] w-[200px] place-items-center rounded-card bg-[linear-gradient(135deg,#c7d7f5,#f5d0c7)]">
+          <IconButton variant="frosted" aria-label="Actions for Pricing page" className="absolute right-2 top-2">
+            <MoreHorizontalIcon className="size-4" />
+          </IconButton>
+        </div>
+        <span className="text-caption text-ink-faint">frosted · over a preview image</span>
       </div>
     </div>
   )
@@ -118,6 +144,18 @@ export const SearchFields: Story = {
         aria-label="Search the gallery"
         trailing={<Kbd>⌘K</Kbd>}
       />
+      <div className="flex flex-wrap items-center gap-3 rounded-control bg-paper p-3">
+        <span className="text-body font-medium text-ink">Header</span>
+        <SearchField
+          size="header"
+          placeholder="Search the gallery"
+          aria-label="Search the gallery (header)"
+          trailing={<Kbd className="hidden md:inline-flex">⌘K</Kbd>}
+        />
+      </div>
+      <span className="text-caption text-ink-faint">
+        size header: its own 40px row on a phone, the 30px pill (max 320px) from md
+      </span>
       <div className="overflow-hidden rounded-panel bg-surface shadow-float">
         <SearchField
           variant="bar"
@@ -140,7 +178,7 @@ function MenuButtonDemo() {
         <DropdownMenuTrigger asChild>
           <MenuButton aria-label={`Sort: ${sort}`}>{sort}</MenuButton>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-[160px]">
+        <DropdownMenuContent align="start" width="sm">
           {['Last edited', 'Name', 'Created'].map((s) => (
             <DropdownMenuItem key={s} onSelect={() => setSort(s)}>
               {s}
@@ -154,7 +192,7 @@ function MenuButtonDemo() {
             {drafts} {drafts === 1 ? 'draft' : 'drafts'}
           </MenuButton>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-[160px]">
+        <DropdownMenuContent align="start" width="sm">
           {[1, 2, 3].map((n) => (
             <DropdownMenuItem key={n} onSelect={() => setDrafts(n)}>
               {n} {n === 1 ? 'draft' : 'drafts'}
@@ -186,3 +224,72 @@ export const Pressables: Story = {
     </div>
   ),
 }
+
+function SwitchDemo() {
+  const [on, setOn] = useState(true)
+  const [small, setSmall] = useState(false)
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center gap-2.5">
+        <span className="text-caption text-ink-soft">{on ? 'On' : 'Off'}</span>
+        <Switch checked={on} onCheckedChange={setOn} aria-label="Weekly pull on or off" />
+        <span className="text-caption text-ink-faint">md · 34×20, an automation's on/off</span>
+      </div>
+      <div className="flex items-center gap-2.5">
+        <Switch size="sm" checked={small} onCheckedChange={setSmall} aria-label="Small switch" />
+        <Switch size="sm" checked disabled aria-label="Disabled switch" />
+        <span className="text-caption text-ink-faint">sm · 26×16, inside a dense row; disabled</span>
+      </div>
+    </div>
+  )
+}
+
+/** A setting that applies the moment it flips. Space toggles it from the keyboard. */
+export const Switches: Story = { name: 'Switch', render: () => <SwitchDemo /> }
+
+function SelectDemo() {
+  const [role, setRole] = useState('member')
+  const [day, setDay] = useState('')
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center gap-2.5">
+        <Select value={role} onValueChange={setRole}>
+          <SelectTrigger className="w-[180px]" aria-label="Role">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="member">Member</SelectItem>
+            <SelectItem value="admin">Admin</SelectItem>
+          </SelectContent>
+        </Select>
+        <span className="text-caption text-ink-faint">md · 36px, beside an Input in a form</span>
+      </div>
+      <div className="flex items-center gap-2.5">
+        <Select value={day} onValueChange={setDay}>
+          <SelectTrigger size="sm" className="w-[140px]" aria-label="Which day">
+            <SelectValue placeholder="Pick a day" />
+          </SelectTrigger>
+          <SelectContent>
+            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map((d) => (
+              <SelectItem key={d} value={d}>
+                {d}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value="member" disabled>
+          <SelectTrigger size="sm" className="w-[120px]" aria-label="Disabled select">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="member">Member</SelectItem>
+          </SelectContent>
+        </Select>
+        <span className="text-caption text-ink-faint">sm · 32px, a node sentence; placeholder; disabled</span>
+      </div>
+    </div>
+  )
+}
+
+/** One value from a short list. `value=""` shows the placeholder; no item may use the empty string. */
+export const Selects: Story = { name: 'Select', render: () => <SelectDemo /> }

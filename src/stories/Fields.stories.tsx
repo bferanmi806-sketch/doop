@@ -31,6 +31,42 @@ export const Inputs: Story = {
   ),
 }
 
+/** `variant="well"`: the filled field of a modal or form, paper inside a hairline, no focus glow. */
+export const Wells: Story = {
+  render: () => (
+    <div className="flex max-w-[420px] flex-col gap-5">
+      <Input variant="well" placeholder="Invite by email (doop account)" aria-label="Invite by email" />
+      <Input
+        variant="well"
+        inputSize="lg"
+        className="font-mono"
+        placeholder="https://figma.com/design/…"
+        aria-label="Figma link"
+      />
+      <Textarea
+        variant="well"
+        rows={2}
+        placeholder="What is this design? One or two lines helps people find it."
+        aria-label="Description"
+      />
+    </div>
+  ),
+}
+
+/** `variant="code"`: the HTML editor's dark well, the same in both themes. */
+export const CodeEditor: Story = {
+  name: 'Textarea (code)',
+  render: () => (
+    <Textarea
+      variant="code"
+      className="h-[160px] max-w-[420px]"
+      aria-label="Frame HTML"
+      spellCheck={false}
+      defaultValue={'<!doctype html>\n<html>\n  <body>\n    <h1>Pricing</h1>\n  </body>\n</html>'}
+    />
+  ),
+}
+
 /** The ring field the home list uses: no border, a 1px ring. Variants under Primitives/Controls. */
 export const Search: Story = {
   name: 'Search field (ring)',

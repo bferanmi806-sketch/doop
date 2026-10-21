@@ -5,6 +5,7 @@ import type { BillingInterval, Plan } from '../../shared/billing'
 import { api, errorMessage, paywalledWorkspace, type PlansResponse } from '../lib/api'
 import { authClient } from '../lib/auth'
 import { posthog } from '../lib/posthog'
+import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { Callout } from './ui/callout'
 import { CheckIcon } from './ui/icons'
@@ -12,7 +13,7 @@ import { Input } from './ui/input'
 import { Modal, ModalActions, ModalEyebrow, ModalLede, ModalTitle } from './ui/modal'
 import { Segmented, SegmentedItem } from './ui/segmented'
 import { Skeleton } from './ui/skeleton'
-import { Sel } from './AutomateShell'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { cn } from '@/lib/utils'
 
 /**
@@ -21,6 +22,11 @@ import { cn } from '@/lib/utils'
  * out. The wall is what a 402 from the server turns into — see
  * paywalledWorkspace in lib/api.
  */
+
+/** The Personal choice in a workspace picker. Radix Select keeps the empty
+ *  string for "nothing chosen", so "no workspace" needs a value of its own;
+ *  it is mapped back to '' (and to null on the wire) at the picker. */
+export const PERSONAL_WORKSPACE = '__personal__'
 
 /* ---- create ---- */
 
@@ -61,7 +67,8 @@ export function CreateWorkspaceModal({
           canvases in afterwards.
         </ModalLede>
         <Input
-          className="mt-5 rounded-pill bg-paper focus:ring-0"
+          variant="well"
+          className="mt-5"
           autoFocus
           placeholder="Acme Design"
           value={name}
@@ -185,11 +192,11 @@ export function UpgradeModal({
                       current={plan.id === 'free' && !workspace?.active}
                     />
                   ))
-                : [0, 1, 2].map((i) => <Skeleton key={i} index={i} className="min-h-[220px] rounded-card" />)}
+                : [0, 1, 2].map((i) => <Skeleton key={i} index={i} shape="card" />)}
             </div>
 
             <div className="mt-5 flex flex-col gap-3 rounded-card border border-line bg-paper px-4 py-3.5 sm:flex-row sm:items-center">
-              <div className="min-w-0 flex-1 text-body leading-[1.5] text-ink-soft">
+              <div className="min-w-0 flex-1 text-body text-ink-soft">
                 {workspace ? (
                   <>
                     <b className="text-ink">
@@ -250,16 +257,12 @@ function PlanCard({ plan, interval, current }: { plan: Plan; interval: BillingIn
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-lead font-medium tracking-[-0.01em]">{plan.name}</span>
-        {team && (
-          <span className="rounded-md bg-brand px-[7px] py-0.5 text-micro font-medium uppercase tracking-[0.08em] text-white">
-            Popular
-          </span>
-        )}
+        <span className="text-lead font-medium">{plan.name}</span>
+        {team && <Badge tone="brand">Popular</Badge>}
         {current && <span className="text-caption text-ink-faint">Current</span>}
       </div>
-      <p className="mt-1 text-body leading-[1.45] text-ink-soft">{plan.tagline}</p>
-      <div className="mt-3 text-title font-medium tracking-[-0.02em] text-ink">
+      <p className="mt-1 text-body text-ink-soft">{plan.tagline}</p>
+      <div className="mt-3 text-title font-medium text-ink">
         {price === null ? (
           plan.id === 'free' ? (
             '$0'
@@ -276,7 +279,7 @@ function PlanCard({ plan, interval, current }: { plan: Plan; interval: BillingIn
       {price !== null && interval === 'year' && (
         <span className="text-caption text-ink-faint">billed {formatUsd(price)} a seat yearly</span>
       )}
-      <ul className="mt-3.5 flex flex-col gap-[7px] text-body leading-[1.4] text-ink-soft">
+      <ul className="mt-3.5 flex flex-col gap-[7px] text-body text-ink-soft">
         {plan.features.map((f) => (
           <li key={f} className="flex gap-2">
             <CheckIcon className="mt-[2px] size-3.5 flex-none text-accent-ink" />
@@ -342,21 +345,24 @@ export function MoveCanvasModal({
           A canvas in a workspace is open to everyone in it. Move it back to Personal and only you and the people you
           invited keep access.
         </ModalLede>
-        <Sel
-          className="mt-5 w-full"
-          value={target}
+        <Select
+          value={target || PERSONAL_WORKSPACE}
           disabled={busy}
-          onChange={(event) => setTarget(event.target.value)}
-          aria-label="Destination"
+          onValueChange={(value) => setTarget(value === PERSONAL_WORKSPACE ? '' : value)}
         >
-          <option value="">Personal — just you and invitees</option>
-          {workspaces.map((w) => (
-            <option key={w.id} value={w.id}>
-              {w.name}
-              {w.active ? '' : ' (needs a plan)'}
-            </option>
-          ))}
-        </Sel>
+          <SelectTrigger className="mt-5 w-full" aria-label="Destination">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={PERSONAL_WORKSPACE}>Personal — just you and invitees</SelectItem>
+            {workspaces.map((w) => (
+              <SelectItem key={w.id} value={w.id}>
+                {w.name}
+                {w.active ? '' : ' (needs a plan)'}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         {targetWs && !targetWs.active && (
           <p className="mt-2 text-label text-ink-faint">
             {targetWs.name} has no plan yet — you’ll be asked to choose one.

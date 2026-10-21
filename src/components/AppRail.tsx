@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react'
 import type { CanvasMeta, WorkspaceSummary } from '../../shared/types'
 import { colorFor } from '../../shared/types'
 import { api } from '../lib/api'
@@ -12,15 +12,13 @@ import { AgentIcon } from './AgentIcon'
 import { AccountMenu } from './DashShell'
 import { CanvasSearchModal } from './CanvasSearchModal'
 import { ConnectModal } from './ConnectModal'
-import { Logo } from './Logo'
-import { DashNavItem, DashSectionLabel, DashSidebar } from './ui/dash'
+import { DashNavItem, DashSectionLabel, DashSidebar, DashSidebarBrand } from './ui/dash'
 import { Dot } from './ui/dot'
 import { IconButton } from './ui/icon-button'
 import { Sheet, SheetContent, SheetTitle } from './ui/sheet'
 import {
   BlocksIcon,
   BuildingIcon,
-  ChevronDownIcon,
   CirclePlusIcon,
   FolderPlusIcon,
   GridIcon,
@@ -39,11 +37,13 @@ import {
  * workspaces, explore, resources and agents in 12.5px rows, a search palette
  * and a collapse control up top, and the account face at the bottom. Every
  * dashboard page mounts the same one, so the chrome cannot drift between
- * Home, Automations, Integrations, Community and Settings.
+ * Home, Automations, Integrations, Community, Workspace and Admin. Its rows
+ * are the rail density of the dash primitives (ui/dash.tsx), which Settings
+ * also draws its own rail from.
  *
  * It owns the search palette, the connect-an-agent modal and its collapsed
- * state (remembered per browser). A page that needs its own group — the
- * settings panes, the community shelves — passes it as children, and it
+ * state (remembered per browser). A page that needs its own group — a
+ * workspace's panes, the admin indexes — passes it as children, and it
  * lands after Resources.
  *
  * Below md the same rail slides in as a drawer over the page; the header's
@@ -57,8 +57,6 @@ export type RailActive =
 /** an agent that worked this recently is treated as still at the desk */
 const LIVE_WINDOW = 5 * 60 * 1000
 const RAIL_STORAGE_KEY = 'doop-rail'
-/* the rail's glyphs sit at 14px, a hair under the 12.5px label's cap height */
-const rail = { width: 14, height: 14, 'aria-hidden': true } as const
 
 function readRailOpen(): boolean {
   try {
@@ -103,8 +101,9 @@ export function AppRail({
   const drawer = useRailDrawer((s) => s.open)
   const setDrawer = useRailDrawer((s) => s.setOpen)
   const setMounted = useRailDrawer((s) => s.setMounted)
-  /* tells DashHeader a rail is here to open */
-  useEffect(() => {
+  /* tells DashHeader a rail is here to open; before paint, so the phone's
+     brand row does not pop in a frame after the rest of the header */
+  useLayoutEffect(() => {
     setMounted(true)
     return () => setMounted(false)
   }, [setMounted])
@@ -227,7 +226,7 @@ export function AppRail({
       key="narrow"
       className="flex min-h-full w-full animate-[fade-in_0.25s_ease] flex-col items-center motion-reduce:animate-none"
     >
-      <Logo className="mb-3 size-[26px] rounded-row" />
+      <DashSidebarBrand onHome={() => go('/')} />
       <IconButton aria-label="Show sidebar" onClick={() => setRail(true)}>
         <PanelExpandIcon width={15} height={15} />
       </IconButton>
@@ -236,32 +235,32 @@ export function AppRail({
       </IconButton>
       <Rule />
       <IconButton aria-label="All canvases" on={active === 'all'} onClick={() => scope('all')}>
-        <GridIcon {...rail} />
+        <GridIcon size="rail" />
       </IconButton>
       <IconButton aria-label="Owned by me" on={active === 'mine'} onClick={() => scope('mine')}>
-        <UserIcon {...rail} />
+        <UserIcon size="rail" />
       </IconButton>
       <IconButton aria-label="Shared with me" on={active === 'shared'} onClick={() => scope('shared')}>
-        <UsersIcon {...rail} />
+        <UsersIcon size="rail" />
       </IconButton>
       <Rule />
       {spaces.map((w) => (
         <IconButton key={w.id} aria-label={w.name} on={active === `ws:${w.id}`} onClick={() => scope(`ws:${w.id}`)}>
-          <BuildingIcon {...rail} />
+          <BuildingIcon size="rail" />
         </IconButton>
       ))}
       <IconButton aria-label="New workspace" onClick={createWorkspace}>
-        <FolderPlusIcon {...rail} />
+        <FolderPlusIcon size="rail" />
       </IconButton>
       <Rule />
       <IconButton aria-label="Community" on={active === 'community'} onClick={() => go('/community')}>
-        <WebIcon {...rail} />
+        <WebIcon size="rail" />
       </IconButton>
       <IconButton aria-label="Automations" on={active === 'automations'} onClick={() => go('/automations')}>
-        <WorkflowIcon {...rail} />
+        <WorkflowIcon size="rail" />
       </IconButton>
       <IconButton aria-label="Integrations" on={active === 'integrations'} onClick={() => go('/integrations')}>
-        <BlocksIcon {...rail} />
+        <BlocksIcon size="rail" />
       </IconButton>
       <Rule />
       {agents.map((a) => (
@@ -270,8 +269,17 @@ export function AppRail({
         </span>
       ))}
       <IconButton aria-label="Connect an agent" onClick={connect}>
-        <CirclePlusIcon {...rail} />
+        <CirclePlusIcon size="rail" />
       </IconButton>
+      {children ? (
+        <>
+          <Rule />
+          {/* the page's own group, as glyphs: labels stay for screen readers */}
+          <div data-rail="narrow" className="flex w-full flex-col items-center gap-0.5">
+            {children}
+          </div>
+        </>
+      ) : null}
       <div className="mt-auto pt-4">
         <AccountMenu face side="top" align="start" />
       </div>
@@ -282,14 +290,7 @@ export function AppRail({
      instead of narrowing the rail */
   const wide = (inDrawer: boolean) => (
     <div key="wide" className="flex min-h-full w-full animate-[fade-in_0.25s_ease] flex-col motion-reduce:animate-none">
-      <div className="mb-2.5 flex h-[30px] items-center gap-2 px-1.5">
-        <IconButton
-          aria-label="Doop home"
-          className="size-[26px] rounded-row hover:bg-transparent"
-          onClick={() => go('/')}
-        >
-          <Logo className="size-[26px] rounded-row" />
-        </IconButton>
+      <DashSidebarBrand onHome={() => go('/')}>
         <span className="ml-auto flex items-center gap-2.5 text-ink-soft">
           <IconButton size="sm" aria-label="Search canvases (⌘K)" onClick={openSearch}>
             <SearchIcon width={15} height={15} />
@@ -302,27 +303,43 @@ export function AppRail({
             <PanelCollapseIcon width={15} height={15} />
           </IconButton>
         </span>
-      </div>
+      </DashSidebarBrand>
 
       <nav className="flex flex-col gap-0.5">
-        <RailItem icon={<GridIcon {...rail} />} label="All canvases" on={active === 'all'} go={() => scope('all')} />
-        <RailItem icon={<UserIcon {...rail} />} label="Owned by me" on={active === 'mine'} go={() => scope('mine')} />
-        <RailItem
-          icon={<UsersIcon {...rail} />}
-          label="Shared with me"
-          on={active === 'shared'}
-          go={() => scope('shared')}
-        />
+        <DashNavItem
+          density="rail"
+          icon={<GridIcon size="rail" />}
+          active={active === 'all'}
+          onClick={() => scope('all')}
+        >
+          All canvases
+        </DashNavItem>
+        <DashNavItem
+          density="rail"
+          icon={<UserIcon size="rail" />}
+          active={active === 'mine'}
+          onClick={() => scope('mine')}
+        >
+          Owned by me
+        </DashNavItem>
+        <DashNavItem
+          density="rail"
+          icon={<UsersIcon size="rail" />}
+          active={active === 'shared'}
+          onClick={() => scope('shared')}
+        >
+          Shared with me
+        </DashNavItem>
       </nav>
 
-      <RailLabel>Workspaces</RailLabel>
+      <DashSectionLabel density="rail">Workspaces</DashSectionLabel>
       <nav className="flex flex-col gap-0.5">
         {spaces.map((w) => (
-          <RailItem
+          <DashNavItem
             key={w.id}
-            icon={<BuildingIcon {...rail} />}
-            label={w.name}
-            trail={
+            density="rail"
+            icon={<BuildingIcon size="rail" />}
+            count={
               w.active ? (
                 <em className="not-italic">{workspaceCounts.get(w.id) ?? 0}</em>
               ) : (
@@ -331,68 +348,82 @@ export function AppRail({
                 </span>
               )
             }
-            on={active === `ws:${w.id}`}
-            go={() => scope(`ws:${w.id}`)}
-          />
+            active={active === `ws:${w.id}`}
+            onClick={() => scope(`ws:${w.id}`)}
+          >
+            {w.name}
+          </DashNavItem>
         ))}
-        <RailItem
-          icon={<FolderPlusIcon {...rail} />}
-          label={spaces.length ? 'New workspace' : 'Create workspace'}
-          on={false}
-          go={createWorkspace}
-        />
+        <DashNavItem density="rail" icon={<FolderPlusIcon size="rail" />} onClick={createWorkspace}>
+          {spaces.length ? 'New workspace' : 'Create workspace'}
+        </DashNavItem>
       </nav>
 
-      <RailLabel>Explore</RailLabel>
+      <DashSectionLabel density="rail">Explore</DashSectionLabel>
       <nav className="flex flex-col gap-0.5">
-        <RailItem
-          icon={<WebIcon {...rail} />}
-          label="Community"
-          on={active === 'community'}
-          go={() => go('/community')}
-        />
+        <DashNavItem
+          density="rail"
+          icon={<WebIcon size="rail" />}
+          active={active === 'community'}
+          onClick={() => go('/community')}
+        >
+          Community
+        </DashNavItem>
       </nav>
 
-      <RailLabel>Resources</RailLabel>
+      <DashSectionLabel density="rail">Resources</DashSectionLabel>
       <nav className="flex flex-col gap-0.5">
-        <RailItem
-          icon={<WorkflowIcon {...rail} />}
-          label="Automations"
-          on={active === 'automations'}
-          go={() => go('/automations')}
-        />
-        <RailItem
-          icon={<BlocksIcon {...rail} />}
-          label="Integrations"
-          on={active === 'integrations'}
-          go={() => go('/integrations')}
-        />
+        <DashNavItem
+          density="rail"
+          icon={<WorkflowIcon size="rail" />}
+          active={active === 'automations'}
+          onClick={() => go('/automations')}
+        >
+          Automations
+        </DashNavItem>
+        <DashNavItem
+          density="rail"
+          icon={<BlocksIcon size="rail" />}
+          active={active === 'integrations'}
+          onClick={() => go('/integrations')}
+        >
+          Integrations
+        </DashNavItem>
       </nav>
 
-      {children}
+      {/* a page's own group keeps the drawer's contract: a pick puts it away */}
+      <div
+        className="contents"
+        onClick={(e) => {
+          if (e.target instanceof Element && e.target.closest('button, a')) setDrawer(false)
+        }}
+      >
+        {children}
+      </div>
 
-      <RailLabel>Agents</RailLabel>
+      <DashSectionLabel density="rail">Agents</DashSectionLabel>
       <div className="flex flex-col gap-0.5">
         {agents.map((a) => (
-          <div
+          <DashNavItem
             key={a.name}
-            className="flex h-[31px] min-w-0 items-center gap-[11px] px-[11px] text-body text-ink-soft"
+            as="div"
+            density="rail"
             title={`${a.canvases} canvas${a.canvases === 1 ? '' : 'es'}`}
+            icon={<AgentIcon name={a.name} size={14} color={colorFor(a.name)} />}
+            trailing={
+              a.lastAt > 0 && now - a.lastAt < LIVE_WINDOW ? (
+                <Dot size="sm" className="bg-success" title="working right now" />
+              ) : (
+                <span className="text-caption text-ink-faint">{a.lastAt > 0 ? timeAgo(a.lastAt) : ''}</span>
+              )
+            }
           >
-            <span className="grid size-[14px] flex-none place-items-center">
-              <AgentIcon name={a.name} size={14} color={colorFor(a.name)} />
-            </span>
-            <span className="truncate">{a.name}</span>
-            {a.lastAt > 0 && now - a.lastAt < LIVE_WINDOW ? (
-              <Dot size="sm" className="ml-auto bg-success" title="working right now" />
-            ) : (
-              <span className="ml-auto flex-none text-caption text-ink-faint">
-                {a.lastAt > 0 ? timeAgo(a.lastAt) : ''}
-              </span>
-            )}
-          </div>
+            {a.name}
+          </DashNavItem>
         ))}
-        <RailItem icon={<CirclePlusIcon {...rail} />} label="Connect an agent" on={false} go={connect} />
+        <DashNavItem density="rail" icon={<CirclePlusIcon size="rail" />} onClick={connect}>
+          Connect an agent
+        </DashNavItem>
       </div>
 
       <div className="mt-auto flex items-center gap-2.5 px-1 pt-4">
@@ -407,9 +438,10 @@ export function AppRail({
       {/* one aside whose width glides between the two sizes; the layout's
           column follows it (railLayout), and each state fades in over it */}
       <DashSidebar
+        variant="rail"
         className={cn(
-          'overflow-x-hidden border-r-0 bg-sub pb-3 pt-3.5 transition-[width] duration-normal ease-out-quad motion-reduce:transition-none',
-          open ? 'px-3 md:w-[236px]' : 'px-2 md:w-14',
+          'transition-[width] duration-normal ease-out-quad motion-reduce:transition-none',
+          !open && 'px-2 md:w-14',
         )}
       >
         {open ? wide(false) : narrow}
@@ -440,41 +472,4 @@ function AccountName() {
 
 function Rule() {
   return <div className="my-2 h-px w-6 bg-line" />
-}
-
-/** a group caption in the rail: sentence case, a quiet grey */
-export function RailLabel({ children }: { children: ReactNode }) {
-  return (
-    <DashSectionLabel className="flex items-center gap-[5px] px-[11px] pb-1.5 pt-3.5">
-      {children}
-      <ChevronDownIcon width={11} height={11} className="text-ink-ghost" aria-hidden />
-    </DashSectionLabel>
-  )
-}
-
-/** one row of the rail */
-export function RailItem({
-  icon,
-  label,
-  trail,
-  on,
-  go,
-}: {
-  icon: ReactNode
-  label: string
-  trail?: ReactNode
-  on: boolean
-  go: () => void
-}) {
-  return (
-    <DashNavItem
-      icon={icon}
-      count={trail}
-      active={on}
-      onClick={go}
-      className="h-[31px] gap-[11px] rounded-row px-[11px] py-0 text-body font-normal hover:bg-paper-deep data-[active]:font-normal [&_svg]:flex-none"
-    >
-      {label}
-    </DashNavItem>
-  )
 }

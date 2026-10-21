@@ -3,12 +3,18 @@
  *  glyph sits as quietly as the 1px rings around it.
  *
  *  Every icon is re-exported under the name the app already uses, wrapped to
- *  default to 16px — pass width/height or a `size-*` class to override (the
- *  editor chrome uses 14px). A caller's own `strokeWidth` still wins. */
+ *  default to 16px, the size inside a button. `size` picks a named step from
+ *  ICON_SIZE (`size="rail"` for the 14px rail rows, menus and the editor
+ *  chrome) or takes a pixel count, and holds inside a Button or a tab, whose
+ *  own svg rule would otherwise make it 16px. Without `size`, width/height
+ *  or a `size-*` class override the default; a caller's own `strokeWidth`
+ *  always wins. */
 
 import type { ComponentType, SVGProps } from 'react'
 import {
   Activity,
+  ArrowLeft,
+  ArrowRight,
   ArrowUp,
   Bell,
   Blocks,
@@ -66,6 +72,7 @@ import {
   Play,
   Plus,
   Puzzle,
+  RadioTower,
   RefreshCw,
   RotateCcw,
   Scan,
@@ -87,14 +94,41 @@ import {
   X,
 } from 'lucide-react'
 
-type IconProps = Omit<SVGProps<SVGSVGElement>, 'ref'>
+type SvgProps = Omit<SVGProps<SVGSVGElement>, 'ref'>
 
 /** The stroke every chrome glyph is drawn at, in the icon's 24-unit grid. */
 export const ICON_STROKE = 1.15
 
-function icon(Base: ComponentType<IconProps>) {
+/** The sizes a glyph is drawn at, by where it sits: 14px beside a rail row's,
+ *  a menu item's or a tab's 12.5px label (a hair under its cap height), 16px
+ *  inside a button. One table, so a page cannot mix them by accident. */
+export const ICON_SIZE = { rail: 14, button: 16 } as const
+
+export type IconSize = keyof typeof ICON_SIZE | number
+
+export type IconProps = SvgProps & { size?: IconSize }
+
+function px(size: IconSize = 'button') {
+  return typeof size === 'number' ? size : ICON_SIZE[size]
+}
+
+/* An asked-for size goes inline as well as into the attributes: Button and
+   TabsTrigger size any descendant svg without a `size-*` class to 16px, and
+   a stylesheet rule beats an attribute but not an inline style. Unasked, the
+   attributes alone keep the 16px default overridable by those parents. */
+function sized({ size, style, ...props }: IconProps): SvgProps {
+  const side = px(size)
+  return {
+    width: side,
+    height: side,
+    style: size === undefined ? style : { width: side, height: side, ...style },
+    ...props,
+  }
+}
+
+function icon(Base: ComponentType<SvgProps>) {
   return function Icon(props: IconProps) {
-    return <Base width={16} height={16} strokeWidth={ICON_STROKE} aria-hidden {...props} />
+    return <Base strokeWidth={ICON_STROKE} aria-hidden {...sized(props)} />
   }
 }
 
@@ -111,8 +145,6 @@ export const ChevronDownIcon = icon(ChevronDown)
 export function GithubIcon(props: IconProps) {
   return (
     <svg
-      width={16}
-      height={16}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -120,7 +152,7 @@ export function GithubIcon(props: IconProps) {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      {...props}
+      {...sized(props)}
     >
       <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
       <path d="M9 18c-4.51 2-5-2-7-2" />
@@ -154,6 +186,8 @@ export const VectorIcon = icon(PenTool)
 export const BookmarkIcon = icon(Bookmark)
 export const PlayIcon = icon(Play)
 export const ArrowUpIcon = icon(ArrowUp)
+export const ArrowLeftIcon = icon(ArrowLeft)
+export const ArrowRightIcon = icon(ArrowRight)
 export const ChevronLeftIcon = icon(ChevronLeft)
 export const GridIcon = icon(LayoutGrid)
 export const ListIcon = icon(Menu)
@@ -193,8 +227,10 @@ export const PinIcon = icon(MapPin)
 export const EyeIcon = icon(Eye)
 export const EyeClosedIcon = icon(EyeOff)
 export const CircleIcon = icon(Circle)
-/** a web page — the import-a-site tool */
+/** a web page — the import-a-site tool, and the community gallery */
 export const WebIcon = icon(Globe)
+/** a live app broadcasting its screens — the design-sync import */
+export const RadioTowerIcon = icon(RadioTower)
 export const MinusIcon = icon(Minus)
 /** zoom to fit: the four corners of the viewport */
 export const FitIcon = icon(Scan)

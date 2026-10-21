@@ -1,17 +1,16 @@
 import type { SVGProps } from 'react'
-import type { CanvasMeta } from '../../shared/types'
 import { roleById } from '../../shared/agents'
-import { FramePreview } from './FramePreview'
 import { RoleMark } from './RoleMark'
 import { BrandMark } from './ui/brand-mark'
-import { fieldVariants } from './ui/input'
+import { Dot } from './ui/dot'
+import { ClockIcon } from './ui/icons'
 import { cn } from '@/lib/utils'
 
 /**
  * Pieces the Automations and Integrations pages share: the provider and
- * trigger marks, and the small controls the node editor is built from. The
- * rail itself is the shell's AppRail. Visual reference: the "Automations 0/1/5" frames on the Doop
- * Dashboard canvas.
+ * trigger marks and the run status dot. Controls come from `ui/` (Switch,
+ * Select). The rail itself is the shell's AppRail. Visual reference: the
+ * "Automations 0/1/5" frames on the Doop Dashboard canvas.
  */
 
 export type AutomatePage = 'automations' | 'integrations'
@@ -27,18 +26,7 @@ export function ClockTile({ size = 24, className }: { size?: number; className?:
       style={{ width: size, height: size, borderRadius: Math.round(size * 0.29) }}
       aria-hidden
     >
-      <svg
-        width={icon}
-        height={icon}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="var(--paper)"
-        strokeWidth="1.9"
-        strokeLinecap="round"
-      >
-        <circle cx="12" cy="12" r="8.5" />
-        <path d="M12 7.5V12l3 2" />
-      </svg>
+      <ClockIcon width={icon} height={icon} strokeWidth={1.9} className="text-paper" />
     </span>
   )
 }
@@ -108,118 +96,11 @@ export function StepChain({
   )
 }
 
-/* ---- controls ---- */
+/** The status dot a run row leads with: the shared Dot, toned by the run's outcome. */
+const RUN_TONE = { running: 'running', ok: 'done', failed: 'failed' } as const
 
-/** The brand-blue switch from the designs, with its mono "ON/OFF" caption. */
-export function Toggle({
-  on,
-  onChange,
-  label,
-  caption = false,
-  disabled,
-}: {
-  on: boolean
-  onChange: (on: boolean) => void
-  label: string
-  caption?: boolean
-  disabled?: boolean
-}) {
-  return (
-    <span className="inline-flex items-center gap-2">
-      {caption && <span className="text-caption text-ink-soft">{on ? 'On' : 'Off'}</span>}
-      <button
-        type="button"
-        role="switch"
-        aria-checked={on}
-        aria-label={label}
-        disabled={disabled}
-        onClick={(e) => {
-          e.stopPropagation()
-          onChange(!on)
-        }}
-        className={cn(
-          'relative h-5 w-[34px] flex-none rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50',
-          on ? 'bg-brand' : 'bg-line',
-        )}
-      >
-        <span
-          className={cn(
-            'absolute top-[2px] size-4 rounded-full bg-white shadow-[0_1px_2px_rgba(0,0,0,0.2)] transition-[left]',
-            on ? 'left-[16px]' : 'left-[2px]',
-          )}
-        />
-      </button>
-    </span>
-  )
-}
-
-/** The bordered "value ▾" control the node sentences are made of. A native
- *  select underneath keeps the keyboard; the visible part is styled. */
-export function Sel({ className, children, ...props }: React.ComponentProps<'select'>) {
-  return (
-    <span className={cn('relative inline-flex min-w-0', className)}>
-      <select
-        className={cn(
-          fieldVariants({ variant: 'default', inputSize: 'sm' }),
-          'h-[34px] w-full cursor-pointer appearance-none truncate rounded-control pl-[11px] pr-8 text-body font-medium tracking-[-0.01em]',
-        )}
-        {...props}
-      >
-        {children}
-      </select>
-      <Chevron className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-faint" />
-    </span>
-  )
-}
-
-export function Chevron({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.15"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  )
-}
-
-/** A canvas's 28×18 preview, or a blank tile when it has no frames yet. */
-export function CanvasThumb({ canvas, className }: { canvas?: CanvasMeta; className?: string }) {
-  return (
-    <span
-      className={cn(
-        'inline-block h-[18px] w-[28px] flex-none overflow-hidden rounded-[3px] border border-line bg-paper-deep',
-        className,
-      )}
-      aria-hidden
-    >
-      <FramePreview frameId={canvas?.previewFrameId} empty={null} />
-    </span>
-  )
-}
-
-/** The status dot a run row leads with. */
-export function RunDot({ status, className }: { status: 'running' | 'ok' | 'failed'; className?: string }) {
-  return (
-    <span
-      className={cn(
-        'inline-block size-[7px] flex-none rounded-full',
-        status === 'ok' && 'bg-success',
-        status === 'failed' && 'bg-accent-ink',
-        status === 'running' && 'animate-pulse bg-[#8B5CF6]',
-        className,
-      )}
-      aria-label={status}
-    />
-  )
+export function RunDot({ status, className }: { status: keyof typeof RUN_TONE; className?: string }) {
+  return <Dot tone={RUN_TONE[status]} className={className} role="img" aria-hidden={false} aria-label={status} />
 }
 
 /** "Mon, Sep 8 · 9:00 AM" — in the viewer's locale, so the clock reads the

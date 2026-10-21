@@ -9,7 +9,11 @@ const textareaVariants = cva(
     variants: {
       variant: {
         default:
-          'rounded-md border border-line bg-surface px-3 py-2.5 transition-[border-color,box-shadow] focus:border-ink focus:ring-[3px] focus:ring-ink/[0.07]',
+          'rounded-row border border-line bg-surface px-3 py-2.5 transition-[border-color,box-shadow] focus:border-ink focus:ring-[3px] focus:ring-ink/[0.07]',
+        /* the Input well: paper inside a hairline, the surface on focus */
+        well: 'rounded-pill border border-line bg-paper px-3 py-2.5 transition-[border-color,background-color] focus:border-ink focus:bg-surface',
+        /* an HTML editor: the dark code well at the caption step, tabs two wide */
+        code: 'border-0 bg-code p-3 font-mono text-caption/normal text-code-ink [tab-size:2] md:text-caption/normal',
         /* composers: the surrounding card is the field, this is just the text */
         bare: 'border-0 bg-transparent p-0',
       },

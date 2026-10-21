@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
    callers that set a border colour keep working. */
 const buttonVariants = cva(
   [
-    'inline-flex shrink-0 select-none items-center justify-center gap-[7px] whitespace-nowrap rounded-md',
+    'inline-flex shrink-0 select-none items-center justify-center gap-1.75 whitespace-nowrap rounded-row',
     'border font-medium transition-[background-color,border-color,color,box-shadow] duration-[120ms]',
     'focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40',
     'disabled:pointer-events-none disabled:opacity-45',
@@ -38,14 +38,18 @@ const buttonVariants = cva(
         inverse: 'border-transparent bg-transparent text-paper hover:bg-paper/15',
       },
       size: {
-        pill: 'rounded-full px-2 py-[3px] text-caption/3.5 font-medium',
-        sm: 'px-2.5 py-[5px] text-xs',
+        pill: 'rounded-full px-2 py-0.75 text-caption/3.5 font-medium',
+        sm: 'px-2.5 py-1.25 text-label/4',
         md: 'px-3.5 py-2 text-body/4',
-        lg: 'justify-center px-4 py-[11px] text-sm',
+        lg: 'justify-center px-4 py-2.75 text-copy/5',
         /* the 32px header and toolbar action with a leading glyph (Import, New canvas) */
         bar: 'h-8 rounded-control pl-2.5 pr-3 text-body',
         icon: 'size-9 p-0',
-        'icon-sm': 'size-7 rounded-sm p-0',
+        'icon-sm': 'size-7 rounded-tag p-0',
+        /* a text action inside a line of copy or a selection bar ("Clear",
+           "Select page", "Codex & other clients →"): no box, no fill, the
+           caption step. Pair it with `bare` or `link`. */
+        inline: 'h-auto gap-1 rounded-tag p-0 text-caption hover:bg-transparent',
       },
       /* stretches to the container — the mobile default for primary actions */
       block: { true: 'w-full justify-center', false: '' },

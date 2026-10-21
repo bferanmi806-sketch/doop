@@ -18,5 +18,7 @@ describe('cn with the design-system scale', () => {
   it('treats the named radii as radii', () => {
     expect(cn('rounded-md', 'rounded-pill')).toBe('rounded-pill')
     expect(cn('rounded-pill', 'rounded-full')).toBe('rounded-full')
+    expect(cn('rounded-tag', 'rounded-full')).toBe('rounded-full')
+    expect(cn('rounded-full', 'rounded-tag')).toBe('rounded-tag')
   })
 })

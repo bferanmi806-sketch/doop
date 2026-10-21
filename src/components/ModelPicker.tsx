@@ -9,13 +9,14 @@ import { DoopMark } from './Logo'
 import { useModelAccount } from './ModelAccount'
 import {
   DropdownMenu,
+  DropdownMenuCaption,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
-import { CheckIcon } from './ui/icons'
 import { MenuButton } from './ui/menu-button'
 
 /* the brand mark each provider's models wear in the picker */
@@ -77,27 +78,23 @@ export function ModelPicker({ disabled = false }: { disabled?: boolean }) {
           <span className="truncate">{label}</span>
         </MenuButton>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="top" align="end" className="w-[260px]">
+      <DropdownMenuContent side="top" align="end" width="lg">
         {menu.length > 0 ? (
           <>
-            <DropdownMenuLabel className="px-2.5 pt-1.5 pb-1 text-caption text-ink-faint">
-              Doop Agent model
-            </DropdownMenuLabel>
-            {menu.map((m) => (
-              <DropdownMenuItem key={m.id} onSelect={() => void pick(m.id)}>
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate">{m.name}</span>
-                  <span className="truncate text-caption text-ink-faint">{m.blurb}</span>
-                </span>
-                {m.id === account?.model && <CheckIcon className="size-3.5 flex-none" />}
-              </DropdownMenuItem>
-            ))}
+            <DropdownMenuCaption>Doop Agent model</DropdownMenuCaption>
+            <DropdownMenuRadioGroup value={account?.model ?? ''} onValueChange={(model) => void pick(model)}>
+              {menu.map((m) => (
+                <DropdownMenuRadioItem key={m.id} value={m.id} description={m.blurb}>
+                  {m.name}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
             <DropdownMenuSeparator />
           </>
         ) : (
-          <DropdownMenuLabel className="px-2.5 pt-1.5 pb-2 text-caption leading-[1.45] text-ink-soft">
+          <DropdownMenuCaption className="pb-2 text-ink-soft">
             No model account connected — the Doop Agent runs on the server’s model when one is set up.
-          </DropdownMenuLabel>
+          </DropdownMenuCaption>
         )}
         <DropdownMenuItem onSelect={() => navigate('/settings?pane=agent')}>
           {account?.connected ? 'Model settings…' : 'Connect a model…'}

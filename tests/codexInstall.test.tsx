@@ -48,7 +48,7 @@ it('opens the desktop setup from the browser and keeps the manual command availa
     (a) => a.textContent?.trim() === 'Open Doop Desktop',
   )!
   expect(link.getAttribute('href')).toBe('doop://connect/codex?origin=https%3A%2F%2Fdoop.design&canvas=canvas-1')
-  expect(document.querySelector('details')?.open).toBe(false)
+  expect(document.querySelector('[data-slot="collapsible-trigger"]')?.getAttribute('aria-expanded')).toBe('false')
   expect(text()).toContain('codex mcp add doop --url https://doop.design/mcp')
   expect(text()).toContain('codex mcp login doop')
   expect(document.querySelector('a[download]')).toBeNull()

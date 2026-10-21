@@ -11,7 +11,7 @@ import { canvasNameFromPrompt, draftsCardTitle, type DraftCount } from '../lib/h
 import { AgentIcon } from '../components/AgentIcon'
 import { AppRail, railLayout } from '../components/AppRail'
 import { ConnectModal } from '../components/ConnectModal'
-import { FramePreview } from '../components/FramePreview'
+import { FramePreview, FrameThumb } from '../components/FramePreview'
 import { HomeHero } from '../components/HomeHero'
 import { SourcePicker } from '../components/ImportSources'
 import { importSources } from '../components/importSourceList'
@@ -23,11 +23,11 @@ import { closeTab, openCanvasTab, pruneTabs } from '../lib/desktop'
 import { AvatarStack } from '../components/ui/avatar'
 import { EmptyState } from '../components/ui/empty-state'
 import { Button } from '../components/ui/button'
-import { IconButton } from '../components/ui/icon-button'
+import { IconButton, frostedSurface } from '../components/ui/icon-button'
 import { MenuButton } from '../components/ui/menu-button'
 import { Pressable } from '../components/ui/pressable'
 import { Badge } from '../components/ui/badge'
-import { cardVariants } from '../components/ui/card'
+import { MetaLine, Tile, TileBody, TileCover } from '../components/ui/tile'
 import { Skeleton } from '../components/ui/skeleton'
 import { Callout } from '../components/ui/callout'
 import { SegmentedIconItem, SegmentedIcons } from '../components/ui/segmented'
@@ -35,12 +35,13 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu'
 import {
   BuildingIcon,
-  CheckIcon,
   CopyIcon,
   GridIcon,
   ListIcon,
@@ -61,18 +62,11 @@ type Scope = 'all' | 'mine' | 'shared' | `ws:${string}`
 /** how the list is ordered; the default is what the server already sends */
 type Sort = 'updated' | 'name' | 'created'
 const SORT_LABELS: Record<Sort, string> = { updated: 'Last edited', name: 'Name', created: 'Newest' }
+const isSort = (value: string): value is Sort => Object.hasOwn(SORT_LABELS, value)
 
 function workspaceOf(scope: Scope): string | undefined {
   return scope.startsWith('ws:') ? scope.slice(3) : undefined
 }
-
-/* Canvas tiles: the raised Card surface (frosted, squircle corners, no drawn
-   border — the edge is the elevation ring) with the lift on hover. */
-const cardCls = cn(
-  cardVariants({ tone: 'raised' }),
-  'relative z-[2] transform-gpu overflow-hidden rounded-panel p-0 text-left text-ink',
-  'bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] backdrop-blur-[6px]',
-)
 
 export function Home() {
   const [canvases, setCanvases] = useState<CanvasMeta[] | null>(null)
@@ -305,7 +299,7 @@ export function Home() {
         onCreateWorkspace={() => setCreatingWorkspace(true)}
       />
       <DashMain className="[background:var(--paper)]">
-        <DashHeader className="border-b-0 bg-transparent backdrop-blur-none">
+        <DashHeader variant="bare">
           <span className="flex-1" />
           {currentWorkspace && (
             <Button
@@ -376,13 +370,14 @@ export function Home() {
                 <DropdownMenuTrigger asChild>
                   <MenuButton aria-label={`Sort: ${SORT_LABELS[sort]}`}>{SORT_LABELS[sort]}</MenuButton>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[160px]">
-                  {(Object.keys(SORT_LABELS) as Sort[]).map((key) => (
-                    <DropdownMenuItem key={key} onSelect={() => setSort(key)}>
-                      <span className="flex-1">{SORT_LABELS[key]}</span>
-                      {key === sort && <CheckIcon className="size-3.5 flex-none" />}
-                    </DropdownMenuItem>
-                  ))}
+                <DropdownMenuContent align="end" width="sm">
+                  <DropdownMenuRadioGroup value={sort} onValueChange={(next) => isSort(next) && setSort(next)}>
+                    {(Object.keys(SORT_LABELS) as Sort[]).map((key) => (
+                      <DropdownMenuRadioItem key={key} value={key}>
+                        {SORT_LABELS[key]}
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
               <SegmentedIcons
@@ -415,30 +410,25 @@ export function Home() {
               <p className="mt-7 text-copy text-ink-soft">Nothing here yet — try another scope.</p>
             ) : view === 'grid' ? (
               <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-3.5 xs:grid-cols-[repeat(auto-fill,minmax(230px,1fr))] md:gap-[18px]">
-                {canvases === null &&
-                  [0, 1, 2, 3].map((i) => (
-                    <Skeleton key={i} index={i} className={cn(cardCls, 'min-h-[230px] border-solid')} />
-                  ))}
+                {canvases === null && [0, 1, 2, 3].map((i) => <Skeleton key={i} index={i} shape="tile" aspect="5/3" />)}
                 {visible.map((c) => (
-                  <div key={c.id} className={cn(cardCls, 'group relative')}>
+                  <Tile key={c.id}>
                     <Pressable onClick={() => open(c.id, c.name)}>
-                      <div className="relative grid aspect-[5/3] place-items-center overflow-hidden border-b border-line-soft [background:radial-gradient(circle,var(--dot)_1px,transparent_1px)_0_0/18px_18px,var(--paper-deep)]">
+                      <TileCover aspect="5/3">
                         <FramePreview frameId={c.previewFrameId} />
                         <AgentStack canvas={c} />
-                      </div>
-                      <div className="flex items-center gap-2.5 px-3 pb-3 pt-2.5">
+                      </TileCover>
+                      <TileBody className="flex items-center gap-2.5">
                         <div className="min-w-0 flex-1">
-                          <div className="truncate text-body font-medium tracking-[-0.01em]">{c.name}</div>
-                          <div className="mt-[3px] flex items-center gap-1.5 text-caption text-ink-faint">
-                            <Meta
-                              canvas={c}
-                              onClaim={reload}
-                              workspace={scopedWorkspace ? undefined : workspaceName(c.workspaceId)}
-                            />
-                          </div>
+                          <div className="truncate text-body font-medium">{c.name}</div>
+                          <Meta
+                            canvas={c}
+                            onClaim={reload}
+                            workspace={scopedWorkspace ? undefined : workspaceName(c.workspaceId)}
+                          />
                         </div>
                         <PeopleStack canvas={c} />
-                      </div>
+                      </TileBody>
                     </Pressable>
                     <CanvasActions
                       canvas={c}
@@ -448,7 +438,7 @@ export function Home() {
                       onMove={workspaces.length && canManage(c) ? () => setMoveCanvas(c) : undefined}
                       onDelete={canManage(c) ? () => setDeleteCanvas(c) : undefined}
                     />
-                  </div>
+                  </Tile>
                 ))}
                 {canvases !== null && (
                   <Pressable
@@ -474,11 +464,9 @@ export function Home() {
                       className="flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2.5 md:gap-[13px] md:px-3.5 md:py-[9px]"
                       onClick={() => open(c.id, c.name)}
                     >
-                      <span className="grid h-9 w-[58px] flex-none place-items-center overflow-hidden rounded-row border border-line-soft bg-paper-deep">
-                        <FramePreview frameId={c.previewFrameId} className="text-micro" />
-                      </span>
+                      <FrameThumb frameId={c.previewFrameId} />
                       <span className="min-w-0 flex-1 truncate text-body font-medium">{c.name}</span>
-                      <span className="hidden w-[82px] flex-none text-xs text-ink-faint sm:block">
+                      <span className="hidden w-[82px] flex-none text-caption text-ink-faint sm:block">
                         {c.frameCount} frame{c.frameCount === 1 ? '' : 's'}
                       </span>
                       <span className="hidden w-[72px] flex-none xs:flex">
@@ -489,7 +477,7 @@ export function Home() {
                           <AgentIcon key={a.name} name={a.name} size={11} color={colorFor(a.name)} />
                         ))}
                       </span>
-                      <span className="w-auto flex-none text-right text-xs text-ink-faint md:w-[66px]">
+                      <span className="w-auto flex-none text-right text-caption text-ink-faint md:w-[66px]">
                         {timeAgo(c.updatedAt)}
                       </span>
                     </Pressable>
@@ -606,7 +594,7 @@ function AgentStack({ canvas }: { canvas: CanvasMeta }) {
       {agents.map((a) => (
         <i
           key={a.name}
-          className="grid size-5 place-items-center rounded-row corner-squircle bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] shadow-elevation-1 backdrop-blur-[6px]"
+          className={cn('grid size-5 place-items-center rounded-row', frostedSurface)}
           style={{ color: colorFor(a.name) }}
           title={a.name}
         >
@@ -626,35 +614,36 @@ function PeopleStack({ canvas }: { canvas: CanvasMeta }) {
 function Meta({ canvas: c, onClaim, workspace }: { canvas: CanvasMeta; onClaim: () => void; workspace?: string }) {
   const owner = c.people?.[0]
   return (
-    <>
+    <MetaLine
+      className="mt-[3px]"
+      trailing={
+        !c.ownerId && (
+          <Badge
+            tone="accent"
+            interactive
+            title="This canvas predates accounts and is visible to everyone. Claim it to make it yours."
+            onClick={async (e) => {
+              e.stopPropagation()
+              await api.claimCanvas(c.id).catch(console.error)
+              onClaim()
+            }}
+          >
+            unclaimed — make mine
+          </Badge>
+        )
+      }
+    >
       {c.shared && !workspace && !c.workspaceId && owner ? (
         <span title="You were invited to collaborate on this canvas">Shared by {owner.name}</span>
       ) : (
         <span>Edited {timeAgo(c.updatedAt)}</span>
       )}
       {workspace && (
-        <>
-          <span className="opacity-60">·</span>
-          <span className="inline-flex min-w-0 items-center gap-1 truncate" title={`In the ${workspace} workspace`}>
-            <BuildingIcon width={11} height={11} aria-hidden /> {workspace}
-          </span>
-        </>
+        <span className="inline-flex min-w-0 items-center gap-1 truncate" title={`In the ${workspace} workspace`}>
+          <BuildingIcon width={11} height={11} aria-hidden /> {workspace}
+        </span>
       )}
-      {!c.ownerId && (
-        <Badge
-          tone="accent"
-          interactive
-          title="This canvas predates accounts and is visible to everyone. Claim it to make it yours."
-          onClick={async (e) => {
-            e.stopPropagation()
-            await api.claimCanvas(c.id).catch(console.error)
-            onClaim()
-          }}
-        >
-          unclaimed — make mine
-        </Badge>
-      )}
-    </>
+    </MetaLine>
   )
 }
 
@@ -680,20 +669,19 @@ function CanvasActions({
       <DropdownMenuTrigger asChild>
         <IconButton
           aria-label={`Actions for ${canvas.name}`}
-          shape="round"
-          className={cn(
-            'transition-[opacity,box-shadow,background-color,color]',
+          variant={compact ? 'quiet' : 'frosted'}
+          shape={compact ? 'round' : 'square'}
+          className={
             compact
               ? 'text-ink-faint focus-visible:ring-brand'
-              : /* the frosted chip: surface at 72% over the preview, blurred, edged by the
-                   elevation ring rather than a border; revealed by the tile's hover */
-                'absolute right-2 top-2 size-9 rounded-card corner-squircle bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] text-ink shadow-elevation-1 backdrop-blur-[6px] hover:bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] hover:shadow-elevation-1-hover focus-visible:shadow-elevation-1-focus md:size-[30px] md:rounded-pill md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100 md:data-[state=open]:opacity-100',
-          )}
+              : /* the frosted chip over the preview, revealed by the tile's hover */
+                'absolute right-2 top-2 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100 md:data-[state=open]:opacity-100'
+          }
         >
           <MoreHorizontalIcon className="size-4" />
         </IconButton>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-[190px] rounded-panel corner-squircle border-0 shadow-elevation-2">
+      <DropdownMenuContent width="md">
         <DropdownMenuItem onSelect={onShare}>
           <ShareIcon className="size-4" /> Share
         </DropdownMenuItem>

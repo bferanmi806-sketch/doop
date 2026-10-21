@@ -22,7 +22,7 @@ const meta = {
         'inverse',
       ],
     },
-    size: { control: 'select', options: ['pill', 'sm', 'md', 'lg', 'icon', 'icon-sm'] },
+    size: { control: 'select', options: ['pill', 'sm', 'md', 'lg', 'bar', 'icon', 'icon-sm', 'inline'] },
     block: { control: 'boolean' },
     disabled: { control: 'boolean' },
   },
@@ -73,6 +73,33 @@ export const Sizes: Story = {
       </Button>
       <Button size="icon-sm" aria-label="Search">
         <SearchIcon width={14} height={14} />
+      </Button>
+      <Button variant="bare" size="inline">
+        inline
+      </Button>
+    </div>
+  ),
+}
+
+/** `size="inline"`: a text action with no box, at the caption step. `bare` for selection bars,
+ *  `link` for a pointer in a card or a callout. */
+export const InlineActions: Story = {
+  name: 'Inline text actions',
+  render: () => (
+    <div className="flex max-w-[420px] flex-col gap-5">
+      <div className="flex items-center justify-between rounded-control bg-paper px-3 py-2">
+        <span className="text-label text-ink-soft">3 of 12 selected</span>
+        <span className="flex gap-3">
+          <Button variant="bare" size="inline">
+            Select page
+          </Button>
+          <Button variant="bare" size="inline">
+            Clear
+          </Button>
+        </span>
+      </div>
+      <Button variant="link" size="inline" className="self-start text-accent-ink">
+        Codex &amp; other clients →
       </Button>
     </div>
   ),

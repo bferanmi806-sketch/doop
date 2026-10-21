@@ -15,6 +15,7 @@ const meta = {
   args: { name: 'Kevin Goedecke', kind: 'user', size: 24, color: colorFor('kevin'), glaze: false },
   argTypes: {
     kind: { control: 'radio', options: ['user', 'agent'] },
+    tone: { control: 'radio', options: ['tint', 'ink'] },
     size: { control: { type: 'range', min: 16, max: 48, step: 2 } },
     color: { control: 'color' },
     glaze: { control: 'boolean' },
@@ -79,6 +80,18 @@ export const Sizes: Story = {
       <span className="text-caption text-ink-faint">
         18 on a canvas card · 24 in the presence pill · 28–32 in menus and rows
       </span>
+    </div>
+  ),
+}
+
+/** `tone="ink"`: the signed-in account's own face on the dashboard, initials on an ink disc. */
+export const Ink: Story = {
+  name: 'Ink (account)',
+  render: () => (
+    <div className="flex items-center gap-5">
+      <Avatar tone="ink" name="Kevin Goedecke" size={34} />
+      <Avatar tone="ink" name="Madonna" size={28} />
+      <span className="text-caption text-ink-faint">34 on the dashboard's account button</span>
     </div>
   ),
 }
