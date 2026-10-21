@@ -776,15 +776,6 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
     if (frame.locked && editing) exitEdit()
   }, [frame.locked]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  /* When zoomed past 100%, render the iframe k× larger and counter-scale it,
-     with a matching CSS zoom inside — same layout, k× the raster density, so
-     frames stay crisp instead of looking like scaled-up bitmaps. The factor
-     is computed by the Stage from the settled (gesture-idle) zoom. */
-  useEffect(() => {
-    if (!runtimeReady) return
-    iframeRef.current?.contentWindow?.postMessage({ type: 'doop:zoom', zoom: raster }, '*')
-  }, [runtimeReady, raster])
-
   return (
     <ContextMenu
       onOpenChange={(open) => {
@@ -936,9 +927,20 @@ export const FrameView = memo(function FrameView({ frame, raster }: { frame: Fra
               data-doop-frame=""
               sandbox="allow-scripts"
               srcDoc={FRAME_BOOTSTRAP}
+              /* Past 100% the canvas scales this iframe up with a transform,
+                 and Chrome rasterizes a sandboxed iframe at its layout size,
+                 so frames went soft. A CSS zoom of k on the element (k from
+                 the Stage, quantized from the settled zoom) renders the
+                 document at k× the device pixels; the counter-scale puts the
+                 box back. Inside, nothing changes: the viewport stays the
+                 design size, so vh/vw and media queries hold, and every rect
+                 the runtime reports is already in design px. Sizing the
+                 iframe k× and zooming the document inside instead broke
+                 viewport units, which CSS zoom does not scale. */
               style={{
-                width: frame.width * raster,
-                height: frame.height * raster,
+                width: frame.width,
+                height: frame.height,
+                zoom: raster,
                 transform: `scale(${1 / raster})`,
                 transformOrigin: '0 0',
               }}

@@ -89,9 +89,6 @@ export const FRAME_BOOTSTRAP = `<!doctype html>
     try {
       doc = new DOMParser().parseFromString(html, 'text/html')
       syncAttrs(document.documentElement, doc.documentElement)
-      /* the incoming html carries no root style, so the sync drops our
-         crisp-render zoom — put it back before the page reflows */
-      if (curZoom !== 1) document.documentElement.style.zoom = String(curZoom)
       /* the body's own attributes carry whole design systems (<body class="glaze">
          with every rule scoped under .glaze) — morphing only its children left
          those designs unstyled on the canvas */
@@ -287,8 +284,9 @@ export const FRAME_BOOTSTRAP = `<!doctype html>
      The parent can't see into this sandboxed document, so it asks: probe
      resolves the element at a point (for the click toolbar), locate finds a
      stored selector again (to place comment pins). Coordinates cross the
-     boundary in design px; the crisp-render zoom is unapplied on both ends. */
-  var curZoom = 1
+     boundary in design px, which are this document's own CSS px: the
+     crisp-render zoom past 100% is a CSS zoom on the iframe element outside,
+     so in here the viewport, vh/vw and every rect stay at design size. */
 
   function cssPath(el) {
     var parts = []
@@ -307,7 +305,7 @@ export const FRAME_BOOTSTRAP = `<!doctype html>
 
   function designRect(el) {
     var r = el.getBoundingClientRect()
-    return { x: r.left / curZoom, y: r.top / curZoom, width: r.width / curZoom, height: r.height / curZoom }
+    return { x: r.left, y: r.top, width: r.width, height: r.height }
   }
 
   function hitInfo(el) {
@@ -383,7 +381,7 @@ export const FRAME_BOOTSTRAP = `<!doctype html>
     var css = getComputedStyle(path)
     return {
       selector: cssPath(svg), data: path.getAttribute('d'),
-      matrix: [matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f].map(function (n) { return n / curZoom }),
+      matrix: [matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f],
       layoutMatrix: [layout.a, layout.b, layout.c, layout.d, layout.e, layout.f],
       paint: { fill: css.fill, stroke: css.stroke, strokeWidth: css.strokeWidth },
     }
@@ -392,7 +390,7 @@ export const FRAME_BOOTSTRAP = `<!doctype html>
   /* the topmost unlocked element under a design-space point: a click on a
      locked element falls through to whatever sits beneath it, as in Figma */
   function elementAt(x, y) {
-    var stack = document.elementsFromPoint(x * curZoom, y * curZoom)
+    var stack = document.elementsFromPoint(x, y)
     for (var i = 0; i < stack.length; i++) {
       var el = stack[i]
       if (el === document.documentElement || el === document.body) return null
@@ -594,12 +592,6 @@ export const FRAME_BOOTSTRAP = `<!doctype html>
         if (target) found = designRect(target)
       } catch (e) { /* bad selector -> null */ }
       parent.postMessage({ type: 'doop:located', reqId: d.reqId, rect: found }, '*')
-    }
-    /* re-rasterize crisply when the canvas is zoomed in: layout stays identical
-       (viewport is scaled up by the same factor outside) but pixels are k-times denser */
-    if (d.type === 'doop:zoom' && typeof d.zoom === 'number') {
-      curZoom = d.zoom
-      document.documentElement.style.zoom = String(d.zoom)
     }
   })
   parent.postMessage({ type: 'doop:frame-ready' }, '*')

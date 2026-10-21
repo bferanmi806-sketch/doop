@@ -127,36 +127,23 @@ describe.skipIf(!findBrowserPath())('drawing on the canvas', { timeout: 30_000 }
       handle!.evaluate((el) => {
         const box = el.getBoundingClientRect()
         const css = getComputedStyle(el)
-        return {
-          x: box.x,
-          y: box.y,
-          scale: box.width / Number.parseFloat(css.width),
-          raster: 1 / new DOMMatrixReadOnly(css.transform).a,
-        }
+        /* the crisp-render zoom on the element and its counter-scale cancel
+           in the box, so width over the design width is the canvas zoom */
+        return { x: box.x, y: box.y, scale: box.width / Number.parseFloat(css.width) }
       })
     let result: { x: number; y: number; width: number; height: number } | null = null
-    // Stage changes the outer raster scale before the iframe receives its zoom
-    // message. Never combine bounds from opposite sides of that transition.
+    // The inner rect is in design px whatever the raster; only a viewport
+    // still moving between the two reads could mix two states.
     await expect
       .poll(
         async () => {
           const outer = await readOuter()
           const inner = await iframe.$eval(selector, (el) => {
             const box = el.getBoundingClientRect()
-            return {
-              x: box.x,
-              y: box.y,
-              width: box.width,
-              height: box.height,
-              zoom: Number.parseFloat(getComputedStyle(document.documentElement).zoom),
-            }
+            return { x: box.x, y: box.y, width: box.width, height: box.height }
           })
           const after = await readOuter()
-          if (
-            Math.abs(outer.raster - inner.zoom) > 0.0001 ||
-            (['x', 'y', 'scale', 'raster'] as const).some((key) => outer[key] !== after[key])
-          )
-            return false
+          if ((['x', 'y', 'scale'] as const).some((key) => outer[key] !== after[key])) return false
           result = {
             x: outer.x + inner.x * outer.scale,
             y: outer.y + inner.y * outer.scale,
@@ -709,7 +696,7 @@ describe.skipIf(!findBrowserPath())('drawing on the canvas', { timeout: 30_000 }
     },
   )
 
-  it('measures drawing geometry consistently while iframe rasterization catches up with zoom', async () => {
+  it('measures drawing geometry consistently once the iframe re-rasters for the zoom', async () => {
     await page.click('[aria-label="Frame"]')
     await drag([200, 200], [600, 600])
     await waitForFrames(1)
@@ -720,15 +707,11 @@ describe.skipIf(!findBrowserPath())('drawing on the canvas', { timeout: 30_000 }
     const initial = await visibleDrawing('Frame')
     const iframe = (await (await page.$('iframe[title="Frame"]'))!.contentFrame())!
     await page.evaluate(() => window.drawingHarness.viewport({ x: 40, y: 20, zoom: 3 }))
-    await iframe.waitForFunction(() => document.documentElement.style.zoom === '3')
-    // Hold the iframe at its previous zoom to reproduce the interval between
-    // the parent's raster update and the iframe applying the matching zoom.
-    await iframe.evaluate(() => {
-      document.documentElement.style.zoom = '2'
-      setTimeout(() => {
-        document.documentElement.style.zoom = '3'
-      }, 500)
-    })
+    // the crisp render is a CSS zoom on the iframe element, counter-scaled;
+    // the document inside keeps its design viewport, so nothing in there changes
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('iframe[title="Frame"]')!).zoom === '3')
+    const designWidth = await page.evaluate(() => window.drawingHarness.state().frames[0]!.width)
+    expect(await iframe.evaluate(() => [innerWidth, document.documentElement.style.zoom])).toEqual([designWidth, ''])
     const zoomed = await visibleDrawing('Frame')
     expect(zoomed.width).toBeCloseTo(initial.width * 1.5, 1)
     expect(zoomed.height).toBeCloseTo(initial.height * 1.5, 1)
