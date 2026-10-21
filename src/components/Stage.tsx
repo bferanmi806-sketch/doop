@@ -20,7 +20,7 @@ import { gesture } from '../lib/gesture'
 import { hasFrameClip, pasteFrameAtScreen } from '../lib/frameClipboard'
 import { MenuHint } from './ui/menu'
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from './ui/context-menu'
-import { Toolbar, ToolbarButton } from './ui/toolbar'
+import { Toolbar, ToolbarButton, ToolbarHighlight } from './ui/toolbar'
 import { ZoomControls } from './ZoomControls'
 import { Tooltip } from './ui/tooltip'
 import { BoxIcon, CircleIcon, CommentIcon, CursorIcon, FrameIcon, HandIcon, TextIcon, VectorIcon } from './ui/icons'
@@ -858,12 +858,15 @@ export function Stage({
             </div>
           )}
           <Toolbar aria-label="Canvas tools" className="md:w-10 md:flex-col">
+            {/* one fill slides between tools; the buttons themselves stay
+                transparent so the pill is the only thing that moves */}
+            <ToolbarHighlight activeKey={tool} />
             {TOOLS.map((t) => (
               <Tooltip key={t.id} label={`${t.label} (${t.key})`} side="right">
                 <ToolbarButton
                   aria-label={t.label}
                   aria-pressed={tool === t.id}
-                  className="text-ink aria-pressed:bg-paper-deep"
+                  className="relative z-[1] hover:bg-transparent aria-pressed:text-ink"
                   onClick={() => setTool(t.id)}
                 >
                   {TOOL_ICONS[t.id]}

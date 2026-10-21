@@ -10,7 +10,7 @@ function Toolbar({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="toolbar"
       role="toolbar"
-      className={cn('flex items-center gap-0.5 rounded-[12px] bg-surface p-[5px] shadow-float', className)}
+      className={cn('relative flex items-center gap-0.5 rounded-[12px] bg-surface p-[5px] shadow-float', className)}
       {...props}
     />
   )
@@ -28,13 +28,65 @@ const ToolbarButton = React.forwardRef<HTMLButtonElement, React.ComponentProps<'
       type="button"
       data-slot="toolbar-button"
       className={cn(
-        'grid min-h-10 min-w-10 place-items-center rounded-[7px] border-0 bg-transparent px-1.5 text-[12px] text-ink-soft transition-colors hover:bg-paper-deep hover:text-ink sm:size-7 sm:min-h-0 sm:min-w-0 sm:px-0 [&_svg]:size-3.5',
+        'grid min-h-10 min-w-10 place-items-center rounded-[7px] border-0 bg-transparent px-1.5 text-[12px] text-ink-soft transition-[color,background-color,scale] duration-150 ease-out-quint hover:bg-paper-deep hover:text-ink active:scale-95 motion-reduce:transition-none sm:size-7 sm:min-h-0 sm:min-w-0 sm:px-0 [&_svg]:size-3.5',
         className,
       )}
       {...props}
     />
   )
 })
+
+/** The fill behind the pressed button, as one element that slides and
+ *  resizes to the next press instead of each button lighting up on its own.
+ *  It measures `[aria-pressed="true"]` in its toolbar whenever `activeKey`
+ *  changes and whenever the toolbar re-lays out (the rail flips from a row on
+ *  phones to a column on desktop). The first measurement is applied without
+ *  a transition, so the pill never slides in from the corner on mount. */
+function ToolbarHighlight({ activeKey, className }: { activeKey: string; className?: string }) {
+  const ref = React.useRef<HTMLSpanElement>(null)
+  const [ready, setReady] = React.useState(false)
+
+  React.useLayoutEffect(() => {
+    const pill = ref.current
+    const bar = pill?.parentElement
+    if (!pill || !bar) return
+    const place = () => {
+      const active = bar.querySelector<HTMLElement>('[aria-pressed="true"]')
+      if (!active) {
+        pill.style.opacity = '0'
+        return
+      }
+      pill.style.opacity = '1'
+      pill.style.translate = `${active.offsetLeft}px ${active.offsetTop}px`
+      pill.style.width = `${active.offsetWidth}px`
+      pill.style.height = `${active.offsetHeight}px`
+    }
+    place()
+    const observer = new ResizeObserver(place)
+    observer.observe(bar)
+    return () => observer.disconnect()
+  }, [activeKey])
+
+  /* arm the transition one frame after the first placement */
+  React.useEffect(() => {
+    const id = requestAnimationFrame(() => setReady(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+
+  return (
+    <span
+      ref={ref}
+      aria-hidden
+      data-slot="toolbar-highlight"
+      className={cn(
+        'pointer-events-none absolute top-0 left-0 rounded-[7px] bg-paper-deep opacity-0',
+        ready &&
+          'transition-[translate,width,height,opacity] duration-250 ease-out-quint motion-reduce:transition-none',
+        className,
+      )}
+    />
+  )
+}
 
 function ToolbarDivider({ className, ...props }: React.ComponentProps<'div'>) {
   return <div data-slot="toolbar-divider" className={cn('mx-0.5 h-[18px] w-px bg-line-soft', className)} {...props} />
@@ -55,4 +107,4 @@ const ToolbarValue = React.forwardRef<HTMLSpanElement, React.ComponentProps<'spa
   )
 })
 
-export { Toolbar, ToolbarButton, ToolbarDivider, ToolbarValue }
+export { Toolbar, ToolbarButton, ToolbarDivider, ToolbarHighlight, ToolbarValue }
