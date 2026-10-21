@@ -183,7 +183,7 @@ export function ShareModal({
         <div className="mt-[14px] mb-1 flex max-h-[40vh] flex-col gap-[2px] overflow-y-auto">
           {(people ?? []).map((person) => (
             <div key={person.userId} className="flex items-center gap-2.5 px-[2px] py-1.5">
-              <Avatar name={person.name} className="size-7 flex-none border-0 text-xs" />
+              <Avatar name={person.name} size={28} />
               <span className="flex min-w-0 flex-1 flex-col leading-[1.3]">
                 <b className="overflow-hidden whitespace-nowrap text-ellipsis text-body font-semibold">
                   {person.name}

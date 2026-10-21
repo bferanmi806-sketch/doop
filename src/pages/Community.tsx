@@ -12,12 +12,16 @@ import { Logo } from '../components/Logo'
 import { timeAgo } from '../lib/time'
 import { AccountMenu } from '../components/DashShell'
 import { AppRail, railLayout } from '../components/AppRail'
+import { FramePreview } from '../components/FramePreview'
 import { posthog } from '../lib/posthog'
 import { openCanvasTab } from '../lib/desktop'
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
-import { Input } from '../components/ui/input'
-import { Card, cardVariants } from '../components/ui/card'
+import { Kbd } from '../components/ui/kbd'
+import { Pressable } from '../components/ui/pressable'
+import { SearchField } from '../components/ui/search-field'
+import { cardVariants } from '../components/ui/card'
+import { EmptyState } from '../components/ui/empty-state'
 import { Skeleton } from '../components/ui/skeleton'
 import { Segmented, SegmentedItem } from '../components/ui/segmented'
 import { ToggleChipGroup, ToggleChipItem } from '../components/ui/toggle-chip'
@@ -135,25 +139,15 @@ export function Community() {
           >
             <Logo className="size-7" /> Doop
           </Button>
-          <label className="order-2 flex h-10 max-w-none flex-1 basis-full items-center gap-[7px] rounded-control bg-surface px-[10px] text-ink-faint shadow-ring focus-within:shadow-ring-hover md:order-none md:h-[30px] md:max-w-[320px] md:basis-auto">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="7" />
-              <path d="m20 20-3.2-3.2" />
-            </svg>
-            <Input
-              ref={searchRef}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search the gallery"
-              aria-label="Search the gallery"
-              variant="bare"
-              inputSize="auto"
-              className="flex-1 md:text-body"
-            />
-            <kbd className="hidden flex-none rounded-[5px] border border-line px-[5px] py-px font-mono text-micro text-ink-faint md:block">
-              ⌘K
-            </kbd>
-          </label>
+          <SearchField
+            ref={searchRef}
+            className="order-2 h-10 max-w-none flex-1 basis-full md:order-none md:h-[30px] md:max-w-[320px] md:basis-auto"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search the gallery"
+            aria-label="Search the gallery"
+            trailing={<Kbd className="hidden md:inline-flex">⌘K</Kbd>}
+          />
           <span className="flex-1" />
           <span className="md:hidden">
             <AccountMenu />
@@ -200,18 +194,16 @@ export function Community() {
           )}
 
           {empty ? (
-            <Card className="mt-7 max-w-[560px] rounded-[18px] px-5 pb-6 pt-5 sm:px-7 sm:pb-7 sm:pt-[26px]">
-              <h3 className="font-display text-heading font-extrabold tracking-[-0.02em]">
-                Nothing on the shelves yet
-              </h3>
-              <p className="mb-[18px] mt-2.5 text-sm leading-[1.6] text-ink-soft">
-                Anyone can list a canvas here from its Share menu — people preview it and copy it into their own
-                account, and the original stays private. Be the first.
-              </p>
-              <Button variant="primary" onClick={() => navigate('/')}>
-                Pick a canvas to publish
-              </Button>
-            </Card>
+            <EmptyState
+              className="mt-7"
+              title="Nothing on the shelves yet"
+              description="Anyone can list a canvas here from its Share menu — people preview it and copy it into their own account, and the original stays private. Be the first."
+              action={
+                <Button variant="primary" onClick={() => navigate('/')}>
+                  Pick a canvas to publish
+                </Button>
+              }
+            />
           ) : (
             <>
               {items !== null && (query.trim() || shelf !== 'all') && (
@@ -269,12 +261,9 @@ function GalleryCard({
   const cover = item.frames[0]
   return (
     <div className={cardCls}>
-      <button
-        className="block w-full border-0 bg-transparent text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand"
-        onClick={onOpen}
-      >
+      <Pressable onClick={onOpen}>
         <div className="relative grid aspect-[16/10] place-items-center overflow-hidden border-b border-line-soft [background:radial-gradient(circle,var(--dot)_1px,transparent_1px)_0_0/18px_18px,var(--paper-deep)]">
-          {cover ? <FrameImage frameId={cover.id} /> : <span className="text-label text-ink-faint">no preview</span>}
+          <FramePreview frameId={cover?.id} empty="no preview" />
           {item.frames.length > 1 && (
             <Badge className="absolute left-2 top-2 bg-surface/90">{item.frames.length} frames</Badge>
           )}
@@ -292,7 +281,7 @@ function GalleryCard({
             </span>
           </div>
         </div>
-      </button>
+      </Pressable>
       <Button
         size="sm"
         variant="primary"
@@ -343,7 +332,7 @@ function DesignModal({
               className="h-[300px] max-w-[min(520px,80vw)] overflow-hidden rounded-pill border border-line bg-paper-deep"
               style={{ aspectRatio: `${frame.width} / ${Math.min(frame.height, PREVIEW_MAX_HEIGHT)}` }}
             >
-              <FrameImage frameId={frame.id} />
+              <FramePreview frameId={frame.id} />
             </div>
             <figcaption className="mt-1.5 truncate text-caption text-ink-faint">
               {frame.name} · {Math.round(frame.width)}×{Math.round(frame.height)}
@@ -366,17 +355,3 @@ function DesignModal({
 /** A published frame through the public image pipeline. The frame id is
  *  all the gallery holds; a render that fails says so instead of leaving a
  *  blank tile that looks like an empty design. */
-function FrameImage({ frameId }: { frameId: string }) {
-  const [failed, setFailed] = useState(false)
-  if (failed)
-    return <span className="grid h-full w-full place-items-center text-label text-ink-faint">preview unavailable</span>
-  return (
-    <img
-      src={`/i/${frameId}.jpg?preview`}
-      alt=""
-      loading="lazy"
-      className="h-full w-full object-cover object-top"
-      onError={() => setFailed(true)}
-    />
-  )
-}

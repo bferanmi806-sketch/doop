@@ -35,7 +35,7 @@ function SegmentedItem({ className, ...props }: React.ComponentProps<typeof Togg
     <ToggleGroupPrimitive.Item
       data-slot="segmented-item"
       className={cn(
-        'min-h-[30px] flex-1 rounded-[7px] border-0 bg-transparent px-3 py-1 text-[12px] font-normal text-ink-soft transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ink data-[state=on]:bg-surface data-[state=on]:font-medium data-[state=on]:text-ink data-[state=on]:shadow-ring sm:min-h-0 sm:flex-none',
+        'min-h-[30px] flex-1 rounded-[7px] border-0 bg-transparent px-3 py-1 text-label/3.5 font-normal text-ink-soft transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ink data-[state=on]:bg-surface data-[state=on]:font-medium data-[state=on]:text-ink data-[state=on]:shadow-ring sm:min-h-0 sm:flex-none',
         className,
       )}
       {...props}

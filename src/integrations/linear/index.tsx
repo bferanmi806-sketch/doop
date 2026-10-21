@@ -5,8 +5,7 @@ import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Modal, ModalActions, ModalLede, ModalTitle } from '../../components/ui/modal'
 import { DisconnectButton, IntegrationCard } from '../ui'
-import linearLogo from './logo.svg'
-import { cn } from '@/lib/utils'
+import { BrandMark } from '@/components/ui/brand-mark'
 
 interface LinearStatus {
   connected: boolean
@@ -22,21 +21,7 @@ function statusOf(status: IntegrationsStatus): LinearStatus {
 }
 
 function LinearTile({ size = 24, className }: { size?: number; className?: string }) {
-  return (
-    <span
-      aria-hidden
-      className={cn('inline-grid flex-none place-items-center', className)}
-      style={{
-        width: size,
-        height: size,
-        borderRadius: Math.round(size * 0.29),
-        background: '#090A0C',
-      }}
-    >
-      {/* Official logomark: https://linear.app/brand */}
-      <img src={linearLogo} alt="" width={Math.round(size * 0.58)} height={Math.round(size * 0.58)} />
-    </span>
-  )
+  return <BrandMark brand="linear" size={size} className={className} />
 }
 
 function LinearSettingsCard({ status, busy, setBusy, setStatus, requestDisconnect, showToast }: SettingsCardProps) {

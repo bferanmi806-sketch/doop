@@ -12,19 +12,25 @@ import { canvasNameFromPrompt, draftsCardTitle, type DraftCount } from '../lib/h
 import { AgentIcon } from '../components/AgentIcon'
 import { AppRail, railLayout } from '../components/AppRail'
 import { ConnectModal } from '../components/ConnectModal'
+import { FramePreview } from '../components/FramePreview'
 import { HomeHero } from '../components/HomeHero'
 import { SourcePicker } from '../components/ImportSources'
 import { importSources } from '../components/importSourceList'
 import { Modal } from '../components/ui/modal'
 import { ShareModal } from '../components/ShareModal'
 import { CreateWorkspaceModal, MoveCanvasModal, UpgradeModal } from '../components/WorkspaceModals'
-import { AccountMenu, initials } from '../components/DashShell'
+import { AccountMenu } from '../components/DashShell'
 import { posthog } from '../lib/posthog'
 import { closeTab, openCanvasTab, pruneTabs } from '../lib/desktop'
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs'
+import { AvatarStack } from '../components/ui/avatar'
+import { EmptyState } from '../components/ui/empty-state'
 import { Button } from '../components/ui/button'
+import { IconButton } from '../components/ui/icon-button'
+import { MenuButton } from '../components/ui/menu-button'
+import { Pressable } from '../components/ui/pressable'
 import { Badge } from '../components/ui/badge'
-import { Card, cardVariants } from '../components/ui/card'
+import { cardVariants } from '../components/ui/card'
 import { Skeleton } from '../components/ui/skeleton'
 import { Callout } from '../components/ui/callout'
 import { SegmentedIconItem, SegmentedIcons } from '../components/ui/segmented'
@@ -38,7 +44,6 @@ import {
 import {
   BuildingIcon,
   CheckIcon,
-  ChevronDownIcon,
   CopyIcon,
   GridIcon,
   ListIcon,
@@ -417,14 +422,7 @@ export function Home() {
               </h2>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label={`Sort: ${SORT_LABELS[sort]}`}
-                    className="flex h-[30px] flex-none items-center gap-[6px] rounded-control bg-surface px-[10px] text-body text-ink-soft shadow-ring transition-shadow hover:shadow-ring-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
-                  >
-                    {SORT_LABELS[sort]}
-                    <ChevronDownIcon width={12} height={12} className="text-ink-faint" />
-                  </button>
+                  <MenuButton aria-label={`Sort: ${SORT_LABELS[sort]}`}>{SORT_LABELS[sort]}</MenuButton>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-[160px]">
                   {(Object.keys(SORT_LABELS) as Sort[]).map((key) => (
@@ -451,16 +449,16 @@ export function Home() {
             </div>
 
             {empty ? (
-              <Card className="mt-5 max-w-[560px] rounded-[18px] px-5 pb-6 pt-5 sm:px-7 sm:pb-7 sm:pt-[26px]">
-                <h3 className="font-display text-heading font-extrabold tracking-[-0.02em]">Start your first canvas</h3>
-                <p className="mb-[18px] mt-2.5 text-sm leading-[1.6] text-ink-soft">
-                  A canvas is a shared space of live HTML frames — you design in the browser, your AI agents design
-                  through MCP, and everyone watches everything happen in real time.
-                </p>
-                <Button variant="primary" onClick={createCanvas}>
-                  + Create a canvas
-                </Button>
-              </Card>
+              <EmptyState
+                className="mt-5"
+                title="Start your first canvas"
+                description="A canvas is a shared space of live HTML frames — you design in the browser, your AI agents design through MCP, and everyone watches everything happen in real time."
+                action={
+                  <Button variant="primary" onClick={createCanvas}>
+                    + Create a canvas
+                  </Button>
+                }
+              />
             ) : canvases !== null && visible.length === 0 ? (
               <p className="mt-7 text-copy text-ink-soft">Nothing here yet — try another scope.</p>
             ) : view === 'grid' ? (
@@ -471,12 +469,9 @@ export function Home() {
                   ))}
                 {visible.map((c) => (
                   <div key={c.id} className={cn(cardCls, 'group relative')}>
-                    <button
-                      className="block w-full border-0 bg-transparent text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand"
-                      onClick={() => open(c.id, c.name)}
-                    >
+                    <Pressable onClick={() => open(c.id, c.name)}>
                       <div className="relative grid aspect-[5/3] place-items-center overflow-hidden border-b border-line-soft [background:radial-gradient(circle,var(--dot)_1px,transparent_1px)_0_0/18px_18px,var(--paper-deep)]">
-                        <Preview canvas={c} />
+                        <FramePreview frameId={c.previewFrameId} />
                         <AgentStack canvas={c} />
                       </div>
                       <div className="flex items-center gap-2.5 px-3 pb-3 pt-2.5">
@@ -492,7 +487,7 @@ export function Home() {
                         </div>
                         <PeopleStack canvas={c} />
                       </div>
-                    </button>
+                    </Pressable>
                     <CanvasActions
                       canvas={c}
                       duplicating={duplicatingId === c.id}
@@ -504,8 +499,8 @@ export function Home() {
                   </div>
                 ))}
                 {canvases !== null && (
-                  <button
-                    className="grid min-h-16 place-items-center content-center gap-2 rounded-panel border border-dashed border-line text-body text-ink-faint transition-colors hover:border-ink-faint hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand xs:min-h-full"
+                  <Pressable
+                    className="grid min-h-16 place-items-center content-center gap-2 rounded-panel border border-dashed border-line text-body text-ink-faint transition-colors hover:border-ink-faint hover:text-ink xs:min-h-full"
                     aria-label="Create a new canvas"
                     onClick={createCanvas}
                   >
@@ -513,7 +508,7 @@ export function Home() {
                       <PlusIcon width={14} height={14} />
                     </span>
                     New canvas
-                  </button>
+                  </Pressable>
                 )}
               </div>
             ) : (
@@ -523,12 +518,12 @@ export function Home() {
                     key={c.id}
                     className="group flex w-full items-center border-b border-line-soft transition-colors last:border-b-0 hover:bg-paper"
                   >
-                    <button
-                      className="flex min-w-0 flex-1 items-center gap-2.5 border-0 bg-transparent px-3 py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand md:gap-[13px] md:px-3.5 md:py-[9px]"
+                    <Pressable
+                      className="flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2.5 md:gap-[13px] md:px-3.5 md:py-[9px]"
                       onClick={() => open(c.id, c.name)}
                     >
                       <span className="grid h-9 w-[58px] flex-none place-items-center overflow-hidden rounded-row border border-line-soft bg-paper-deep">
-                        <Preview canvas={c} blankSize="text-[9px]" />
+                        <FramePreview frameId={c.previewFrameId} className="text-micro" />
                       </span>
                       <span className="min-w-0 flex-1 truncate text-body font-medium">{c.name}</span>
                       <span className="hidden w-[82px] flex-none text-xs text-ink-faint sm:block">
@@ -539,15 +534,13 @@ export function Home() {
                       </span>
                       <span className="hidden w-[62px] flex-none gap-[3px] xs:flex">
                         {(c.agents ?? []).slice(0, 3).map((a) => (
-                          <i key={a.name} style={{ color: colorFor(a.name) }}>
-                            <AgentIcon name={a.name} size={11} />
-                          </i>
+                          <AgentIcon key={a.name} name={a.name} size={11} color={colorFor(a.name)} />
                         ))}
                       </span>
                       <span className="w-auto flex-none text-right text-xs text-ink-faint md:w-[66px]">
                         {timeAgo(c.updatedAt)}
                       </span>
-                    </button>
+                    </Pressable>
                     <div className="mr-3 flex-none md:mr-3.5">
                       <CanvasActions
                         canvas={c}
@@ -652,26 +645,6 @@ function remove(id: string, done: () => void) {
     .finally(done)
 }
 
-function Preview({ canvas, blankSize = 'text-label' }: { canvas: CanvasMeta; blankSize?: string }) {
-  /* which frame failed, not whether — a new previewFrameId must retry
-     rather than inherit the old frame's failure */
-  const [failedId, setFailedId] = useState<string | null>(null)
-  if (!canvas.previewFrameId) return <span className={cn('text-ink-faint', blankSize)}>empty canvas</span>
-  /* a failed render must look different from an empty canvas — silence here
-     made preview outages undiagnosable */
-  if (failedId === canvas.previewFrameId)
-    return <span className={cn('text-ink-faint', blankSize)}>preview unavailable</span>
-  return (
-    <img
-      src={`/i/${canvas.previewFrameId}.jpg?preview`}
-      alt=""
-      loading="lazy"
-      className="h-full w-full object-cover object-top"
-      onError={() => setFailedId(canvas.previewFrameId ?? null)}
-    />
-  )
-}
-
 /** who has worked here, over the preview — the canvas's multiplayer at a glance */
 function AgentStack({ canvas }: { canvas: CanvasMeta }) {
   const agents = (canvas.agents ?? []).slice(0, 3)
@@ -692,35 +665,10 @@ function AgentStack({ canvas }: { canvas: CanvasMeta }) {
   )
 }
 
-const MAX_FACES = 3
-
 /** the people on a canvas — owner first — as overlapping initial discs */
 function PeopleStack({ canvas }: { canvas: CanvasMeta }) {
   const people = canvas.people ?? []
-  if (!people.length) return null
-  const shown = people.slice(0, MAX_FACES)
-  const extra = people.length - shown.length
-  return (
-    <span className="flex flex-none items-center" title={people.map((p) => p.name).join(', ')}>
-      {shown.map((p, i) => (
-        <span
-          key={p.id}
-          className={cn(
-            'grid size-[18px] place-items-center rounded-full text-[8px] font-medium text-white shadow-[0_0_0_2px_var(--surface)]',
-            i > 0 && '-ml-[5px]',
-          )}
-          style={{ background: colorFor(p.id) }}
-        >
-          {initials(p.name)}
-        </span>
-      ))}
-      {extra > 0 && (
-        <span className="-ml-[5px] grid size-[18px] place-items-center rounded-full bg-ink-faint text-[8px] font-medium text-white shadow-[0_0_0_2px_var(--surface)]">
-          +{extra}
-        </span>
-      )}
-    </span>
-  )
+  return <AvatarStack size={18} people={people.map((p) => ({ id: p.id, name: p.name, color: colorFor(p.id) }))} />
 }
 
 function Meta({ canvas: c, onClaim, workspace }: { canvas: CanvasMeta; onClaim: () => void; workspace?: string }) {
@@ -778,20 +726,20 @@ function CanvasActions({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button
-          type="button"
+        <IconButton
           aria-label={`Actions for ${canvas.name}`}
+          shape="round"
           className={cn(
-            'grid cursor-pointer place-items-center transition-[opacity,box-shadow,background,color] duration-normal ease-out-quad focus-visible:outline-none',
+            'transition-[opacity,box-shadow,background-color,color]',
             compact
-              ? 'size-8 flex-none rounded-full text-ink-faint hover:bg-paper-deep hover:text-ink focus-visible:ring-2 focus-visible:ring-brand'
+              ? 'text-ink-faint focus-visible:ring-brand'
               : /* the frosted chip: surface at 72% over the preview, blurred, edged by the
                    elevation ring rather than a border; revealed by the tile's hover */
-                'absolute right-2 top-2 size-9 rounded-card corner-squircle bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] text-ink shadow-elevation-1 backdrop-blur-[6px] hover:shadow-elevation-1-hover focus-visible:shadow-elevation-1-focus md:size-[30px] md:rounded-pill md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100 md:data-[state=open]:opacity-100',
+                'absolute right-2 top-2 size-9 rounded-card corner-squircle bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] text-ink shadow-elevation-1 backdrop-blur-[6px] hover:bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] hover:shadow-elevation-1-hover focus-visible:shadow-elevation-1-focus md:size-[30px] md:rounded-pill md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100 md:data-[state=open]:opacity-100',
           )}
         >
           <MoreHorizontalIcon className="size-4" />
-        </button>
+        </IconButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-[190px] rounded-panel corner-squircle border-0 shadow-elevation-2">
         <DropdownMenuItem onSelect={onShare}>

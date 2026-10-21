@@ -1,10 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
-import { cn } from '@/lib/utils'
 import { DRAFT_OPTIONS, DRAFTS_STORAGE_KEY, readStoredDrafts, type DraftCount } from '../lib/homePrompt'
 import { ModelPicker } from './ModelPicker'
-import { CanvaMark, PhotoshopMark } from './ImportSources'
-import { FigmaLogo } from '../integrations/figma/Tile'
+import { BrandMark } from './ui/brand-mark'
 import { Button } from './ui/button'
+import { Chip } from './ui/chip'
+import { MenuButton } from './ui/menu-button'
+import { Pressable } from './ui/pressable'
 import { Textarea } from './ui/textarea'
 import {
   DropdownMenu,
@@ -18,7 +19,6 @@ import {
   AttachmentIcon,
   CalendarIcon,
   CheckIcon,
-  ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   CirclePlusIcon,
@@ -206,7 +206,7 @@ export function HomeHero({
             />
           </g>
         </svg>
-        <h1 className="font-['Hanken_Grotesk',sans-serif] text-title font-light leading-none tracking-[-0.02em] md:text-display">
+        <h1 className="font-hero text-title font-light leading-none tracking-[-0.02em] md:text-display">
           Ask me what to design{firstName ? ', ' : ''}
           {firstName && <span className="text-ink-faint">{firstName}</span>}
         </h1>
@@ -226,30 +226,22 @@ export function HomeHero({
             {CHIPS.map((chip, i) => {
               const on = i === beamOn
               return (
-                <button
+                <Chip
                   key={chip.id}
-                  type="button"
+                  icon={chip.icon}
+                  on={on}
                   onMouseEnter={() => setHovered(i)}
                   onFocus={() => setHovered(i)}
                   onBlur={() => setHovered(null)}
                   onClick={() => runChip(chip)}
-                  className={cn(
-                    /* hover and the beam change colour, opacity and shadow only — nothing
-                       shifts, so the row never jitters under the pointer */
-                    'relative inline-flex h-8 flex-none items-center gap-2 whitespace-nowrap rounded-pill bg-surface pl-[11px] pr-[13px] text-body text-ink-soft shadow-ring transition-[opacity,box-shadow,color] duration-normal ease-out-quad hover:shadow-ring-hover focus-visible:outline-none',
-                    on ? 'text-ink' : 'opacity-60 hover:opacity-100',
-                  )}
                 >
                   {on && (
                     <span className="chip-beam motion-reduce:animate-none" aria-hidden>
                       <i />
                     </span>
                   )}
-                  <span className="grid size-[18px] flex-none place-items-center rounded-[6px] bg-ink/[0.06] text-ink-soft shadow-[inset_0_0_0_0.75px_rgba(0,0,0,0.12)]">
-                    {chip.icon}
-                  </span>
                   {chip.label}
-                </button>
+                </Chip>
               )
             })}
           </div>
@@ -279,26 +271,25 @@ export function HomeHero({
             className="min-h-[52px] text-lead leading-[1.45] placeholder:text-ink-ghost md:text-lead"
           />
           <div className="mt-1 flex items-center gap-5 text-body text-ink-soft">
-            <button
-              type="button"
-              className="flex items-center gap-[7px] rounded-md text-ink-soft transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+            <Pressable
+              layout="inline"
+              focus="ring"
+              className="gap-[7px] rounded-md text-ink-soft transition-colors hover:text-ink"
               onClick={actions.onImport}
               title="Attach a design to start from"
             >
               <AttachmentIcon width={14} height={14} /> Files
-            </button>
+            </Pressable>
             <span className="flex-1" />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
+                <MenuButton
+                  variant="quiet"
                   aria-label={`Drafts per prompt: ${drafts}`}
-                  className="flex h-7 items-center gap-[6px] rounded-row px-1.5 text-label text-ink-soft transition-colors hover:bg-paper-deep hover:text-ink"
+                  icon={<CopyIcon width={14} height={14} />}
                 >
-                  <CopyIcon width={14} height={14} />
                   {drafts} {drafts === 1 ? 'draft' : 'drafts'}
-                  <ChevronDownIcon className="size-3 flex-none text-ink-faint" />
-                </button>
+                </MenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="top" align="end" className="w-[220px]">
                 <DropdownMenuLabel className="px-2.5 pb-1 pt-1.5 text-caption text-ink-faint">
@@ -330,10 +321,10 @@ export function HomeHero({
             </Button>
           </div>
         </div>
-        <button
-          type="button"
+        <Pressable
+          focus="ring"
           onClick={actions.onIntegrations}
-          className="group mx-[14px] flex w-[calc(100%-28px)] items-center rounded-b-[12px] bg-sub px-5 pb-2.5 pt-3 text-left text-body text-ink-soft transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+          className="group mx-[14px] flex w-[calc(100%-28px)] items-center rounded-b-card bg-sub px-5 pb-2.5 pt-3 text-body text-ink-soft transition-colors hover:text-ink"
         >
           Connect your existing designs for better results
           <ChevronRightIcon
@@ -348,25 +339,15 @@ export function HomeHero({
             className="marks ml-auto flex items-center gap-[9px] [&>*]:opacity-75 [&>*]:saturate-[.8] [&>*]:transition-[opacity,filter,transform] [&>*]:duration-fast [&>*]:ease-out-quad group-hover:[&>*]:opacity-90 group-hover:[&>*]:saturate-[.95] [&>*:hover]:-translate-y-px [&>*:hover]:!opacity-100 [&>*:hover]:!saturate-100 motion-reduce:[&>*]:transition-none"
             aria-hidden
           >
-            <span className="grid size-4 place-items-center rounded-[4px] bg-surface shadow-ring">
-              <FigmaLogo width={8} height={12} />
+            <span className="grid size-4 place-items-center rounded-sm bg-surface shadow-ring">
+              <BrandMark brand="figma" size={12} />
             </span>
-            <GithubMark />
-            <CanvaMark size={16} />
-            <PhotoshopMark size={16} />
+            <BrandMark brand="github" size={16} className="text-ink" />
+            <BrandMark brand="canva" size={16} />
+            <BrandMark brand="photoshop" size={16} />
           </span>
-        </button>
+        </Pressable>
       </div>
     </section>
-  )
-}
-
-/** GitHub's filled mark (Simple Icons, CC0), the one its favicon shows — the
- *  outline in the icon set reads too light next to the other brands here. */
-function GithubMark() {
-  return (
-    <svg width={16} height={16} viewBox="0 0 24 24" className="fill-ink" aria-hidden>
-      <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
-    </svg>
   )
 }

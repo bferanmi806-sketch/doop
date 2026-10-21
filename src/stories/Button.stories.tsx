@@ -23,7 +23,6 @@ const meta = {
       ],
     },
     size: { control: 'select', options: ['pill', 'sm', 'md', 'lg', 'icon', 'icon-sm'] },
-    mono: { control: 'boolean' },
     block: { control: 'boolean' },
     disabled: { control: 'boolean' },
   },
@@ -73,9 +72,6 @@ export const Sizes: Story = {
       </Button>
       <Button size="icon-sm" aria-label="Search">
         <SearchIcon width={14} height={14} />
-      </Button>
-      <Button mono size="sm">
-        Chrome voice
       </Button>
     </div>
   ),

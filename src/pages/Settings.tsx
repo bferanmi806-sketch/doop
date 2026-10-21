@@ -16,6 +16,7 @@ import { BellIcon, KeyIcon, MoonIcon, SparkIcon, UserIcon } from '../components/
 const railIcon = { width: 14, height: 14, 'aria-hidden': true } as const
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Button } from '../components/ui/button'
+import { IconButton } from '../components/ui/icon-button'
 import { Card, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Progress } from '../components/ui/progress'
 import {
@@ -94,9 +95,13 @@ export function Settings() {
       {/* Settings is its own screen: a rail of its panes, and the way back */}
       <DashSidebar className="overflow-x-hidden border-r-0 bg-sub px-3 pb-3 pt-3.5 md:w-[236px]">
         <div className="mb-2.5 flex h-[30px] items-center gap-2 px-1.5">
-          <button type="button" aria-label="Doop home" className="rounded-row" onClick={() => navigate('/')}>
+          <IconButton
+            aria-label="Doop home"
+            className="size-[26px] rounded-row hover:bg-transparent"
+            onClick={() => navigate('/')}
+          >
             <Logo className="size-[26px] rounded-row" />
-          </button>
+          </IconButton>
         </div>
         <nav className="flex flex-col gap-0.5">
           <RailItem

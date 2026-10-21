@@ -7,13 +7,14 @@ import { useMe } from '../lib/me'
 import { isDesktopShell } from '../lib/shell'
 import { isTheme, useTheme } from '../lib/theme'
 import { AgentIcon } from './AgentIcon'
-import { PresenceFace } from './PeerAvatars'
 import { colorFor } from '../../shared/types'
 import { ConnectModal } from './ConnectModal'
 import { themeOptions } from './ThemePicker'
 import { CodeBlock } from './ui/code-block'
 import { Badge } from './ui/badge'
+import { Avatar, initials } from './ui/avatar'
 import { Button } from './ui/button'
+import { IconButton } from './ui/icon-button'
 import {
   DropdownMenu,
   DropdownMenuCaption,
@@ -52,13 +53,7 @@ import {
  *  top bar and the connect card pinned to the bottom of the rail. They live
  *  here so Home and Settings cannot drift apart. */
 
-export function initials(name?: string): string {
-  const [first, ...rest] = (name ?? '').trim().split(/\s+/).filter(Boolean)
-  if (!first) return '·'
-  const last = rest[rest.length - 1]
-  const letters = last ? first.slice(0, 1) + last.slice(0, 1) : first.slice(0, 2)
-  return letters.toUpperCase()
-}
+export { initials }
 
 export function AccountMenu({
   face = false,
@@ -79,20 +74,14 @@ export function AccountMenu({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         {face ? (
-          <button
-            type="button"
+          <IconButton
             aria-label="Account"
             title={name}
-            className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-faint data-[state=open]:ring-2 data-[state=open]:ring-ink-faint"
+            shape="round"
+            className="size-7 hover:bg-transparent focus-visible:ring-ink-faint data-[state=open]:ring-2 data-[state=open]:ring-ink-faint"
           >
-            <PresenceFace
-              name={name || '·'}
-              color={colorFor(session?.user.id ?? name)}
-              kind="user"
-              size={28}
-              className="text-micro shadow-none"
-            />
-          </button>
+            <Avatar name={name} color={colorFor(session?.user.id ?? name)} size={28} className="shadow-none" />
+          </IconButton>
         ) : (
           <Button
             variant="bare"
@@ -105,13 +94,7 @@ export function AccountMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent side={side} align={align} className="w-[240px]">
         <DropdownMenuLabel className="flex items-center gap-2.5 px-2.5 pb-2.5 pt-2">
-          <PresenceFace
-            name={name || '·'}
-            color={colorFor(session?.user.id ?? name)}
-            kind="user"
-            size={32}
-            className="text-caption shadow-none"
-          />
+          <Avatar name={name} color={colorFor(session?.user.id ?? name)} size={32} className="shadow-none" />
           <span className="flex min-w-0 flex-col">
             <span className="truncate text-body font-medium text-ink">{name}</span>
             <span className="truncate text-caption font-normal text-ink-faint">{me?.email ?? session?.user.email}</span>

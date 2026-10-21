@@ -8,6 +8,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Toast, ToastAction, ToastSpinner } from '@/components/ui/toast'
 import { CodeBlock } from '@/components/ui/code-block'
 import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
+import { ClockTile, MetaTile } from '@/components/AutomateShell'
 
 const meta = { title: 'Primitives/Surfaces' } satisfies Meta
 export default meta
@@ -107,6 +109,33 @@ export const Code: Story = {
     <div className="flex max-w-[520px] flex-col gap-3">
       <CodeBlock text="claude mcp add --transport http doop https://doop.design/mcp" />
       <CodeBlock density="rail" text="claude mcp add --transport http doop https://doop.design/mcp" />
+    </div>
+  ),
+}
+
+/** The hero card a list shows before it has rows, and the dashed placeholder a table page shows. */
+export const Empty: Story = {
+  name: 'Empty state',
+  render: () => (
+    <div className="flex max-w-[640px] flex-col gap-6">
+      <EmptyState
+        title="Start your first canvas"
+        description="A canvas is a shared space of live HTML frames — you design in the browser, your AI agents design through MCP, and everyone watches everything happen in real time."
+        action={<Button variant="primary">+ Create a canvas</Button>}
+      />
+      <EmptyState
+        variant="dashed"
+        illustration={
+          <>
+            <ClockTile size={36} />
+            <span className="h-px w-[22px] bg-line" aria-hidden />
+            <MetaTile size={36} className="border border-line bg-surface" />
+          </>
+        }
+        title="Nothing runs on its own yet"
+        description="Pull designs in on a schedule, or hand a canvas to an agent every week."
+        action={<Button variant="primary">+ New automation</Button>}
+      />
     </div>
   ),
 }

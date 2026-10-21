@@ -55,6 +55,59 @@ const STEPS: { cls: string; px: string; role: string }[] = [
   { cls: 'text-micro', px: '10', role: 'mono captions, key caps, badges' },
 ]
 
+const FACES = [
+  {
+    token: '--font-ui / --font-display',
+    cls: 'font-sans',
+    family: 'Inter',
+    weights: '400 · 500 · 600',
+    role: 'Everything the chrome says: labels, rows, buttons, headings. Display is the same face — the chrome is quiet by design.',
+    sample: 'Ask me what to design, Kevin',
+  },
+  {
+    token: '--font-mono',
+    cls: 'font-mono',
+    family: 'Geist Mono',
+    weights: '400 · 500',
+    role: 'Values only: ids, sizes, coordinates, key caps, code. Never a caption, never uppercase.',
+    sample: '1440 × 900 · #0177d3 · ⌘K · 5BNZaqaASa',
+  },
+  {
+    token: '--font-hero',
+    cls: 'font-hero font-light tracking-[-0.02em]',
+    family: 'Hanken Grotesk',
+    weights: '300',
+    role: 'The home greeting, and nothing else (`font-hero`). Loaded in index.html beside the others.',
+    sample: 'Ask me what to design',
+  },
+] as const
+
+/** The three faces the product is set in, and what each is allowed to say. Instrument Serif and the mono-uppercase caption voice are retired. */
+export const Typefaces: Story = {
+  render: () => (
+    <div className="flex max-w-[760px] flex-col gap-5">
+      {FACES.map((f) => (
+        <div key={f.token} className="flex flex-col gap-2 border-b border-line-soft pb-5">
+          <span className={cn(f.cls, 'text-title text-ink')}>{f.sample}</span>
+          <span className={cn(f.cls, 'text-copy text-ink-soft')}>
+            The quick brown fox jumps over the lazy dog · 0123456789
+          </span>
+          <div className="mt-1 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-caption text-ink-faint">
+            <span className="font-mono">{f.token}</span>
+            <span className="text-ink-soft">{f.family}</span>
+            <span>{f.weights}</span>
+          </div>
+          <p className="max-w-[60ch] text-caption text-ink-faint">{f.role}</p>
+        </div>
+      ))}
+      <p className="text-caption text-ink-faint">
+        Retired: Instrument Serif (headlines now use the title step in Inter) and mono uppercase captions (now
+        text-caption in sentence case).
+      </p>
+    </div>
+  ),
+}
+
 export const TypeScale: Story = {
   name: 'Type scale',
   render: () => (

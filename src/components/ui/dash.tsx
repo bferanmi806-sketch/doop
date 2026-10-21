@@ -30,12 +30,12 @@ function DashSidebar({ className, ...props }: React.ComponentProps<'aside'>) {
   )
 }
 
-/** The uppercase caption over a group in the rail. */
+/** The caption over a group in the rail: sentence case, a quiet grey. */
 function DashSectionLabel({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="dash-section-label"
-      className={cn('px-2.5 pb-2 pt-[22px] text-micro font-bold uppercase tracking-[0.15em] text-ink-faint', className)}
+      className={cn('px-2.5 pb-2 pt-[22px] text-caption text-ink-faint', className)}
       {...props}
     />
   )

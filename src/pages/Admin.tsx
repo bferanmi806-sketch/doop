@@ -84,9 +84,7 @@ export function Admin() {
     return (
       <div className="h-full overflow-y-auto [background:radial-gradient(circle,var(--dot)_1px,transparent_1px)_0_0/26px_26px,var(--paper)]">
         <div className="mx-auto max-w-[1060px] px-10 pt-[72px] pb-[120px]">
-          <h1 className="mt-16 font-serif text-[clamp(38px,4.8vw,60px)] font-normal leading-none tracking-[-0.02em]">
-            Not found
-          </h1>
+          <DashTitle className="mt-16">Not found</DashTitle>
           <p className="mt-3.5 max-w-[44em] text-lead leading-[1.6] text-ink-soft">
             This page does not exist for this account.
           </p>

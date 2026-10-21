@@ -29,7 +29,7 @@ function CodeBlock({
       <button
         type="button"
         className={cn(
-          'absolute rounded-[6px] bg-white/[0.08] px-2 py-1 text-[11px] text-[#e9e9ee] transition-colors hover:bg-white/[0.18]',
+          'absolute rounded-[6px] bg-white/[0.08] px-2 py-1 text-caption/3.5 text-[#e9e9ee] transition-colors hover:bg-white/[0.18]',
           density === 'rail' ? 'right-[5px] top-[5px]' : 'right-2 top-2',
         )}
         onClick={() => {

@@ -55,7 +55,7 @@ function CheckboxCard({
     >
       <Checkbox checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
       <span>
-        <span className="block text-[13.5px] font-bold text-ink">{title}</span>
+        <span className="block text-copy/4 font-bold text-ink">{title}</span>
         {description ? <span className="mt-1 block text-xs leading-[1.4] text-ink-soft">{description}</span> : null}
       </span>
     </label>

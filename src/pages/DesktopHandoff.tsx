@@ -3,6 +3,7 @@ import { authClient } from '../lib/auth'
 import { desktopAuthDeepLink, parseDesktopHandoffQuery } from '../lib/desktopAuth'
 import { AuthScreen } from '../components/ui/screen'
 import { Wordmark } from '../components/ui/wordmark'
+import { DashTitle } from '../components/ui/dash'
 import { Button } from '../components/ui/button'
 import { Callout } from '../components/ui/callout'
 
@@ -39,9 +40,7 @@ export function DesktopHandoff() {
     <AuthScreen>
       <div className="flex w-[min(400px,100%)] flex-col gap-3.5 rounded-[12px] border border-line bg-surface p-6 pt-[30px] shadow-pop sm:p-9 sm:pb-7">
         <Wordmark className="mb-1.5" />
-        <h1 className="font-serif text-[34px] font-normal leading-[1.05] tracking-[-0.015em]">
-          {failed ? 'Something went wrong.' : "You're signed in."}
-        </h1>
+        <DashTitle>{failed ? 'Something went wrong.' : "You're signed in."}</DashTitle>
         {failed ? (
           <Callout tone="error">
             Could not hand the sign-in over to the doop app. Go back to the app and try again.

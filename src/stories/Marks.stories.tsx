@@ -1,11 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { AgentIcon } from '@/components/AgentIcon'
 import { DoopMark, Logo } from '@/components/Logo'
-import { PresenceFace } from '@/components/PeerAvatars'
-import { Avatar } from '@/components/ui/avatar'
-import { CanvaMark, GlobeIcon, PhotoshopMark, RadioTowerIcon } from '@/components/ImportSources'
-import { FigmaLogo } from '@/integrations/figma/Tile'
+import { GlobeIcon, RadioTowerIcon } from '@/components/ImportSources'
+import { BRANDS, BrandMark } from '@/components/ui/brand-mark'
 import { ClockTile, MetaTile } from '@/components/AutomateShell'
+import { FigmaTile } from '@/integrations/figma/Tile'
 import { colorFor } from '../../shared/types'
 
 /**
@@ -41,41 +40,40 @@ export const Agents: Story = {
   ),
 }
 
-export const People: Story = {
-  name: 'People (presence faces)',
+/** Every third-party mark, from the one registry (`<BrandMark brand size />`). */
+export const Brands: Story = {
   render: () => (
-    <div className="flex items-center gap-5">
-      <PresenceFace
-        name="Kevin Goedecke"
-        color={colorFor('kevin')}
-        kind="user"
-        size={28}
-        className="text-caption shadow-none"
-      />
-      <PresenceFace name="Mia Chen" color={colorFor('mia')} kind="user" size={24} />
-      <PresenceFace name="Claude" color={colorFor('Claude')} kind="agent" size={24} glaze />
-      <span className="flex">
-        <Avatar name="Kevin Goedecke" color={colorFor('kevin')} stacked />
-        <Avatar name="Mia Chen" color={colorFor('mia')} stacked />
-        <Avatar name="Codex" kind="agent" stacked />
-      </span>
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-center gap-4">
+        {BRANDS.map((brand) => (
+          <span key={brand} className="flex flex-col items-center gap-1.5">
+            <BrandMark brand={brand} size={24} />
+            <span className="font-mono text-micro text-ink-faint">{brand}</span>
+          </span>
+        ))}
+      </div>
+      <div className="flex items-center gap-4">
+        {BRANDS.map((brand) => (
+          <BrandMark key={brand} brand={brand} size={16} />
+        ))}
+        <span className="ml-2 text-caption text-ink-faint">16px in logo rows, 24px on picker tiles</span>
+      </div>
     </div>
   ),
 }
 
-export const Brands: Story = {
+/** The feature tiles that compose a mark: a brand on a paper tile, the automation chain's clock. */
+export const Tiles: Story = {
   render: () => (
     <div className="flex items-center gap-4">
       <span className="grid size-4 place-items-center rounded-[4px] bg-surface shadow-ring">
-        <FigmaLogo width={8} height={12} />
+        <BrandMark brand="figma" size={12} />
       </span>
-      <CanvaMark size={16} />
-      <PhotoshopMark size={16} />
+      <FigmaTile size={24} />
       <MetaTile size={24} />
       <ClockTile size={24} />
       <GlobeIcon className="size-5 text-ink" />
       <RadioTowerIcon className="size-5 text-ink" />
-      <span className="ml-4 text-caption text-ink-faint">16px in logo rows, 24px on picker tiles</span>
     </div>
   ),
 }

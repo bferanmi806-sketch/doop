@@ -10,7 +10,7 @@ function ListSection({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="list-section"
       className={cn(
-        'flex items-center justify-between gap-2 px-4 pb-1.5 pt-3 text-[11px] font-extrabold uppercase tracking-[0.08em] text-ink-faint',
+        'flex items-center justify-between gap-2 px-4 pb-1.5 pt-3 text-caption/3.5 font-extrabold uppercase tracking-[0.08em] text-ink-faint',
         className,
       )}
       {...props}
@@ -55,7 +55,7 @@ function ListItem({ className, ...props }: React.ComponentProps<'div'>) {
 }
 
 function ListTitle({ className, ...props }: React.ComponentProps<'span'>) {
-  return <span data-slot="list-title" className={cn('text-[13px] font-bold', className)} {...props} />
+  return <span data-slot="list-title" className={cn('text-body/4 font-bold', className)} {...props} />
 }
 
 function ListSummary({ className, ...props }: React.ComponentProps<'span'>) {
@@ -63,7 +63,7 @@ function ListSummary({ className, ...props }: React.ComponentProps<'span'>) {
 }
 
 function ListMeta({ className, ...props }: React.ComponentProps<'span'>) {
-  return <span data-slot="list-meta" className={cn('text-[11px] text-ink-faint', className)} {...props} />
+  return <span data-slot="list-meta" className={cn('text-caption/3.5 text-ink-faint', className)} {...props} />
 }
 
 export { ListSection, ListHint, ListRow, ListItem, ListTitle, ListSummary, ListMeta }

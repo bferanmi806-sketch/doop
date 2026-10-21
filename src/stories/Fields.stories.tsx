@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Field } from '@/components/ui/field'
 import { Checkbox, CheckboxCard } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
-import { SearchIcon } from '@/components/ui/icons'
+import { SearchField } from '@/components/ui/search-field'
 
 const meta = { title: 'Primitives/Fields' } satisfies Meta
 export default meta
@@ -31,21 +31,10 @@ export const Inputs: Story = {
   ),
 }
 
-/** The ring field the home list and the search palette use: no border, a 1px ring. */
-export const SearchField: Story = {
+/** The ring field the home list uses: no border, a 1px ring. Variants under Primitives/Controls. */
+export const Search: Story = {
   name: 'Search field (ring)',
-  render: () => (
-    <label className="flex h-[30px] w-[220px] items-center gap-[7px] rounded-control bg-surface px-[10px] text-ink-faint shadow-ring focus-within:shadow-ring-hover">
-      <SearchIcon width={14} height={14} aria-hidden />
-      <Input
-        placeholder="Search canvases"
-        aria-label="Search canvases"
-        variant="bare"
-        inputSize="auto"
-        className="flex-1 text-body md:text-body"
-      />
-    </label>
-  ),
+  render: () => <SearchField className="w-[220px]" placeholder="Search canvases" aria-label="Search canvases" />,
 }
 
 function CheckboxDemo() {

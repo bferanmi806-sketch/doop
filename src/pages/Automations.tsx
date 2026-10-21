@@ -9,22 +9,15 @@ import {
   type Step,
 } from '../../shared/automations'
 import { api } from '../lib/api'
-import { clientIntegrations } from '../integrations'
 import { navigate } from '../App'
 import { posthog } from '../lib/posthog'
 import { AccountMenu, IconGrid } from '../components/DashShell'
 import { AppRail, railLayout } from '../components/AppRail'
-import {
-  CanvasThumb,
-  ClockTile,
-  MetaTile,
-  RunDot,
-  StepChain,
-  Toggle,
-  formatRunTime,
-} from '../components/AutomateShell'
+import { CanvasThumb, ClockTile, MetaTile, RunDot, StepChain, Toggle, formatRunTime } from '../components/AutomateShell'
 import { RoleMark } from '../components/RoleMark'
 import { Button } from '../components/ui/button'
+import { EmptyState } from '../components/ui/empty-state'
+import { IconButton } from '../components/ui/icon-button'
 import { PlusIcon } from '../components/ui/icons'
 import { Skeleton } from '../components/ui/skeleton'
 import { Toast } from '../components/ui/toast'
@@ -160,24 +153,27 @@ export function Automations() {
             </div>
           ) : empty ? (
             <>
-              <div className="flex flex-col items-center gap-2.5 rounded-[18px] border-[1.5px] border-dashed border-line px-6 py-[34px] text-center">
-                <div className="mb-2.5 flex items-center gap-2.5">
-                  <ClockTile size={36} />
-                  <span className="h-px w-[22px] bg-[#b9b5ac]" aria-hidden />
-                  <MetaTile size={36} className="border border-line bg-surface" />
-                  <span className="h-px w-[22px] bg-[#b9b5ac]" aria-hidden />
-                  <span className="grid size-9 place-items-center rounded-pill border border-line bg-surface text-ink">
-                    <IconGrid />
-                  </span>
-                </div>
-                <h3 className="text-heading font-semibold tracking-[-0.015em]">Nothing runs on its own yet</h3>
-                <p className="max-w-[420px] text-copy leading-[1.5] text-ink-soft">
-                  Pull designs in on a schedule, or hand a canvas to an agent every week.
-                </p>
-                <Button variant="primary" className="mt-2.5" disabled={busy} onClick={() => create()}>
-                  + New automation
-                </Button>
-              </div>
+              <EmptyState
+                variant="dashed"
+                illustration={
+                  <>
+                    <ClockTile size={36} />
+                    <span className="h-px w-[22px] bg-[#b9b5ac]" aria-hidden />
+                    <MetaTile size={36} className="border border-line bg-surface" />
+                    <span className="h-px w-[22px] bg-[#b9b5ac]" aria-hidden />
+                    <span className="grid size-9 place-items-center rounded-pill border border-line bg-surface text-ink">
+                      <IconGrid />
+                    </span>
+                  </>
+                }
+                title="Nothing runs on its own yet"
+                description="Pull designs in on a schedule, or hand a canvas to an agent every week."
+                action={
+                  <Button variant="primary" disabled={busy} onClick={() => create()}>
+                    + New automation
+                  </Button>
+                }
+              />
               <Examples onUse={create} busy={busy} />
             </>
           ) : (
@@ -268,14 +264,14 @@ export function Automations() {
                     </span>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <button
-                          type="button"
+                        <IconButton
                           aria-label={`Actions for ${a.name}`}
-                          className="grid size-8 place-items-center rounded-full text-ink-faint transition-colors hover:bg-paper-deep hover:text-ink"
+                          shape="round"
+                          className="text-ink-faint"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <MoreHorizontalIcon className="size-4" />
-                        </button>
+                        </IconButton>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent className="w-[170px]" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenuItem tone="danger" onSelect={() => setRemove(a)}>

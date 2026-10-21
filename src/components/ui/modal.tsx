@@ -197,7 +197,7 @@ function MarkdownBlock({ className, ...props }: React.ComponentProps<'pre'>) {
     <pre
       data-slot="markdown-block"
       className={cn(
-        'mt-3.5 max-h-[52vh] overflow-auto whitespace-pre-wrap rounded-[12px] border border-line bg-paper px-[18px] py-4 font-mono text-[12.5px] leading-[1.65] text-ink [word-break:break-word]',
+        'mt-3.5 max-h-[52vh] overflow-auto whitespace-pre-wrap rounded-[12px] border border-line bg-paper px-[18px] py-4 font-mono text-body leading-[1.65] text-ink [word-break:break-word]',
         className,
       )}
       {...props}

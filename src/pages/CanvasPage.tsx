@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useStore } from '../lib/store'
 import { MOD_KEY, isHideUiShortcut } from '../lib/keys'
 import { canHideUi, hideUiHinted } from '../lib/hideUi'
@@ -16,7 +16,6 @@ import {
 import { navigate } from '../App'
 import { DoopMark } from '../components/Logo'
 import {
-  BarDivider,
   BarPill,
   TopBar,
   TopBarTitle,
@@ -46,7 +45,6 @@ import {
   SourcePicker,
 } from '../components/ImportSources'
 import { importSources } from '../components/importSourceList'
-import { canvaApi, isCanvaDesignUrl } from '../integrations/canva/api'
 import { PresentMode } from '../components/PresentMode'
 import { getIdentity, setName } from '../lib/identity'
 import {
@@ -69,7 +67,6 @@ import { Wordmark } from '../components/ui/wordmark'
 import {
   BrainIcon,
   CopyIcon,
-  ExportIcon,
   FolderIcon,
   GithubIcon,
   ImportIcon,
@@ -86,6 +83,7 @@ import { Badge } from '../components/ui/badge'
 import { Input } from '../components/ui/input'
 import { Field } from '../components/ui/field'
 import { PeerAvatars, PresenceFace } from '../components/PeerAvatars'
+import { DashTitle } from '../components/ui/dash'
 import { Checkbox, CheckboxCard } from '../components/ui/checkbox'
 import { Toast, ToastAction, ToastSpinner } from '../components/ui/toast'
 import { Tooltip } from '../components/ui/tooltip'
@@ -193,10 +191,6 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
     history.replaceState(history.state, '', `${url.pathname}${url.search}${url.hash}`)
   }, [])
   const [showImport, setShowImport] = useState(!!ghInstallPass || !!ghInstallError || !!importRequested)
-  /* the page's frames and the selection when Export opened — a snapshot,
-     so canvas changes mid-flow don't swap what the checklist shows */
-  const [exporting, setExporting] = useState<{ frames: Frame[]; selected: string[] } | null>(null)
-  const [figmaFrames, setFigmaFrames] = useState<Frame[] | null>(null)
   const [showMobileActions, setShowMobileActions] = useState(false)
   const [showMobileLayers, setShowMobileLayers] = useState(false)
   const [renaming, setRenaming] = useState(false)
@@ -408,7 +402,7 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
       <AuthScreen>
         <div className="flex w-[min(400px,100%)] flex-col gap-3.5 rounded-[12px] border border-line bg-surface p-6 pt-[30px] text-center shadow-pop sm:p-9 sm:pb-7">
           <Wordmark className="mb-1.5 self-center" />
-          <h1 className="font-serif text-[28px] font-normal leading-[1.05] tracking-[-0.015em]">Canvas not found</h1>
+          <DashTitle>Canvas not found</DashTitle>
           <p className="text-[14px] leading-[1.5] text-ink-soft">
             &ldquo;{canvasId}&rdquo; doesn&rsquo;t match a canvas we know about. It may have been deleted, or the link
             may be wrong.
@@ -482,16 +476,6 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
             >
               <ImportIcon className="size-3.5" />
               Import
-            </Button>
-            <BarDivider className="mx-0.5" />
-            <Button
-              variant="bare"
-              className={barPillBtn}
-              onClick={openExport}
-              title="Export frames to Photoshop, Canva or Figma"
-            >
-              <ExportIcon className="size-3.5" />
-              Export
             </Button>
           </BarPill>
           <BarPill>
@@ -691,16 +675,6 @@ export function CanvasPage({ canvasId }: { canvasId: string }) {
                   }}
                 >
                   <ImportIcon /> Import website
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="h-11 justify-start gap-2.5 border-line bg-surface px-4"
-                  onClick={() => {
-                    setShowMobileActions(false)
-                    openExport()
-                  }}
-                >
-                  <ExportIcon /> Export frames
                 </Button>
                 <Button
                   variant="ghost"
@@ -1105,7 +1079,7 @@ function ImportModal({
                   </span>
                   <span
                     className={cn(
-                      'rounded-full px-2 py-[3px] font-mono text-[8.5px] font-semibold uppercase tracking-[0.08em]',
+                      'rounded-full px-2 py-[3px] text-micro font-medium',
                       screen.source === 'placeholder'
                         ? 'bg-paper-deep text-ink-faint'
                         : 'bg-accent-ink/10 text-accent-ink',
@@ -1216,7 +1190,7 @@ function ImportModal({
                   title={
                     <>
                       Import the entire website{' '}
-                      <em className="ml-[7px] rounded-full bg-paper-deep px-1.5 py-[2px] font-mono text-[8.5px] font-semibold uppercase not-italic tracking-[0.08em] text-ink-faint">
+                      <em className="ml-[7px] rounded-full bg-paper-deep px-1.5 py-px text-micro font-medium not-italic text-ink-faint">
                         Optional
                       </em>
                     </>
@@ -1423,6 +1397,7 @@ function RenameSelfModal({ current, onClose }: { current: string; onClose: () =>
 /* Design sync: mint write-only snippet keys so an app pushes its live screens
    onto this canvas — the import path for products behind SSO/VPN where the
    server-side importer can't go. */
+
 function SyncKeysSection({ canvasId, onBack }: { canvasId: string; onBack: () => void }) {
   const [keys, setKeys] = useState<SyncKeyInfo[] | null>(null)
   const [name, setAppName] = useState('')

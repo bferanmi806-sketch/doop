@@ -15,13 +15,17 @@ const cardVariants = cva('min-w-0 bg-surface', {
          lift is under the card, nothing is redrawn */
       raised:
         'rounded-[10px] corner-squircle shadow-elevation-1 transition-[box-shadow] duration-normal ease-out-quad hover:shadow-elevation-1-hover',
+      /* an empty state's placeholder: a dashed outline on the paper, no surface */
+      dashed: 'rounded-[10px] border-[1.5px] border-dashed border-line bg-transparent',
     },
+    /* `hero` is the generous corner of the one card on an otherwise empty page */
+    shape: { default: '', hero: 'rounded-[18px]' },
   },
-  defaultVariants: { tone: 'default' },
+  defaultVariants: { tone: 'default', shape: 'default' },
 })
 
-function Card({ className, tone, ...props }: React.ComponentProps<'div'> & VariantProps<typeof cardVariants>) {
-  return <div data-slot="card" className={cn(cardVariants({ tone, className }))} {...props} />
+function Card({ className, tone, shape, ...props }: React.ComponentProps<'div'> & VariantProps<typeof cardVariants>) {
+  return <div data-slot="card" className={cn(cardVariants({ tone, shape, className }))} {...props} />
 }
 
 function CardHeader({ className, ...props }: React.ComponentProps<'div'>) {

@@ -37,9 +37,9 @@ function ConfirmDialog({
           data-slot="confirm-dialog"
           className={cn(modalVariants({ size: 'sm' }), 'z-[80]')}
         >
-          <AlertDialogPrimitive.Title className="text-[15px] font-medium leading-5">{title}</AlertDialogPrimitive.Title>
+          <AlertDialogPrimitive.Title className="text-lead font-medium leading-5">{title}</AlertDialogPrimitive.Title>
           {description ? (
-            <AlertDialogPrimitive.Description className="mt-1 text-[14px] leading-[22px] text-ink-soft">
+            <AlertDialogPrimitive.Description className="mt-1 text-copy leading-[22px] text-ink-soft">
               {description}
             </AlertDialogPrimitive.Description>
           ) : null}

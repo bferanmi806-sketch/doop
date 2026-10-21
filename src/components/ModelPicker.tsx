@@ -15,7 +15,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
-import { CheckIcon, ChevronDownIcon } from './ui/icons'
+import { CheckIcon } from './ui/icons'
+import { MenuButton } from './ui/menu-button'
 
 /* the brand mark each provider's models wear in the picker */
 const PROVIDER_MARK: Partial<Record<ModelAccountKind, string>> = {
@@ -57,40 +58,36 @@ export function ModelPicker({ disabled = false }: { disabled?: boolean }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button
-          type="button"
+        <MenuButton
+          variant="quiet"
           disabled={disabled || busy || !account}
           aria-label={`Model: ${label}`}
-          className={cn(
-            'flex h-7 min-w-0 items-center gap-[5px] rounded-[7px] px-1.5 text-[12px] text-ink-soft transition-colors hover:bg-paper-deep hover:text-ink disabled:opacity-50',
-            busy && 'animate-[stream-pulse_1.2s_ease-in-out_infinite]',
-          )}
+          className={cn('min-w-0 gap-[5px]', busy && 'animate-[stream-pulse_1.2s_ease-in-out_infinite]')}
+          icon={
+            <span className="grid size-3 flex-none place-items-center">
+              {mark ? (
+                <AgentIcon name={mark} size={12} />
+              ) : (
+                /* no provider behind it: the agent's own mark */
+                <DoopMark size={11} className="block" />
+              )}
+            </span>
+          }
         >
-          {mark ? (
-            <span className="grid size-3 flex-none place-items-center">
-              <AgentIcon name={mark} size={12} />
-            </span>
-          ) : (
-            /* no provider behind it: the agent's own mark */
-            <span className="grid size-3 flex-none place-items-center">
-              <DoopMark size={11} className="block" />
-            </span>
-          )}
           <span className="truncate">{label}</span>
-          <ChevronDownIcon className="size-3 flex-none text-ink-faint" />
-        </button>
+        </MenuButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="end" className="w-[260px]">
         {menu.length > 0 ? (
           <>
-            <DropdownMenuLabel className="px-2.5 pt-1.5 pb-1 text-[11px] text-ink-faint">
+            <DropdownMenuLabel className="px-2.5 pt-1.5 pb-1 text-caption text-ink-faint">
               Doop Agent model
             </DropdownMenuLabel>
             {menu.map((m) => (
               <DropdownMenuItem key={m.id} onSelect={() => void pick(m.id)}>
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate">{m.name}</span>
-                  <span className="truncate text-[11px] text-ink-faint">{m.blurb}</span>
+                  <span className="truncate text-caption text-ink-faint">{m.blurb}</span>
                 </span>
                 {m.id === account?.model && <CheckIcon className="size-3.5 flex-none" />}
               </DropdownMenuItem>
@@ -98,7 +95,7 @@ export function ModelPicker({ disabled = false }: { disabled?: boolean }) {
             <DropdownMenuSeparator />
           </>
         ) : (
-          <DropdownMenuLabel className="px-2.5 pt-1.5 pb-2 text-[11.5px] leading-[1.45] text-ink-soft">
+          <DropdownMenuLabel className="px-2.5 pt-1.5 pb-2 text-caption leading-[1.45] text-ink-soft">
             No model account connected — the Doop Agent runs on the server’s model when one is set up.
           </DropdownMenuLabel>
         )}

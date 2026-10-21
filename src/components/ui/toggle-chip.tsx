@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
    the ink hairline instead of the soft one. `idle` is the read-only form used on rows that
    only list what a connection can do. */
 const toggleChipVariants = cva(
-  'inline-flex items-center gap-[7px] rounded-md border px-3 py-2 text-[13px] font-medium transition-[background-color,color,box-shadow,border-color]',
+  'inline-flex items-center gap-[7px] rounded-md border px-3 py-2 text-body/4 font-medium transition-[background-color,color,box-shadow,border-color]',
   {
     variants: {
       state: {

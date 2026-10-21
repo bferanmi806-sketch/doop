@@ -27,8 +27,8 @@
   --color-warning-ink: var(--warning-ink);
   --font-ui: var(--font-ui);
   --font-display: var(--font-display);
+  --font-hero: var(--font-hero);
   --font-mono: var(--font-mono);
-  --font-serif: var(--font-serif);
   --shadow-card: var(--shadow-card);
   --shadow-pop: var(--shadow-pop);
   --shadow-modal: var(--shadow-modal);
@@ -153,11 +153,10 @@
   /* the silver hairline an active agent's avatar wears in the presence pill */
   --glaze-ring: #c9c9cd;
   --font-ui: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  /* Display is the SAME sans as the UI — the chrome is quiet by design.
-     Editorial serif is opt-in per element via `font-serif`, reserved for
-     page-level headlines, never for labels or controls. */
+  /* Display is the SAME sans as the UI — the chrome is quiet by design. The
+     home greeting's Hanken Grotesk Light is the one other face (`font-hero`). */
   --font-display: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  --font-serif: 'Instrument Serif', Georgia, serif;
+  --font-hero: 'Hanken Grotesk', 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, monospace;
   /* Ring system: no CSS borders on controls and panels — a 1px shadow ring
      draws the edge, and a soft two-step drop lifts it. --shadow-ring is a
@@ -390,20 +389,6 @@
   }
   50% {
     opacity: 1;
-  }
-}
-
-@keyframes agent-pulse {
-  0% {
-    transform: scale(0.8);
-    opacity: 0.7;
-  }
-  70% {
-    transform: scale(1.15);
-    opacity: 0;
-  }
-  100% {
-    opacity: 0;
   }
 }
 

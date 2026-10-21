@@ -25,9 +25,12 @@ White system (Doop UI v2, canvas guideline `doop-ui-system`): neutral greys, no 
 ## Typography
 
 - `--font-ui` / `--font-display`: `'Inter'` - UI and headings (`--font-sans` / `--font-heading`
-  aliases). `--font-mono`: `'Geist Mono', ui-monospace, monospace` - ids, sizes, numbers.
-  `--font-serif`: `'Instrument Serif'` - opt-in editorial line only. The home greeting is the one
-  place Hanken Grotesk Light appears (loaded in `index.html`).
+  aliases). `--font-mono`: `'Geist Mono', ui-monospace, monospace` - values only (ids, sizes,
+  numbers, key caps, code); the mono-uppercase caption voice is retired, captions and field labels
+  are `text-caption` / `text-label` in sentence case. `--font-hero`: `'Hanken Grotesk'` Light - the
+  home greeting, and nothing else (loaded in `index.html`). There is no
+  serif: Instrument Serif was retired, and page-level headings outside the dashboard (sign-in,
+  not-found, the desktop handoff) use `DashTitle` like every other page title.
 - **The scale** is named by role, as `--text-*` tokens in `src/styles.css` (each carries its line
   height, so one class sets both). Use these; `text-[Npx]` is for a one-off the scale cannot name,
   and the canvas editor's chrome is still being moved over.
@@ -84,6 +87,45 @@ White system (Doop UI v2, canvas guideline `doop-ui-system`): neutral greys, no 
   Primitives cover `src/components/ui`; Marks is the one page every logo and avatar comes from;
   Shell shows the rail and the search palette with sample data. A new primitive is not done until it
   has a story, and a new screen starts from this catalogue rather than from a blank file.
+
+## Component index (`src/components/ui`)
+
+Screens compose these; they do not draw their own buttons, fields or sizes (an ESLint
+`no-restricted-syntax` rule in `eslint.config.js` holds `src/pages/**` and `src/components/**` to
+it, with the not-yet-migrated editor chrome listed in `LEGACY_CHROME`). Each has a story.
+
+- `Button` - the ring button, one black `primary` per screen; `IconButton` - a glyph in a quiet
+  square (sm 24px / md 32px, `round` for row actions, `on` keeps the paper-deep fill, `aria-label`
+  required); `Pressable` - the chrome-less button a card tile, list row or inline text action is
+  made of (focus ring only); `MenuButton` - a dropdown trigger with a trailing chevron (`ring` in a
+  header, `quiet` inside a composer); `Chip` - the 32px suggestion pill with an 18px icon tile
+  (`ChipIcon`), faded until hovered, focused or `on`; `ToggleChip` - the chosen-one-of-many pills.
+- `Input` / `Textarea` / `Field` / `Checkbox` / `Segmented` - form controls; `SearchField` - the
+  leading-glyph search (`ring` 30px pill, `bar` the palette's 48px top line) wrapping a bare Input,
+  with a `trailing` slot for a `Kbd`; `Kbd` - a 20px key cap in mono micro type with an inset
+  hairline.
+- `Card` (`tone` default/flat/raised/dashed, `shape` hero for the 18px empty-state corner),
+  `EmptyState` (`card` hero on a list page, `dashed` with an `illustration` row on a table page:
+  title, description, one `action`), `Callout`, `Note`, `Badge`, `Dot`, `Progress`, `Skeleton`,
+  `CodeBlock`, `List`, `Tabs`, `Dash*` (the dashboard frame) - surfaces and content.
+  `src/components/FramePreview.tsx` is the one frame-image-with-fallbacks (empty / failed, failure
+  keyed per frame id) every thumbnail, card cover and gallery figure renders through.
+- `Modal`, `Sheet`, `AlertDialog`, `DropdownMenu`, `ContextMenu`, `Tooltip`, `Toast` - overlays.
+- `Avatar` - the one presence face: a disc on a 2px surface collar, any px `size` (24 in the
+  presence pill, 18 on a canvas card, 28-32 in menus and rows); a person is initials on a 22% tint
+  of their colour, an agent its brand mark on the surface, `glaze` for an agent at work, `stacked`
+  to overlap, `children` replaces the initials. `PresenceFace` in `PeerAvatars.tsx` is the same
+  component under the canvas chrome's name. `AvatarStack` (the first `max` people plus a "+N"
+  disc), `initials()` (the one first-and-last-letter rule),
+  `BrandMark` - every third-party logo (`<BrandMark brand="figma" size={16} />`; figma, github,
+  canva, photoshop, meta, claude, openai, cursor, gemini, google, apple, microsoft, slack, linear),
+  `Wordmark`, `icons.tsx` - identity. Feature tiles (`FigmaTile`, `MetaTile`, the integrations'
+  `Tile`s, `AgentIcon`) compose a `BrandMark`; nothing else inlines a logo path.
+- Editor chrome (`PropertyField`, `Toolbar`, `Panel`, `Menu`) - the canvas page's own set, still on
+  exact pixel sizes until its pass.
+- Sizing a primitive: a named step (`text-body`) where the box height is fixed or a `leading-*` sits
+  beside it; a step with a leading modifier (`text-body/4`) where the box came from padding plus the
+  browser's default leading, so putting it on the scale did not grow it.
 
 ## Aliases (`components.json`)
 

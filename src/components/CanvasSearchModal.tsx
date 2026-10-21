@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import type { CanvasMeta } from '../../shared/types'
 import { cn } from '@/lib/utils'
 import { timeAgo } from '../lib/time'
+import { FramePreview } from './FramePreview'
 import { Modal } from './ui/modal'
-import { Input } from './ui/input'
-import { SearchIcon } from './ui/icons'
+import { Pressable } from './ui/pressable'
+import { SearchField } from './ui/search-field'
 
 /**
  * The rail's search: a palette over the page with one field and the
@@ -55,51 +56,38 @@ export function CanvasSearchModal({
 
   return (
     <Modal size="lg" onClose={onClose} className="p-0 sm:p-0" aria-label="Search canvases">
-      <label className="flex h-12 items-center gap-2.5 border-b border-line-soft px-4 text-ink-faint">
-        <SearchIcon width={15} height={15} aria-hidden />
-        <Input
-          ref={inputRef}
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value)
-            setCursor(0)
-          }}
-          onKeyDown={onKeyDown}
-          placeholder="Search canvases"
-          aria-label="Search canvases"
-          variant="bare"
-          inputSize="auto"
-          className="flex-1 text-copy md:text-copy"
-        />
-      </label>
+      <SearchField
+        ref={inputRef}
+        variant="bar"
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value)
+          setCursor(0)
+        }}
+        onKeyDown={onKeyDown}
+        placeholder="Search canvases"
+        aria-label="Search canvases"
+        inputClassName="text-copy md:text-copy"
+      />
       <div className="max-h-[60vh] overflow-y-auto p-2" role="listbox" aria-label="Results">
         {results.length === 0 ? (
           <p className="px-3 py-6 text-center text-body text-ink-faint">No canvas matches “{query.trim()}”.</p>
         ) : (
           results.map((c, i) => (
-            <button
+            <Pressable
               key={c.id}
-              type="button"
               role="option"
               aria-selected={i === active}
+              focus="none"
               onMouseEnter={() => setCursor(i)}
               onClick={() => onOpen(c)}
               className={cn(
-                'flex w-full items-center gap-3 rounded-pill px-2.5 py-2 text-left transition-colors focus-visible:outline-none',
+                'flex items-center gap-3 rounded-pill px-2.5 py-2 transition-colors',
                 i === active ? 'bg-paper-deep' : 'hover:bg-paper',
               )}
             >
               <span className="grid h-10 w-16 flex-none place-items-center overflow-hidden rounded-row bg-paper-deep shadow-[0_0_0_1px_rgba(0,0,0,0.06)]">
-                {c.previewFrameId ? (
-                  <img
-                    src={`/i/${c.previewFrameId}.jpg?preview`}
-                    alt=""
-                    loading="lazy"
-                    className="h-full w-full object-cover object-top"
-                  />
-                ) : (
-                  <span className="text-[9px] text-ink-faint">empty</span>
-                )}
+                <FramePreview frameId={c.previewFrameId} empty="empty" className="text-micro" />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-body font-medium text-ink">{c.name}</span>
@@ -108,7 +96,7 @@ export function CanvasSearchModal({
                   {c.shared ? ' · shared with you' : ''}
                 </span>
               </span>
-            </button>
+            </Pressable>
           ))
         )}
       </div>

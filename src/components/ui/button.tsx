@@ -38,28 +38,24 @@ const buttonVariants = cva(
         inverse: 'border-transparent bg-transparent text-paper hover:bg-paper/15',
       },
       size: {
-        pill: 'rounded-full px-2 py-[3px] text-[11px] font-medium',
+        pill: 'rounded-full px-2 py-[3px] text-caption/3.5 font-medium',
         sm: 'px-2.5 py-[5px] text-xs',
-        md: 'px-3.5 py-2 text-[13px]',
+        md: 'px-3.5 py-2 text-body/4',
         lg: 'justify-center px-4 py-[11px] text-sm',
         icon: 'size-9 p-0',
         'icon-sm': 'size-7 rounded-sm p-0',
       },
-      /* Chrome voice: mono, uppercase, tracked out. The app frame speaks in
-         it (toolbars, tabs, canvas actions); prose buttons — dialogs, forms,
-         anything with a sentence in it — stay in the UI sans. */
-      mono: { true: 'font-mono font-medium uppercase tracking-[0.07em]', false: '' },
       /* stretches to the container — the mobile default for primary actions */
       block: { true: 'w-full justify-center', false: '' },
     },
-    defaultVariants: { variant: 'default', size: 'md', mono: false, block: false },
+    defaultVariants: { variant: 'default', size: 'md', block: false },
   },
 )
 
 type ButtonProps = React.ComponentProps<'button'> & VariantProps<typeof buttonVariants> & { asChild?: boolean }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { className, variant, size, mono, block, asChild = false, type, ...props },
+  { className, variant, size, block, asChild = false, type, ...props },
   ref,
 ) {
   const Comp = asChild ? Slot : 'button'
@@ -73,7 +69,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
          field — on the sign-in form that meant Enter firing "Forgot
          password?". Default to "button"; forms opt in with type="submit". */
       {...(asChild ? {} : { type: type ?? 'button' })}
-      className={cn(buttonVariants({ variant, size, mono, block, className }))}
+      className={cn(buttonVariants({ variant, size, block, className }))}
       {...props}
     />
   )

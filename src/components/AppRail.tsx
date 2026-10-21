@@ -14,6 +14,7 @@ import { ConnectModal } from './ConnectModal'
 import { Logo } from './Logo'
 import { DashNavItem, DashSectionLabel, DashSidebar } from './ui/dash'
 import { Dot } from './ui/dot'
+import { IconButton } from './ui/icon-button'
 import {
   BlocksIcon,
   BuildingIcon,
@@ -186,71 +187,50 @@ export function AppRail({
       className="flex min-h-full w-full animate-[fade-in_0.25s_ease] flex-col items-center motion-reduce:animate-none"
     >
       <Logo className="mb-3 size-[26px] rounded-row" />
-      <RailIconButton label="Show sidebar" onClick={() => setRail(true)} size="lg">
+      <IconButton aria-label="Show sidebar" onClick={() => setRail(true)}>
         <PanelExpandIcon width={15} height={15} />
-      </RailIconButton>
-      <RailIconButton label="Search canvases (⌘K)" onClick={() => setSearching(true)} size="lg">
+      </IconButton>
+      <IconButton aria-label="Search canvases (⌘K)" onClick={() => setSearching(true)}>
         <SearchIcon width={15} height={15} />
-      </RailIconButton>
+      </IconButton>
       <Rule />
-      <RailIconButton label="All canvases" on={active === 'all'} onClick={() => scope('all')} size="lg">
+      <IconButton aria-label="All canvases" on={active === 'all'} onClick={() => scope('all')}>
         <GridIcon {...rail} />
-      </RailIconButton>
-      <RailIconButton label="Owned by me" on={active === 'mine'} onClick={() => scope('mine')} size="lg">
+      </IconButton>
+      <IconButton aria-label="Owned by me" on={active === 'mine'} onClick={() => scope('mine')}>
         <UserIcon {...rail} />
-      </RailIconButton>
-      <RailIconButton label="Shared with me" on={active === 'shared'} onClick={() => scope('shared')} size="lg">
+      </IconButton>
+      <IconButton aria-label="Shared with me" on={active === 'shared'} onClick={() => scope('shared')}>
         <UsersIcon {...rail} />
-      </RailIconButton>
+      </IconButton>
       <Rule />
       {spaces.map((w) => (
-        <RailIconButton
-          key={w.id}
-          label={w.name}
-          on={active === `ws:${w.id}`}
-          onClick={() => scope(`ws:${w.id}`)}
-          size="lg"
-        >
+        <IconButton key={w.id} aria-label={w.name} on={active === `ws:${w.id}`} onClick={() => scope(`ws:${w.id}`)}>
           <BuildingIcon {...rail} />
-        </RailIconButton>
+        </IconButton>
       ))}
-      <RailIconButton label="New workspace" onClick={createWorkspace} size="lg">
+      <IconButton aria-label="New workspace" onClick={createWorkspace}>
         <FolderPlusIcon {...rail} />
-      </RailIconButton>
+      </IconButton>
       <Rule />
-      <RailIconButton label="Community" on={active === 'community'} onClick={() => navigate('/community')} size="lg">
+      <IconButton aria-label="Community" on={active === 'community'} onClick={() => navigate('/community')}>
         <WebIcon {...rail} />
-      </RailIconButton>
-      <RailIconButton
-        label="Automations"
-        on={active === 'automations'}
-        onClick={() => navigate('/automations')}
-        size="lg"
-      >
+      </IconButton>
+      <IconButton aria-label="Automations" on={active === 'automations'} onClick={() => navigate('/automations')}>
         <WorkflowIcon {...rail} />
-      </RailIconButton>
-      <RailIconButton
-        label="Integrations"
-        on={active === 'integrations'}
-        onClick={() => navigate('/integrations')}
-        size="lg"
-      >
+      </IconButton>
+      <IconButton aria-label="Integrations" on={active === 'integrations'} onClick={() => navigate('/integrations')}>
         <BlocksIcon {...rail} />
-      </RailIconButton>
+      </IconButton>
       <Rule />
       {agents.map((a) => (
-        <span
-          key={a.name}
-          className="grid size-8 place-items-center"
-          title={a.name}
-          style={{ color: colorFor(a.name) }}
-        >
-          <AgentIcon name={a.name} size={14} />
+        <span key={a.name} className="grid size-8 place-items-center" title={a.name}>
+          <AgentIcon name={a.name} size={14} color={colorFor(a.name)} />
         </span>
       ))}
-      <RailIconButton label="Connect an agent" onClick={() => setConnecting(true)} size="lg">
+      <IconButton aria-label="Connect an agent" onClick={() => setConnecting(true)}>
         <CirclePlusIcon {...rail} />
-      </RailIconButton>
+      </IconButton>
       <div className="mt-auto pt-4">
         <AccountMenu face side="top" align="start" />
       </div>
@@ -260,16 +240,20 @@ export function AppRail({
   const wide = (
     <div key="wide" className="flex min-h-full w-full animate-[fade-in_0.25s_ease] flex-col motion-reduce:animate-none">
       <div className="mb-2.5 flex h-[30px] items-center gap-2 px-1.5">
-        <button type="button" aria-label="Doop home" className="rounded-row" onClick={() => navigate('/')}>
+        <IconButton
+          aria-label="Doop home"
+          className="size-[26px] rounded-row hover:bg-transparent"
+          onClick={() => navigate('/')}
+        >
           <Logo className="size-[26px] rounded-row" />
-        </button>
+        </IconButton>
         <span className="ml-auto flex items-center gap-2.5 text-ink-soft">
-          <RailIconButton label="Search canvases (⌘K)" onClick={() => setSearching(true)}>
+          <IconButton size="sm" aria-label="Search canvases (⌘K)" onClick={() => setSearching(true)}>
             <SearchIcon width={15} height={15} />
-          </RailIconButton>
-          <RailIconButton label="Hide sidebar" onClick={() => setRail(false)}>
+          </IconButton>
+          <IconButton size="sm" aria-label="Hide sidebar" onClick={() => setRail(false)}>
             <PanelCollapseIcon width={15} height={15} />
-          </RailIconButton>
+          </IconButton>
         </span>
       </div>
 
@@ -348,8 +332,8 @@ export function AppRail({
             className="flex h-[31px] min-w-0 items-center gap-[11px] px-[11px] text-body text-ink-soft"
             title={`${a.canvases} canvas${a.canvases === 1 ? '' : 'es'}`}
           >
-            <span className="grid size-[14px] flex-none place-items-center" style={{ color: colorFor(a.name) }}>
-              <AgentIcon name={a.name} size={14} />
+            <span className="grid size-[14px] flex-none place-items-center">
+              <AgentIcon name={a.name} size={14} color={colorFor(a.name)} />
             </span>
             <span className="truncate">{a.name}</span>
             {a.lastAt > 0 && now - a.lastAt < LIVE_WINDOW ? (
@@ -405,42 +389,10 @@ function Rule() {
   return <div className="my-2 h-px w-6 bg-line" />
 }
 
-/** a quiet icon button in the rail's top row (sm) or the narrow rail (lg) */
-export function RailIconButton({
-  label,
-  on = false,
-  size = 'sm',
-  onClick,
-  children,
-}: {
-  label: string
-  on?: boolean
-  size?: 'sm' | 'lg'
-  onClick: () => void
-  children: ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      aria-pressed={on || undefined}
-      className={cn(
-        'grid flex-none place-items-center text-ink-soft transition-colors hover:bg-paper-deep hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
-        size === 'sm' ? 'size-6 rounded-md' : 'size-8 rounded-row',
-        on && 'bg-paper-deep text-ink',
-      )}
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  )
-}
-
 /** a group caption in the rail: sentence case, a quiet grey */
 export function RailLabel({ children }: { children: ReactNode }) {
   return (
-    <DashSectionLabel className="flex items-center gap-[5px] px-[11px] pb-1.5 pt-3.5 text-caption font-normal normal-case tracking-normal">
+    <DashSectionLabel className="flex items-center gap-[5px] px-[11px] pb-1.5 pt-3.5">
       {children}
       <ChevronDownIcon width={11} height={11} className="text-ink-ghost" aria-hidden />
     </DashSectionLabel>

@@ -2,67 +2,27 @@ import type { CSSProperties } from 'react'
 import type { Presence } from '../../shared/types'
 import { useStore } from '../lib/store'
 import { locatePresence } from '../lib/locate'
-import { AgentIcon } from './AgentIcon'
+import { Avatar } from './ui/avatar'
 import { cn } from '@/lib/utils'
-
-function initialsOf(name: string) {
-  return name
-    .split(/\s+/)
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase()
-}
 
 /** True for an agent that is working right now — it posted a status. */
 export function isActiveAgent(p: Presence): boolean {
   return p.kind === 'agent' && !!p.status
 }
 
-/** One face in the presence stack: a 24px disc on a 2px surface collar. A
- *  person is their initials on a tint of their cursor colour; an agent is its
- *  brand mark on white. An agent at work swaps the grey hairline for the
- *  silver one, rises above its neighbours and wears the sweeping glaze. */
-export function PresenceFace({
-  name,
-  color,
-  kind,
-  glaze = false,
-  glazeDelay = 0,
-  size = 24,
-  className,
-  style,
-}: {
+/** One face in the presence stack — the shared Avatar, under the name the
+ *  canvas chrome has always called it. */
+export function PresenceFace(props: {
   name: string
   color: string
   kind: Presence['kind']
   glaze?: boolean
-  /** seconds — a second glazed face alternates with the first */
   glazeDelay?: number
   size?: number
   className?: string
   style?: CSSProperties
 }) {
-  return (
-    <span
-      data-slot="presence-face"
-      className={cn(
-        'relative z-[1] grid flex-none place-items-center overflow-hidden rounded-full bg-surface text-[9px] font-medium text-ink',
-        'shadow-[0_0_0_2px_var(--surface),0_0_0_3px_rgba(0,0,0,0.07)] dark:shadow-[0_0_0_2px_var(--surface),0_0_0_3px_rgba(255,255,255,0.12)]',
-        glaze && 'glaze-sweep z-[2] shadow-[0_0_0_2px_var(--surface),0_0_0_3px_var(--glaze-ring)]',
-        className,
-      )}
-      style={{
-        width: size,
-        height: size,
-        ...(kind === 'user' ? { background: `color-mix(in srgb, ${color} 22%, var(--surface))` } : {}),
-        ...(glaze ? ({ '--glaze-delay': `${glazeDelay}s` } as CSSProperties) : {}),
-        ...style,
-      }}
-    >
-      {kind === 'agent' ? <AgentIcon name={name} size={Math.round(size * 0.58)} /> : initialsOf(name)}
-    </span>
-  )
+  return <Avatar {...props} />
 }
 
 /** The other people and agents on the canvas, as faces in the presence

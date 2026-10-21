@@ -394,7 +394,7 @@ function MembersPane({
                 )
               }
             >
-              <Avatar name={m.name} className="size-8 flex-none border-0 text-xs" />
+              <Avatar name={m.name} size={32} />
               <span className="flex min-w-0 flex-col leading-[1.3]">
                 <b className="truncate text-body font-semibold">
                   {m.name}
@@ -409,9 +409,7 @@ function MembersPane({
         })}
         {ws.invites.length > 0 && (
           <CardBody className="border-t border-line-soft bg-paper/60">
-            <span className="font-mono text-micro font-medium uppercase tracking-[0.12em] text-ink-faint">
-              Waiting to sign up
-            </span>
+            <span className="text-caption text-ink-faint">Waiting to sign up</span>
             {ws.invites.map((inv) => (
               <div key={inv.id} className="mt-2 flex items-center gap-3 text-body">
                 <span className="min-w-0 flex-1 truncate">
