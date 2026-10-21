@@ -90,7 +90,7 @@ const PanelTab = React.forwardRef<
 })
 
 /** A tab with an icon, and a label that unfolds beside it while the tab is the
- *  active one (pen.dev's strip). The label stays in the DOM when folded, so
+ *  active one (an icon strip). The label stays in the DOM when folded, so
  *  the tab keeps its accessible name; `title` covers the sighted hover. */
 const PanelIconTab = React.forwardRef<
   HTMLButtonElement,

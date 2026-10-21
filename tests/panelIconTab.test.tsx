@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { PanelIconTab, PanelTabPanel, PanelTabs, PanelTabsRoot } from '../src/components/ui/panel'
 
 /**
- * The side panel's tab strip, pen.dev style: every tab is an icon, and only
+ * The side panel's tab strip, icon-strip style: every tab is an icon, and only
  * the active one unfolds its label beside the icon. The folded label stays in
  * the DOM so the tab keeps its name for assistive tech and tests alike.
  */
