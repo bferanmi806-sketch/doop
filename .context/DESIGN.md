@@ -25,16 +25,37 @@ White system (Doop UI v2, canvas guideline `doop-ui-system`): neutral greys, no 
 ## Typography
 
 - `--font-ui` / `--font-display`: `'Inter'` - UI and headings (`--font-sans` / `--font-heading`
-  aliases). Chrome uses 400/500 only: 12px labels, rows and buttons; 11px values, timestamps, counts.
-- `--font-mono`: `'Geist Mono', ui-monospace, monospace` - ids, sizes, numbers.
-- `--font-serif`: `'Instrument Serif'` - opt-in editorial line only.
-- Icons: Lucide via `src/components/ui/icons.tsx`, 1.15 stroke (`ICON_STROKE`); 14px in the editor
-  chrome.
+  aliases). `--font-mono`: `'Geist Mono', ui-monospace, monospace` - ids, sizes, numbers.
+  `--font-serif`: `'Instrument Serif'` - opt-in editorial line only. The home greeting is the one
+  place Hanken Grotesk Light appears (loaded in `index.html`).
+- **The scale** is named by role, as `--text-*` tokens in `src/styles.css` (each carries its line
+  height, so one class sets both). Use these; `text-[Npx]` is for a one-off the scale cannot name,
+  and the canvas editor's chrome is still being moved over.
+
+  | class          | size   | used for                                                    |
+  | -------------- | ------ | ----------------------------------------------------------- |
+  | `text-micro`   | 10px   | mono captions, key caps, badges                             |
+  | `text-caption` | 11px   | timestamps, counts, section labels, the line under a row    |
+  | `text-label`   | 12px   | chrome labels                                               |
+  | `text-body`    | 12.5px | the chrome's voice: rail rows, buttons, chips, menus, lists |
+  | `text-copy`    | 13.5px | prose inside cards and modals                               |
+  | `text-lead`    | 15px   | a modal's lede, the composer's placeholder                  |
+  | `text-heading` | 18px   | card and modal headings                                     |
+  | `text-title`   | 24px   | page titles (`DashTitle`)                                   |
+  | `text-display` | 46px   | the home greeting                                           |
+
+- **Weights**: 400 for text, 500 for labels, buttons and emphasis. 600 is for card and modal
+  headings only; nothing in the chrome goes heavier.
+- Icons: Lucide via `src/components/ui/icons.tsx`, 1.15 stroke (`ICON_STROKE`); 14px in the rail
+  and the editor chrome, 15-16px in buttons.
 
 ## Shape and depth
 
 - `--radius`: `0.5rem`, with `--radius-sm` through `--radius-4xl` derived from it
-  (`calc(var(--radius) * N)`). Floating panels 14px, pills 10px, buttons 8px, rows 6-7px.
+  (`calc(var(--radius) * N)`). The shapes the system actually draws have names: `rounded-row`
+  (7px, list and rail rows), `rounded-control` (8px, buttons and fields), `rounded-pill` (10px,
+  chips and pills), `rounded-card` (12px, cards and tiles), `rounded-panel` (14px, floating panels
+  and modals). Reach for these before a `rounded-[Npx]`.
 - No borders on controls: `--shadow-ring` (`shadow-ring`, 1px ring + soft drop) for inputs, chips and
   pills, `--shadow-ring-hover` on hover, `--shadow-float` (`shadow-float`) for panels floating over
   the canvas, `--shadow-pop` for menus and toasts. `--shadow-card` / `--shadow-elevation-*` alias

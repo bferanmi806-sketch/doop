@@ -43,14 +43,14 @@ function EventPicker({ value, onChange }: { value: WebhookEventType[]; onChange:
       {WEBHOOK_EVENTS.map((event) => {
         const on = value.includes(event)
         return (
-          <label key={event} className="relative flex cursor-pointer items-center gap-2 text-[12.5px] text-ink">
+          <label key={event} className="relative flex cursor-pointer items-center gap-2 text-body text-ink">
             <Checkbox
               checked={on}
               onChange={() => onChange(on ? value.filter((e) => e !== event) : [...value, event])}
               aria-label={WEBHOOK_EVENT_LABELS[event]}
             />
             <span>
-              <code className="font-mono text-[11.5px] text-ink-soft">{event}</code>
+              <code className="font-mono text-caption text-ink-soft">{event}</code>
               <span className="text-ink-faint"> · {WEBHOOK_EVENT_LABELS[event]}</span>
             </span>
           </label>
@@ -174,7 +174,7 @@ export function Webhooks() {
         <CardDescription>
           doop POSTs a signed JSON event to each URL below when something happens on a canvas you own, were invited to,
           or that lives in one of your workspaces — route it to Slack, n8n, an issue tracker, anything with an HTTP
-          endpoint. Each delivery carries an <code className="font-mono text-[12px]">X-Doop-Signature</code> header
+          endpoint. Each delivery carries an <code className="font-mono text-label">X-Doop-Signature</code> header
           (HMAC-SHA256 with the webhook’s secret) so the receiver can trust it. Failed deliveries are retried three
           times; a hook that keeps failing pauses itself.
         </CardDescription>
@@ -248,10 +248,10 @@ export function Webhooks() {
             }
           >
             <div className="min-w-0 flex-1">
-              <div className="truncate font-mono text-[12.5px] text-ink-soft" title={hook.url}>
+              <div className="truncate font-mono text-body text-ink-soft" title={hook.url}>
                 {hook.url}
               </div>
-              <div className="mt-1 text-[11.5px] text-ink-faint">{hook.events.join(' · ')}</div>
+              <div className="mt-1 text-caption text-ink-faint">{hook.events.join(' · ')}</div>
               <Note tone={status.tone}>{status.text}</Note>
             </div>
           </CardRow>

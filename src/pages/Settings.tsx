@@ -1,8 +1,5 @@
 import { useState } from 'react'
 import { navigate } from '../App'
-import { api } from '../lib/api'
-import { posthog } from '../lib/posthog'
-import { openCanvasTab } from '../lib/desktop'
 import { ModelAccountPanel } from '../components/ModelAccount'
 import { ImageModelCard } from '../components/ImageModelCard'
 import { useAllowance } from '../components/TeamAllowance'
@@ -12,15 +9,24 @@ import { AppearanceSettings } from '../components/AppearanceSettings'
 import { AgentKeys } from '../components/AgentKeys'
 import { Webhooks } from '../components/Webhooks'
 import { AccountMenu, IconBack, IconKey, IconSpark, IconTheme, IconUser, IconWebhooks } from '../components/DashShell'
-import { AppRail, RailItem, RailLabel, pageTitleCls, railLayout } from '../components/AppRail'
-import { BellIcon, KeyIcon, MoonIcon, PlusIcon, SparkIcon, UserIcon } from '../components/ui/icons'
+import { RailItem, RailLabel, railLayout } from '../components/AppRail'
+import { Logo } from '../components/Logo'
+import { BellIcon, KeyIcon, MoonIcon, SparkIcon, UserIcon } from '../components/ui/icons'
 
 const railIcon = { width: 14, height: 14, 'aria-hidden': true } as const
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Button } from '../components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Progress } from '../components/ui/progress'
-import { DashContent, DashHeader, DashLayout, DashMain, DashSubtitle, DashTitle } from '../components/ui/dash'
+import {
+  DashContent,
+  DashHeader,
+  DashLayout,
+  DashMain,
+  DashSidebar,
+  DashSubtitle,
+  DashTitle,
+} from '../components/ui/dash'
 
 type Pane = 'agent' | 'keys' | 'webhooks' | 'account' | 'appearance'
 
@@ -69,12 +75,6 @@ export function Settings() {
   const from = new URLSearchParams(location.search).get('from')
   const back = from && /^\/c\/[A-Za-z0-9_-]+$/.test(from) ? from : '/'
 
-  async function createCanvas() {
-    const canvas = await api.createCanvas('Untitled canvas')
-    posthog.capture('canvas_created')
-    if (!openCanvasTab(canvas.id, canvas.name)) navigate(`/c/${canvas.id}`)
-  }
-
   const meter = allowance
     ? allowance.byoModel
       ? allowance.byoKind === 'gemini-cloud'
@@ -91,7 +91,21 @@ export function Settings() {
 
   return (
     <DashLayout className={railLayout}>
-      <AppRail active={null}>
+      {/* Settings is its own screen: a rail of its panes, and the way back */}
+      <DashSidebar className="overflow-x-hidden border-r-0 bg-sub px-3 pb-3 pt-3.5 md:w-[236px]">
+        <div className="mb-2.5 flex h-[30px] items-center gap-2 px-1.5">
+          <button type="button" aria-label="Doop home" className="rounded-row" onClick={() => navigate('/')}>
+            <Logo className="size-[26px] rounded-row" />
+          </button>
+        </div>
+        <nav className="flex flex-col gap-0.5">
+          <RailItem
+            icon={<IconBack />}
+            label={back === '/' ? 'Back to canvases' : 'Back to canvas'}
+            on={false}
+            go={() => navigate(back)}
+          />
+        </nav>
         <RailLabel>Settings</RailLabel>
         <nav className="flex flex-col gap-0.5">
           <RailItem
@@ -125,38 +139,24 @@ export function Settings() {
             go={() => setPane('appearance')}
           />
         </nav>
-      </AppRail>
+        <div className="mt-auto flex items-center gap-2.5 px-1 pt-4">
+          <AccountMenu face side="top" align="start" />
+        </div>
+      </DashSidebar>
 
       <DashMain className="[background:var(--paper)]">
-        <DashHeader className="border-b-0 bg-transparent backdrop-blur-none">
-          {back !== '/' && (
-            <Button
-              variant="ghost"
-              className="h-10 gap-[7px] rounded-[8px] text-[12.5px] md:h-8"
-              onClick={() => navigate(back)}
-            >
-              <IconBack /> Back to canvas
-            </Button>
-          )}
-          <span className="flex-1" />
-          <Button
-            variant="primary"
-            className="h-10 gap-[7px] rounded-[8px] pl-2.5 pr-3 text-[12.5px] md:h-8"
-            onClick={createCanvas}
-          >
-            <PlusIcon width={15} height={15} strokeWidth={1.75} />
-            <span className="max-xs:hidden">New canvas</span>
-            <span className="hidden max-xs:inline">New</span>
+        <DashHeader className="border-b-0 bg-transparent backdrop-blur-none md:hidden">
+          <Button variant="ghost" className="h-10 gap-[7px] rounded-control text-body" onClick={() => navigate(back)}>
+            <IconBack /> {back === '/' ? 'Canvases' : 'Canvas'}
           </Button>
-          <span className="md:hidden">
-            <AccountMenu />
-          </span>
+          <span className="flex-1" />
+          <AccountMenu />
         </DashHeader>
 
-        <DashContent className="pt-2 md:pt-3">
+        <DashContent className="pt-2 md:pt-7">
           <div className="flex items-start gap-4 md:items-end">
             <div>
-              <DashTitle className={pageTitleCls}>{panes[pane].title}</DashTitle>
+              <DashTitle>{panes[pane].title}</DashTitle>
               <DashSubtitle>{panes[pane].blurb}</DashSubtitle>
             </div>
           </div>
@@ -191,7 +191,7 @@ export function Settings() {
                     desktop. Your provider’s usage limits and charges apply.
                   </CardDescription>
                   {meter && (
-                    <div className="mt-[11px] flex flex-col items-start gap-[7px] text-[11.5px] text-ink-faint sm:flex-row sm:items-center sm:gap-2.5">
+                    <div className="mt-[11px] flex flex-col items-start gap-[7px] text-caption text-ink-faint sm:flex-row sm:items-center sm:gap-2.5">
                       {allowance && allowance.limit > 0 && !allowance.byoModel && (
                         <Progress
                           className="w-[min(100%,240px)] sm:w-[180px]"

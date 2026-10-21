@@ -13,7 +13,7 @@ import { clientIntegrations } from '../integrations'
 import { navigate } from '../App'
 import { posthog } from '../lib/posthog'
 import { AccountMenu, IconGrid } from '../components/DashShell'
-import { AppRail, pageTitleCls, railLayout } from '../components/AppRail'
+import { AppRail, railLayout } from '../components/AppRail'
 import {
   CanvasThumb,
   ClockTile,
@@ -138,7 +138,7 @@ export function Automations() {
           <span className="flex-1" />
           <Button
             variant="primary"
-            className="h-10 gap-[7px] rounded-[8px] pl-2.5 pr-3 text-[12.5px] md:h-8"
+            className="h-10 gap-[7px] rounded-control pl-2.5 pr-3 text-body md:h-8"
             disabled={busy}
             onClick={() => create()}
           >
@@ -150,12 +150,12 @@ export function Automations() {
         </DashHeader>
 
         <DashContent className="pt-2 md:pt-3">
-          <DashTitle className={pageTitleCls}>Automations</DashTitle>
+          <DashTitle className="mb-5">Automations</DashTitle>
 
           {items === null ? (
             <div className="flex flex-col gap-2">
               {[0, 1, 2].map((i) => (
-                <Skeleton key={i} index={i} className="h-14 rounded-[12px]" />
+                <Skeleton key={i} index={i} className="h-14 rounded-card" />
               ))}
             </div>
           ) : empty ? (
@@ -166,12 +166,12 @@ export function Automations() {
                   <span className="h-px w-[22px] bg-[#b9b5ac]" aria-hidden />
                   <MetaTile size={36} className="border border-line bg-surface" />
                   <span className="h-px w-[22px] bg-[#b9b5ac]" aria-hidden />
-                  <span className="grid size-9 place-items-center rounded-[10px] border border-line bg-surface text-ink">
+                  <span className="grid size-9 place-items-center rounded-pill border border-line bg-surface text-ink">
                     <IconGrid />
                   </span>
                 </div>
-                <h3 className="text-[18px] font-semibold tracking-[-0.015em]">Nothing runs on its own yet</h3>
-                <p className="max-w-[420px] text-[13.5px] leading-[1.5] text-ink-soft">
+                <h3 className="text-heading font-semibold tracking-[-0.015em]">Nothing runs on its own yet</h3>
+                <p className="max-w-[420px] text-copy leading-[1.5] text-ink-soft">
                   Pull designs in on a schedule, or hand a canvas to an agent every week.
                 </p>
                 <Button variant="primary" className="mt-2.5" disabled={busy} onClick={() => create()}>
@@ -181,8 +181,8 @@ export function Automations() {
               <Examples onUse={create} busy={busy} />
             </>
           ) : (
-            <div className="overflow-hidden rounded-[14px] border border-line bg-surface shadow-card">
-              <div className="hidden grid-cols-[52px_minmax(0,1.7fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)_36px] items-center gap-3 border-b border-line-soft px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-faint md:grid">
+            <div className="overflow-hidden rounded-panel border border-line bg-surface shadow-card">
+              <div className="hidden grid-cols-[52px_minmax(0,1.7fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)_36px] items-center gap-3 border-b border-line-soft px-4 py-2.5 text-caption text-ink-faint md:grid">
                 <span />
                 <span>Automation</span>
                 <span>Canvas</span>
@@ -208,19 +208,19 @@ export function Automations() {
                       {first?.type === 'pull' ? (
                         <MetaTile size={24} className="border border-line bg-surface" />
                       ) : first ? (
-                        <span className="grid size-6 flex-none place-items-center rounded-[7px] border border-line bg-surface">
+                        <span className="grid size-6 flex-none place-items-center rounded-row border border-line bg-surface">
                           <RoleMark role={roleById(first.roles[0])} size={14} />
                         </span>
                       ) : (
                         <ClockTile size={24} />
                       )}
-                      <span className="min-w-0 truncate text-[13.5px] text-ink-soft">
-                        <b className="font-semibold text-ink">{a.name}</b>
+                      <span className="min-w-0 truncate text-copy text-ink-soft">
+                        <b className="font-medium text-ink">{a.name}</b>
                         {first?.type === 'agent' && first.roles.length === 1 && <> · @{first.roles[0]}</>} ·{' '}
                         {everyLine(a)}
                       </span>
                     </div>
-                    <span className="hidden min-w-0 items-center gap-2.5 text-[13px] text-ink-soft md:flex">
+                    <span className="hidden min-w-0 items-center gap-2.5 text-body text-ink-soft md:flex">
                       {canvasIds.length ? (
                         <>
                           <CanvasThumb canvas={canvas} className="h-[22px] w-[34px]" />
@@ -233,7 +233,7 @@ export function Automations() {
                         <em className="not-italic text-ink-faint">Pick a canvas</em>
                       )}
                     </span>
-                    <span className="hidden min-w-0 items-center gap-2 text-[13px] text-ink-soft md:flex">
+                    <span className="hidden min-w-0 items-center gap-2 text-body text-ink-soft md:flex">
                       {a.lastRun ? (
                         <>
                           <RunDot status={a.lastRun.status} />
@@ -262,10 +262,7 @@ export function Automations() {
                       )}
                     </span>
                     <span
-                      className={cn(
-                        'hidden font-mono text-[11px] md:block',
-                        a.nextRunAt ? 'text-ink-soft' : 'text-ink-faint',
-                      )}
+                      className={cn('hidden text-caption md:block', a.nextRunAt ? 'text-ink-soft' : 'text-ink-faint')}
                     >
                       {a.nextRunAt ? formatRunTime(a.nextRunAt) : a.enabled ? 'finish setup' : 'paused'}
                     </span>
@@ -315,14 +312,14 @@ export function Automations() {
 export function Examples({ onUse, busy }: { onUse: (example: AutomationExample) => void; busy?: boolean }) {
   return (
     <section className="mt-[30px]">
-      <h2 className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-faint">Start from an example</h2>
+      <h2 className="text-caption text-ink-faint">Start from an example</h2>
       <div className="mt-3 grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
         {AUTOMATION_EXAMPLES.map((e) => (
           <div
             key={e.id}
             role="button"
             tabIndex={0}
-            className="group flex cursor-pointer flex-col gap-2 rounded-[12px] border border-line bg-surface px-4 pb-3.5 pt-4 shadow-card transition-[translate,border-color] duration-150 hover:-translate-y-[3px] hover:border-ink-faint focus-visible:outline-2 focus-visible:outline-brand"
+            className="group flex cursor-pointer flex-col gap-2 rounded-card border border-line bg-surface px-4 pb-3.5 pt-4 shadow-card transition-[translate,border-color] duration-150 hover:-translate-y-[3px] hover:border-ink-faint focus-visible:outline-2 focus-visible:outline-brand"
             onClick={() => !busy && onUse(e)}
             onKeyDown={(ev) => {
               if (ev.key === 'Enter' || ev.key === ' ') {
@@ -332,13 +329,11 @@ export function Examples({ onUse, busy }: { onUse: (example: AutomationExample) 
             }}
           >
             <StepChain steps={e.steps} size={26} />
-            <b className="mt-1 text-[14px] font-semibold tracking-[-0.012em]">{e.name}</b>
-            <p className="text-[12.5px] leading-[1.5] text-ink-soft">{e.blurb}</p>
-            <div className="mt-auto flex items-center pt-1.5 font-mono text-[10.5px] text-ink-faint">
+            <b className="mt-1 text-copy font-semibold tracking-[-0.012em]">{e.name}</b>
+            <p className="text-body leading-[1.5] text-ink-soft">{e.blurb}</p>
+            <div className="mt-auto flex items-center pt-1.5 text-caption text-ink-faint">
               {describeSchedule({ ...e.schedule, tz: 'UTC' }).replace(' at ', ' ')}
-              <b className="ml-auto font-sans text-[12.5px] font-semibold text-ink group-hover:text-accent-ink">
-                Use →
-              </b>
+              <b className="ml-auto font-sans text-body font-semibold text-ink group-hover:text-accent-ink">Use →</b>
             </div>
           </div>
         ))}

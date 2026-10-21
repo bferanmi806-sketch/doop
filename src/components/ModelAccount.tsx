@@ -80,14 +80,13 @@ function planName(plan: string): string {
 }
 
 const planFlow = 'mt-[14px]'
-const maSteps =
-  'mb-3 ml-[18px] mt-[10px] text-[13px] leading-[1.7] text-ink-soft [&_code]:font-mono [&_code]:text-[12px]'
-const maWaiting = 'mt-[10px] flex items-center gap-[9px] text-[13px] text-ink-soft'
+const maSteps = 'mb-3 ml-[18px] mt-[10px] text-body leading-[1.7] text-ink-soft [&_code]:font-mono [&_code]:text-label'
+const maWaiting = 'mt-[10px] flex items-center gap-[9px] text-body text-ink-soft'
 const maActions = 'mt-3 flex items-center gap-[10px] max-md:flex-col max-md:items-stretch'
 /* the "or paste the redirect instead" style link under a flow */
-const maToggle = 'mt-4 block px-0 py-0 text-left text-[12.5px] font-normal text-ink-faint hover:bg-transparent'
+const maToggle = 'mt-4 block px-0 py-0 text-left text-body font-normal text-ink-faint hover:bg-transparent'
 /* the paste-your-redirect field: ink-bordered so it reads as the live step */
-const maInput = 'rounded-[10px] border-ink px-3 py-[10px] font-mono focus:ring-0 md:text-xs'
+const maInput = 'rounded-pill border-ink px-3 py-[10px] font-mono focus:ring-0 md:text-xs'
 /* buttons in the responsive action rows centre their label once stacked */
 const rowBtn = 'max-md:justify-center'
 
@@ -316,7 +315,7 @@ export function ModelAccountPanel({ onChange }: { onChange?: () => void }) {
     if (models.length > 5) {
       if (!live) {
         return (
-          <p className="self-center text-[13px] leading-[1.55] text-ink-faint">
+          <p className="self-center text-body leading-[1.55] text-ink-faint">
             {models
               .slice(0, 6)
               .map((m) => m.name)
@@ -332,7 +331,7 @@ export function ModelAccountPanel({ onChange }: { onChange?: () => void }) {
             <Button
               variant="ghost"
               disabled={busy}
-              className="gap-[7px] rounded-[10px] border border-line px-3 text-[13px] font-medium text-ink"
+              className="gap-[7px] rounded-pill border border-line px-3 text-body font-medium text-ink"
             >
               {current?.name ?? account.model ?? 'Pick a model'}
               {current?.vision === false && <NoVisionBadge />}
@@ -347,7 +346,7 @@ export function ModelAccountPanel({ onChange }: { onChange?: () => void }) {
                     {m.name}
                     {m.vision === false && <NoVisionBadge />}
                   </span>
-                  <span className="text-[12px] leading-[1.45] text-ink-faint">{m.blurb}</span>
+                  <span className="text-label leading-[1.45] text-ink-faint">{m.blurb}</span>
                 </span>
                 {m.id === account.model && <Tick />}
               </DropdownMenuItem>
@@ -397,14 +396,14 @@ export function ModelAccountPanel({ onChange }: { onChange?: () => void }) {
         <span className={planMark(live && !local?.enabled)}>{cfg.mark}</span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-[10px] max-md:flex-wrap max-md:items-start max-md:gap-x-[9px] max-md:gap-y-[6px]">
-            <h3 className="font-display text-[18px] font-extrabold normal-case tracking-[-0.02em] text-ink max-md:text-[17px]">
+            <h3 className="font-display text-heading font-extrabold normal-case tracking-[-0.02em] text-ink max-md:text-heading">
               {cfg.title}
             </h3>
             <span className={planPill(live)}>
               {live && showKey !== cfg.kind ? (local?.enabled ? 'Connected' : 'Active · Connected') : 'Not connected'}
             </span>
           </div>
-          <p className="mt-1.5 text-[14px] leading-[1.55] text-ink-soft max-md:text-[13.5px]">{cfg.lede}</p>
+          <p className="mt-1.5 text-copy leading-[1.55] text-ink-soft max-md:text-copy">{cfg.lede}</p>
 
           {live && showKey !== cfg.kind ? (
             <>
@@ -436,7 +435,7 @@ export function ModelAccountPanel({ onChange }: { onChange?: () => void }) {
                 </div>
               </div>
               {chosen && (
-                <p className="mt-[10px] text-[13px] text-ink-faint">
+                <p className="mt-[10px] text-body text-ink-faint">
                   {chosen.blurb}
                   {chosen.vision === false && ` ${VISION_NOTE}`}
                 </p>
@@ -444,7 +443,7 @@ export function ModelAccountPanel({ onChange }: { onChange?: () => void }) {
             </>
           ) : showKey === cfg.kind ? (
             <div className={planFlow}>
-              <p className="mb-3 mt-2 text-[13px] leading-[1.55] text-ink-soft">
+              <p className="mb-3 mt-2 text-body leading-[1.55] text-ink-soft">
                 The key is stored on the server and never shown again.
               </p>
               <Input
@@ -494,18 +493,18 @@ export function ModelAccountPanel({ onChange }: { onChange?: () => void }) {
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-[10px] max-md:flex-wrap max-md:items-start max-md:gap-x-[9px] max-md:gap-y-[6px]">
-              <h3 className="font-display text-[18px] font-extrabold normal-case tracking-[-0.02em] text-ink max-md:text-[17px]">
+              <h3 className="font-display text-heading font-extrabold normal-case tracking-[-0.02em] text-ink max-md:text-heading">
                 Codex Plan
               </h3>
               <span className={planPill(onChatgpt)}>
                 {onChatgpt ? (local?.enabled ? 'Connected' : 'Active · Connected') : 'Not connected'}
               </span>
             </div>
-            <p className="mt-1.5 text-[14px] leading-[1.55] text-ink-soft max-md:text-[13.5px]">
+            <p className="mt-1.5 text-copy leading-[1.55] text-ink-soft max-md:text-copy">
               Route OpenAI models through your ChatGPT subscription
             </p>
             {onChatgpt && account.email && (
-              <dl className="mt-[14px] grid grid-cols-[auto_auto] items-center justify-start gap-x-[14px] gap-y-2 text-[13px] text-ink-soft max-md:grid-cols-1 max-md:gap-[3px]">
+              <dl className="mt-[14px] grid grid-cols-[auto_auto] items-center justify-start gap-x-[14px] gap-y-2 text-body text-ink-soft max-md:grid-cols-1 max-md:gap-[3px]">
                 <dt>Connected as</dt>
                 <dd className="min-w-0">
                   <code className={planAsCode}>{account.email}</code>
@@ -536,7 +535,7 @@ export function ModelAccountPanel({ onChange }: { onChange?: () => void }) {
                     </Button>
                   </div>
                 </div>
-                {chosen && <p className="mt-[10px] text-[13px] text-ink-faint">{chosen.blurb}</p>}
+                {chosen && <p className="mt-[10px] text-body text-ink-faint">{chosen.blurb}</p>}
               </>
             ) : device ? (
               <div className={planFlow}>
@@ -670,7 +669,7 @@ export function ModelAccountPanel({ onChange }: { onChange?: () => void }) {
 
       {/* the browser cannot run the local CLI, so the plan closes the list as a pointer to the desktop app */}
       {!desktop && <LocalClaudeRow />}
-      {error && <p className="mt-[10px] text-[12.5px] text-accent-ink">{error}</p>}
+      {error && <p className="mt-[10px] text-body text-accent-ink">{error}</p>}
     </div>
   )
 }
@@ -683,7 +682,7 @@ function Tick() {
 
 function NoVisionBadge() {
   return (
-    <span className="rounded-[5px] bg-paper-deep px-[6px] py-[1px] text-[10.5px] font-medium uppercase tracking-[0.04em] text-ink-faint">
+    <span className="rounded-[5px] bg-paper-deep px-[6px] py-[1px] text-micro font-medium uppercase tracking-[0.04em] text-ink-faint">
       no visual review
     </span>
   )

@@ -91,6 +91,35 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  /* Named corners, by what they sit on: a row in a list or rail, a control
+     (button, field), a pill or chip, a card or tile, a floating panel. These
+     are the shapes the white system draws; `rounded-[Npx]` is for a one-off. */
+  --radius-row: 7px;
+  --radius-control: 8px;
+  --radius-pill: 10px;
+  --radius-card: 12px;
+  --radius-panel: 14px;
+  /* The type scale, by role. The chrome speaks in `text-body`; everything
+     else is a named step away from it. Line heights ride along, so a class
+     sets both. `text-[Npx]` is for a one-off that the scale cannot name. */
+  --text-micro: 10px;
+  --text-micro--line-height: 1.4;
+  --text-caption: 11px;
+  --text-caption--line-height: 1.4;
+  --text-label: 12px;
+  --text-label--line-height: 1.4;
+  --text-body: 12.5px;
+  --text-body--line-height: 1.45;
+  --text-copy: 13.5px;
+  --text-copy--line-height: 1.55;
+  --text-lead: 15px;
+  --text-lead--line-height: 1.5;
+  --text-heading: 18px;
+  --text-heading--line-height: 1.25;
+  --text-title: 24px;
+  --text-title--line-height: 1.15;
+  --text-display: 46px;
+  --text-display--line-height: 1;
 }
 
 :root {

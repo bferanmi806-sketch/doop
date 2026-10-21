@@ -38,7 +38,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<'h2'>) {
   return (
     <h2
       data-slot="card-title"
-      className={cn('font-display text-[17px] font-extrabold tracking-[-0.02em] text-ink', className)}
+      className={cn('text-lead font-medium tracking-[-0.01em] text-ink', className)}
       {...props}
     />
   )
@@ -48,7 +48,7 @@ function CardDescription({ className, ...props }: React.ComponentProps<'p'>) {
   return (
     <p
       data-slot="card-description"
-      className={cn('mt-[7px] max-w-[62em] text-[13px] leading-[1.55] text-ink-soft', className)}
+      className={cn('mt-1.5 max-w-[62em] text-body text-ink-soft', className)}
       {...props}
     />
   )
@@ -78,7 +78,7 @@ function CardRow({
       {...props}
     >
       {label ? (
-        <span className="flex-none text-[12.5px] font-semibold text-ink-soft sm:w-[150px] sm:font-normal sm:text-ink-faint">
+        <span className="flex-none text-body font-medium text-ink-soft sm:w-[150px] sm:font-normal sm:text-ink-faint">
           {label}
         </span>
       ) : null}

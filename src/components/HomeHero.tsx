@@ -80,7 +80,7 @@ const CHIPS: Chip[] = [
   {
     id: 'automation',
     label: 'Run an automation',
-    icon: <span className="font-mono text-[11px]">/</span>,
+    icon: <span className="font-mono text-caption">/</span>,
     action: 'onAutomations',
   },
   { id: 'agents', label: 'Connect your agents', icon: <CirclePlusIcon {...chipIcon} />, action: 'onConnectAgents' },
@@ -206,7 +206,7 @@ export function HomeHero({
             />
           </g>
         </svg>
-        <h1 className="font-['Hanken_Grotesk',sans-serif] text-[34px] font-light leading-none tracking-[-0.02em] md:text-[46px]">
+        <h1 className="font-['Hanken_Grotesk',sans-serif] text-title font-light leading-none tracking-[-0.02em] md:text-display">
           Ask me what to design{firstName ? ', ' : ''}
           {firstName && <span className="text-ink-faint">{firstName}</span>}
         </h1>
@@ -236,7 +236,7 @@ export function HomeHero({
                   className={cn(
                     /* hover and the beam change colour, opacity and shadow only — nothing
                        shifts, so the row never jitters under the pointer */
-                    'relative inline-flex h-8 flex-none items-center gap-2 whitespace-nowrap rounded-[10px] bg-surface pl-[11px] pr-[13px] text-[12.5px] text-ink-soft shadow-ring transition-[opacity,box-shadow,color] duration-normal ease-out-quad hover:shadow-ring-hover focus-visible:outline-none',
+                    'relative inline-flex h-8 flex-none items-center gap-2 whitespace-nowrap rounded-pill bg-surface pl-[11px] pr-[13px] text-body text-ink-soft shadow-ring transition-[opacity,box-shadow,color] duration-normal ease-out-quad hover:shadow-ring-hover focus-visible:outline-none',
                     on ? 'text-ink' : 'opacity-60 hover:opacity-100',
                   )}
                 >
@@ -265,7 +265,7 @@ export function HomeHero({
 
       {/* the composer */}
       <div className="relative mx-auto mt-6 w-full max-w-[740px] px-4 md:mt-[34px] md:px-0">
-        <div className="rounded-[14px] bg-surface px-[18px] pb-3 pt-5 shadow-float">
+        <div className="rounded-panel bg-surface px-[18px] pb-3 pt-5 shadow-float">
           <Textarea
             ref={inputRef}
             variant="bare"
@@ -276,9 +276,9 @@ export function HomeHero({
             aria-label="Ask Doop what to design"
             onChange={(e) => setText(e.target.value)}
             onKeyDown={onKeyDown}
-            className="min-h-[52px] text-[15px] leading-[1.45] placeholder:text-ink-ghost md:text-[15px]"
+            className="min-h-[52px] text-lead leading-[1.45] placeholder:text-ink-ghost md:text-lead"
           />
-          <div className="mt-1 flex items-center gap-5 text-[12.5px] text-ink-soft">
+          <div className="mt-1 flex items-center gap-5 text-body text-ink-soft">
             <button
               type="button"
               className="flex items-center gap-[7px] rounded-md text-ink-soft transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
@@ -293,7 +293,7 @@ export function HomeHero({
                 <button
                   type="button"
                   aria-label={`Drafts per prompt: ${drafts}`}
-                  className="flex h-7 items-center gap-[6px] rounded-[7px] px-1.5 text-[12px] text-ink-soft transition-colors hover:bg-paper-deep hover:text-ink"
+                  className="flex h-7 items-center gap-[6px] rounded-row px-1.5 text-label text-ink-soft transition-colors hover:bg-paper-deep hover:text-ink"
                 >
                   <CopyIcon width={14} height={14} />
                   {drafts} {drafts === 1 ? 'draft' : 'drafts'}
@@ -301,14 +301,14 @@ export function HomeHero({
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="top" align="end" className="w-[220px]">
-                <DropdownMenuLabel className="px-2.5 pb-1 pt-1.5 text-[11px] text-ink-faint">
+                <DropdownMenuLabel className="px-2.5 pb-1 pt-1.5 text-caption text-ink-faint">
                   Drafts per prompt
                 </DropdownMenuLabel>
                 {DRAFT_OPTIONS.map((n) => (
                   <DropdownMenuItem key={n} onSelect={() => pickDrafts(n)}>
                     <span className="flex-1">
                       {n} {n === 1 ? 'draft' : 'drafts'}
-                      <span className="block text-[11px] text-ink-faint">
+                      <span className="block text-caption text-ink-faint">
                         {n === 1 ? 'One take on the brief' : `${n} takes, side by side, to pick from`}
                       </span>
                     </span>
@@ -333,7 +333,7 @@ export function HomeHero({
         <button
           type="button"
           onClick={actions.onIntegrations}
-          className="group mx-[14px] flex w-[calc(100%-28px)] items-center rounded-b-[12px] bg-sub px-5 pb-2.5 pt-3 text-left text-[12.5px] text-ink-soft transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+          className="group mx-[14px] flex w-[calc(100%-28px)] items-center rounded-b-[12px] bg-sub px-5 pb-2.5 pt-3 text-left text-body text-ink-soft transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
         >
           Connect your existing designs for better results
           <ChevronRightIcon

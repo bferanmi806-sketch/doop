@@ -21,7 +21,7 @@ export function ClockTile({ size = 24, className }: { size?: number; className?:
   const icon = Math.round(size * 0.58)
   return (
     <span
-      className={cn('inline-grid flex-none place-items-center rounded-[7px] bg-ink', className)}
+      className={cn('inline-grid flex-none place-items-center rounded-row bg-ink', className)}
       style={{ width: size, height: size, borderRadius: Math.round(size * 0.29) }}
       aria-hidden
     >
@@ -96,7 +96,7 @@ export function StepChain({
         </span>,
       )
   })
-  const dash = <span className="h-px w-3 flex-none bg-[#b9b5ac]" aria-hidden />
+  const dash = <span className="h-px w-3 flex-none bg-line" aria-hidden />
   return (
     <span className={cn('inline-flex items-center', joined ? 'gap-1.5' : 'gap-1', className)}>
       {marks.map((m, i) => (
@@ -127,9 +127,7 @@ export function Toggle({
 }) {
   return (
     <span className="inline-flex items-center gap-2">
-      {caption && (
-        <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-soft">{on ? 'On' : 'Off'}</span>
-      )}
+      {caption && <span className="text-caption text-ink-soft">{on ? 'On' : 'Off'}</span>}
       <button
         type="button"
         role="switch"
@@ -164,7 +162,7 @@ export function Sel({ className, children, ...props }: React.ComponentProps<'sel
       <select
         className={cn(
           fieldVariants({ variant: 'default', inputSize: 'sm' }),
-          'h-[34px] w-full cursor-pointer appearance-none truncate rounded-lg pl-[11px] pr-8 text-[13.5px] font-semibold tracking-[-0.01em]',
+          'h-[34px] w-full cursor-pointer appearance-none truncate rounded-control pl-[11px] pr-8 text-body font-medium tracking-[-0.01em]',
         )}
         {...props}
       >
@@ -184,7 +182,7 @@ export function Chevron({ className }: { className?: string }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2.2"
+      strokeWidth="1.15"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden

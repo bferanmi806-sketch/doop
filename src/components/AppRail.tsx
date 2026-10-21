@@ -185,7 +185,7 @@ export function AppRail({
       key="narrow"
       className="flex min-h-full w-full animate-[fade-in_0.25s_ease] flex-col items-center motion-reduce:animate-none"
     >
-      <Logo className="mb-3 size-[26px] rounded-[7px]" />
+      <Logo className="mb-3 size-[26px] rounded-row" />
       <RailIconButton label="Show sidebar" onClick={() => setRail(true)} size="lg">
         <PanelExpandIcon width={15} height={15} />
       </RailIconButton>
@@ -260,8 +260,8 @@ export function AppRail({
   const wide = (
     <div key="wide" className="flex min-h-full w-full animate-[fade-in_0.25s_ease] flex-col motion-reduce:animate-none">
       <div className="mb-2.5 flex h-[30px] items-center gap-2 px-1.5">
-        <button type="button" aria-label="Doop home" className="rounded-[7px]" onClick={() => navigate('/')}>
-          <Logo className="size-[26px] rounded-[7px]" />
+        <button type="button" aria-label="Doop home" className="rounded-row" onClick={() => navigate('/')}>
+          <Logo className="size-[26px] rounded-row" />
         </button>
         <span className="ml-auto flex items-center gap-2.5 text-ink-soft">
           <RailIconButton label="Search canvases (⌘K)" onClick={() => setSearching(true)}>
@@ -345,7 +345,7 @@ export function AppRail({
         {agents.map((a) => (
           <div
             key={a.name}
-            className="flex h-[31px] min-w-0 items-center gap-[11px] px-[11px] text-[12.5px] text-ink-soft"
+            className="flex h-[31px] min-w-0 items-center gap-[11px] px-[11px] text-body text-ink-soft"
             title={`${a.canvases} canvas${a.canvases === 1 ? '' : 'es'}`}
           >
             <span className="grid size-[14px] flex-none place-items-center" style={{ color: colorFor(a.name) }}>
@@ -355,7 +355,7 @@ export function AppRail({
             {a.lastAt > 0 && now - a.lastAt < LIVE_WINDOW ? (
               <Dot size="sm" className="ml-auto bg-success" title="working right now" />
             ) : (
-              <span className="ml-auto flex-none text-[11px] text-ink-faint">
+              <span className="ml-auto flex-none text-caption text-ink-faint">
                 {a.lastAt > 0 ? timeAgo(a.lastAt) : ''}
               </span>
             )}
@@ -393,15 +393,12 @@ export function AppRail({
   )
 }
 
-/** page headings in this shell: the UI sans, medium, one size up from the rows */
-export const pageTitleCls = 'font-sans text-[22px] font-medium leading-tight tracking-[-0.01em] md:text-[24px]'
-
 /** the DashLayout column spec that lets the rail set its own width */
 export const railLayout = 'md:grid-cols-[auto_1fr]'
 
 function AccountName() {
   const { data: session } = authClient.useSession()
-  return <span className="truncate text-[12.5px] text-ink-soft">{session?.user.name}</span>
+  return <span className="truncate text-body text-ink-soft">{session?.user.name}</span>
 }
 
 function Rule() {
@@ -430,7 +427,7 @@ export function RailIconButton({
       aria-pressed={on || undefined}
       className={cn(
         'grid flex-none place-items-center text-ink-soft transition-colors hover:bg-paper-deep hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
-        size === 'sm' ? 'size-6 rounded-md' : 'size-8 rounded-[7px]',
+        size === 'sm' ? 'size-6 rounded-md' : 'size-8 rounded-row',
         on && 'bg-paper-deep text-ink',
       )}
       onClick={onClick}
@@ -443,7 +440,7 @@ export function RailIconButton({
 /** a group caption in the rail: sentence case, a quiet grey */
 export function RailLabel({ children }: { children: ReactNode }) {
   return (
-    <DashSectionLabel className="flex items-center gap-[5px] px-[11px] pb-1.5 pt-3.5 text-[11px] font-normal normal-case tracking-normal">
+    <DashSectionLabel className="flex items-center gap-[5px] px-[11px] pb-1.5 pt-3.5 text-caption font-normal normal-case tracking-normal">
       {children}
       <ChevronDownIcon width={11} height={11} className="text-ink-ghost" aria-hidden />
     </DashSectionLabel>
@@ -470,7 +467,7 @@ export function RailItem({
       count={trail}
       active={on}
       onClick={go}
-      className="h-[31px] gap-[11px] rounded-[7px] px-[11px] py-0 text-[12.5px] font-normal hover:bg-paper-deep data-[active]:font-normal [&_svg]:flex-none"
+      className="h-[31px] gap-[11px] rounded-row px-[11px] py-0 text-body font-normal hover:bg-paper-deep data-[active]:font-normal [&_svg]:flex-none"
     >
       {label}
     </DashNavItem>

@@ -5,7 +5,7 @@ import { api, type IntegrationsStatus } from '../lib/api'
 import { posthog } from '../lib/posthog'
 import { AccountMenu } from '../components/DashShell'
 import { MetaTile } from '../components/AutomateShell'
-import { AppRail, pageTitleCls, railLayout } from '../components/AppRail'
+import { AppRail, railLayout } from '../components/AppRail'
 import { clientIntegrations } from '../integrations'
 import { DisconnectButton, IntegrationCard } from '../integrations/ui'
 import { Button } from '../components/ui/button'
@@ -113,7 +113,7 @@ export function Integrations() {
         </DashHeader>
 
         <DashContent className="pt-2 md:pt-3">
-          <DashTitle className={pageTitleCls}>Integrations</DashTitle>
+          <DashTitle className="mb-5">Integrations</DashTitle>
 
           {notice && (
             <Callout tone={notice.tone} className="mb-4 max-w-[720px]">
@@ -124,8 +124,8 @@ export function Integrations() {
           <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {!meta || !status ? (
               <>
-                <Skeleton className="min-h-[150px] rounded-[14px]" />
-                <Skeleton className="min-h-[150px] rounded-[14px]" />
+                <Skeleton className="min-h-[150px] rounded-panel" />
+                <Skeleton className="min-h-[150px] rounded-panel" />
               </>
             ) : (
               <>
@@ -206,12 +206,12 @@ export function Integrations() {
                   }
                 >
                   {meta.connected && meta.expiresAt && meta.expiresAt < soon && (
-                    <p className="text-[11.5px] text-accent-ink">
+                    <p className="text-caption text-accent-ink">
                       Meta’s access expires soon — reconnect to keep pulls running.
                     </p>
                   )}
                   {!meta.enabled && (
-                    <p className="text-[11.5px] text-ink-faint">
+                    <p className="text-caption text-ink-faint">
                       Not configured on this server — set META_APP_ID and META_APP_SECRET.
                     </p>
                   )}

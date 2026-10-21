@@ -90,34 +90,36 @@ export function AccountMenu({
               color={colorFor(session?.user.id ?? name)}
               kind="user"
               size={28}
-              className="text-[10.5px] shadow-none"
+              className="text-micro shadow-none"
             />
           </button>
         ) : (
           <Button
             variant="bare"
-            className="grid size-10 flex-none place-items-center rounded-[10px] bg-ink font-display text-[12.5px] font-bold text-paper hover:bg-ink hover:text-paper hover:opacity-90 sm:size-[34px]"
+            className="grid size-10 flex-none place-items-center rounded-pill bg-ink font-display text-body font-bold text-paper hover:bg-ink hover:text-paper hover:opacity-90 sm:size-[34px]"
             aria-label="Account"
           >
             {initials(name)}
           </Button>
         )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent side={side} align={align}>
-        <DropdownMenuLabel className="flex items-center gap-[11px] px-2.5 pb-3 pt-[11px]">
-          <span className="grid size-[42px] flex-none place-items-center rounded-[12px] border border-line bg-paper-deep font-display text-[14px] font-extrabold">
-            {initials(session?.user.name)}
-          </span>
+      <DropdownMenuContent side={side} align={align} className="w-[240px]">
+        <DropdownMenuLabel className="flex items-center gap-2.5 px-2.5 pb-2.5 pt-2">
+          <PresenceFace
+            name={name || '·'}
+            color={colorFor(session?.user.id ?? name)}
+            kind="user"
+            size={32}
+            className="text-caption shadow-none"
+          />
           <span className="flex min-w-0 flex-col">
-            <span className="truncate font-display text-[14px] font-bold">{session?.user.name}</span>
-            <span className="mt-px truncate text-[12px] font-normal text-ink-faint">
-              {me?.email ?? session?.user.email}
-            </span>
+            <span className="truncate text-body font-medium text-ink">{name}</span>
+            <span className="truncate text-caption font-normal text-ink-faint">{me?.email ?? session?.user.email}</span>
           </span>
         </DropdownMenuLabel>
         {/* the plan is a workspace thing; this line says which side of it the
             account is on — a member of a live paid workspace is on Team */}
-        <div className="mx-2.5 mb-2 flex items-center gap-[7px] text-[11.5px] text-ink-soft">
+        <div className="mx-2.5 mb-2 flex items-center gap-[7px] text-caption text-ink-soft">
           {me?.plan === 'team' ? (
             <>
               <Badge tone="accent">team</Badge> Team plan
@@ -180,15 +182,15 @@ export function ConnectCard() {
   const [showConnect, setShowConnect] = useState(false)
   return (
     <>
-      <div className="rounded-[12px] border border-dashed border-line px-[13px] py-3">
-        <b className="block font-display text-[12.5px]">Connect an agent</b>
-        <p className="mt-[3px] text-[11.5px] leading-[1.45] text-ink-faint">
+      <div className="rounded-card border border-dashed border-line px-[13px] py-3">
+        <b className="block font-display text-body">Connect an agent</b>
+        <p className="mt-[3px] text-caption leading-[1.45] text-ink-faint">
           Any MCP client — one command, one browser approval.
         </p>
         <span className="mt-[9px] flex items-center gap-2">
           <AgentIcon name="claude" size={14} />
           <AgentIcon name="codex" size={14} color="var(--ink)" />
-          <em className="text-[10.5px] not-italic text-ink-faint">+ any MCP</em>
+          <em className="text-micro not-italic text-ink-faint">+ any MCP</em>
         </span>
         <CodeBlock
           density="rail"
@@ -198,7 +200,7 @@ export function ConnectCard() {
         <Button
           variant="link"
           size="sm"
-          className="mt-[9px] px-0 py-0 text-[11.5px] text-accent-ink underline-offset-[3px]"
+          className="mt-[9px] px-0 py-0 text-caption text-accent-ink underline-offset-[3px]"
           onClick={() => setShowConnect(true)}
         >
           Codex &amp; other clients →

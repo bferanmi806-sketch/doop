@@ -63,7 +63,7 @@ export function ImageModelCard() {
           key when you connected nothing.
         </CardDescription>
       </CardHeader>
-      <div className="px-6 pb-6">
+      <div className="px-4 pb-5 pt-4 sm:px-[22px]">
         <ToggleChipGroup aria-label="Image model" value={selected?.id ?? ''} onValueChange={pick} disabled={busy}>
           {IMAGE_MODELS.map((option) => {
             const status = models.find((m) => m.id === option.id)
@@ -85,11 +85,11 @@ export function ImageModelCard() {
           })}
         </ToggleChipGroup>
         {selected && (
-          <p className="mt-[10px] text-[13px] text-ink-faint">
+          <p className="mt-[10px] text-body text-ink-faint">
             {IMAGE_MODELS.find((option) => option.id === selected.id)?.blurb}
           </p>
         )}
-        {error && <p className="mt-[10px] text-[12.5px] text-accent-ink">{error}</p>}
+        {error && <p className="mt-[10px] text-body text-accent-ink">{error}</p>}
       </div>
     </Card>
   )

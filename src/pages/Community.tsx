@@ -11,7 +11,7 @@ import { navigate } from '../App'
 import { Logo } from '../components/Logo'
 import { timeAgo } from '../lib/time'
 import { AccountMenu } from '../components/DashShell'
-import { AppRail, RailItem, RailLabel, pageTitleCls, railLayout } from '../components/AppRail'
+import { AppRail, railLayout } from '../components/AppRail'
 import { posthog } from '../lib/posthog'
 import { openCanvasTab } from '../lib/desktop'
 import { Button } from '../components/ui/button'
@@ -33,7 +33,7 @@ type Sort = 'trending' | 'newest'
 /* a gallery tile: the raised Card surface, made clickable — the same tile as Home */
 const cardCls = cn(
   cardVariants({ tone: 'raised' }),
-  'group relative z-[2] transform-gpu overflow-hidden rounded-[14px] p-0 text-left text-ink',
+  'group relative z-[2] transform-gpu overflow-hidden rounded-panel p-0 text-left text-ink',
   'bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] backdrop-blur-[6px]',
 )
 
@@ -123,32 +123,7 @@ export function Community() {
 
   return (
     <DashLayout className={railLayout}>
-      <AppRail active="community" searchShortcut={false}>
-        {shelves.length > 0 && (
-          <>
-            <RailLabel>Shelves</RailLabel>
-            <nav className="flex flex-col gap-0.5">
-              <RailItem
-                icon={<span className="w-[14px]" />}
-                label="Everything"
-                trail={counts.get('all')}
-                on={shelf === 'all'}
-                go={() => setShelf('all')}
-              />
-              {shelves.map((c) => (
-                <RailItem
-                  key={c}
-                  icon={<span className="w-[14px]" />}
-                  label={COMMUNITY_CATEGORY_LABELS[c]}
-                  trail={counts.get(c)}
-                  on={shelf === c}
-                  go={() => setShelf(c)}
-                />
-              ))}
-            </nav>
-          </>
-        )}
-      </AppRail>
+      <AppRail active="community" searchShortcut={false} />
 
       <DashMain className="[background:var(--paper)]">
         <DashHeader className="border-b-0 bg-transparent backdrop-blur-none max-md:min-h-[104px]">
@@ -160,7 +135,7 @@ export function Community() {
           >
             <Logo className="size-7" /> Doop
           </Button>
-          <label className="order-2 flex h-10 max-w-none flex-1 basis-full items-center gap-[7px] rounded-[8px] bg-surface px-[10px] text-ink-faint shadow-ring focus-within:shadow-ring-hover md:order-none md:h-[30px] md:max-w-[320px] md:basis-auto">
+          <label className="order-2 flex h-10 max-w-none flex-1 basis-full items-center gap-[7px] rounded-control bg-surface px-[10px] text-ink-faint shadow-ring focus-within:shadow-ring-hover md:order-none md:h-[30px] md:max-w-[320px] md:basis-auto">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="7" />
               <path d="m20 20-3.2-3.2" />
@@ -173,9 +148,9 @@ export function Community() {
               aria-label="Search the gallery"
               variant="bare"
               inputSize="auto"
-              className="flex-1 md:text-[13px]"
+              className="flex-1 md:text-body"
             />
-            <kbd className="hidden flex-none rounded-[5px] border border-line px-[5px] py-px font-mono text-[10px] text-ink-faint md:block">
+            <kbd className="hidden flex-none rounded-[5px] border border-line px-[5px] py-px font-mono text-micro text-ink-faint md:block">
               ⌘K
             </kbd>
           </label>
@@ -188,7 +163,7 @@ export function Community() {
         <DashContent>
           <div className="flex items-start gap-4 md:items-end">
             <div>
-              <DashTitle className={pageTitleCls}>Community</DashTitle>
+              <DashTitle>Community</DashTitle>
               <DashSubtitle>
                 {items === null
                   ? '…'
@@ -213,11 +188,11 @@ export function Community() {
               value={shelf}
               onValueChange={(next) => setShelf(next as Shelf)}
             >
-              <ToggleChipItem value="all" className="px-2.5 py-1 text-[12px]">
+              <ToggleChipItem value="all" className="px-2.5 py-1 text-label">
                 All · {counts.get('all')}
               </ToggleChipItem>
               {shelves.map((c) => (
-                <ToggleChipItem key={c} value={c} className="px-2.5 py-1 text-[12px]">
+                <ToggleChipItem key={c} value={c} className="px-2.5 py-1 text-label">
                   {COMMUNITY_CATEGORY_LABELS[c]} · {counts.get(c)}
                 </ToggleChipItem>
               ))}
@@ -226,7 +201,9 @@ export function Community() {
 
           {empty ? (
             <Card className="mt-7 max-w-[560px] rounded-[18px] px-5 pb-6 pt-5 sm:px-7 sm:pb-7 sm:pt-[26px]">
-              <h3 className="font-display text-[20px] font-extrabold tracking-[-0.02em]">Nothing on the shelves yet</h3>
+              <h3 className="font-display text-heading font-extrabold tracking-[-0.02em]">
+                Nothing on the shelves yet
+              </h3>
               <p className="mb-[18px] mt-2.5 text-sm leading-[1.6] text-ink-soft">
                 Anyone can list a canvas here from its Share menu — people preview it and copy it into their own
                 account, and the original stays private. Be the first.
@@ -243,7 +220,7 @@ export function Community() {
                 </div>
               )}
               {items !== null && visible.length === 0 ? (
-                <p className="mt-7 text-[13.5px] text-ink-soft">Nothing matches — try a different search or shelf.</p>
+                <p className="mt-7 text-copy text-ink-soft">Nothing matches — try a different search or shelf.</p>
               ) : (
                 <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-3.5 xs:grid-cols-[repeat(auto-fill,minmax(250px,1fr))] md:gap-4">
                   {items === null &&
@@ -297,17 +274,17 @@ function GalleryCard({
         onClick={onOpen}
       >
         <div className="relative grid aspect-[16/10] place-items-center overflow-hidden border-b border-line-soft [background:radial-gradient(circle,var(--dot)_1px,transparent_1px)_0_0/18px_18px,var(--paper-deep)]">
-          {cover ? <FrameImage frameId={cover.id} /> : <span className="text-[12px] text-ink-faint">no preview</span>}
+          {cover ? <FrameImage frameId={cover.id} /> : <span className="text-label text-ink-faint">no preview</span>}
           {item.frames.length > 1 && (
             <Badge className="absolute left-2 top-2 bg-surface/90">{item.frames.length} frames</Badge>
           )}
         </div>
         <div className="px-3 pb-3 pt-2.5">
-          <div className="truncate font-display text-[13.5px] font-semibold">{item.name}</div>
+          <div className="truncate font-display text-copy font-semibold">{item.name}</div>
           {item.description && (
-            <p className="mt-1 line-clamp-2 text-[12px] leading-[1.45] text-ink-soft">{item.description}</p>
+            <p className="mt-1 line-clamp-2 text-label leading-[1.45] text-ink-soft">{item.description}</p>
           )}
-          <div className="mt-[7px] flex items-center gap-1.5 text-[11.5px] text-ink-faint">
+          <div className="mt-[7px] flex items-center gap-1.5 text-caption text-ink-faint">
             <span className="truncate">by {item.authorName}</span>
             <span className="opacity-60">·</span>
             <span className="flex-none">
@@ -347,12 +324,12 @@ function DesignModal({
       <div className="min-w-0">
         <ModalEyebrow>{COMMUNITY_CATEGORY_LABELS[item.category]}</ModalEyebrow>
         <ModalTitle className="mt-1.5 truncate">{item.name}</ModalTitle>
-        <p className="mt-1 text-[12.5px] text-ink-faint">
+        <p className="mt-1 text-caption text-ink-faint">
           by {item.authorName} · published {timeAgo(item.publishedAt)} · {item.copyCount}{' '}
           {item.copyCount === 1 ? 'copy' : 'copies'}
         </p>
       </div>
-      {item.description && <p className="mt-3 text-sm leading-[1.6] text-ink-soft">{item.description}</p>}
+      {item.description && <p className="mt-3 text-copy text-ink-soft">{item.description}</p>}
       <div className="-mx-5 mt-4 flex gap-3 overflow-x-auto px-5 pb-2">
         {item.frames.map((frame) => (
           <figure key={frame.id} className="flex-none">
@@ -363,19 +340,19 @@ function DesignModal({
                 sizing to the frame's real height would squeeze that into a
                 portrait sliver and crop the sides away. */}
             <div
-              className="h-[300px] max-w-[min(520px,80vw)] overflow-hidden rounded-[10px] border border-line bg-paper-deep"
+              className="h-[300px] max-w-[min(520px,80vw)] overflow-hidden rounded-pill border border-line bg-paper-deep"
               style={{ aspectRatio: `${frame.width} / ${Math.min(frame.height, PREVIEW_MAX_HEIGHT)}` }}
             >
               <FrameImage frameId={frame.id} />
             </div>
-            <figcaption className="mt-1.5 truncate text-[11.5px] text-ink-faint">
+            <figcaption className="mt-1.5 truncate text-caption text-ink-faint">
               {frame.name} · {Math.round(frame.width)}×{Math.round(frame.height)}
             </figcaption>
           </figure>
         ))}
       </div>
       <div className="mt-4 flex flex-col items-stretch gap-2.5 border-t border-line-soft pt-4 sm:flex-row sm:items-center sm:justify-between">
-        <span className="text-xs text-ink-faint">
+        <span className="text-caption text-ink-faint">
           Copies land in your canvases as a private copy — edit freely, the original is untouched.
         </span>
         <Button variant="primary" className="justify-center" disabled={copying} onClick={onCopy}>
@@ -392,7 +369,7 @@ function DesignModal({
 function FrameImage({ frameId }: { frameId: string }) {
   const [failed, setFailed] = useState(false)
   if (failed)
-    return <span className="grid h-full w-full place-items-center text-[12px] text-ink-faint">preview unavailable</span>
+    return <span className="grid h-full w-full place-items-center text-label text-ink-faint">preview unavailable</span>
   return (
     <img
       src={`/i/${frameId}.jpg?preview`}

@@ -376,15 +376,15 @@ export function AutomationEditor({ automationId }: { automationId: string }) {
       >
         {missing ? (
           <div className="mx-auto max-w-[360px] pt-14 text-center">
-            <p className="text-[13.5px] text-ink-soft">That automation doesn’t exist any more.</p>
+            <p className="text-copy text-ink-soft">That automation doesn’t exist any more.</p>
             <Button variant="ghost" className="mt-3" onClick={() => navigate('/automations')}>
               Back to automations
             </Button>
           </div>
         ) : !draft || !automation ? (
           <div className="mx-auto flex w-[360px] flex-col gap-11 pt-14">
-            <Skeleton className="h-[94px] rounded-[10px]" />
-            <Skeleton index={1} className="h-[240px] rounded-[10px]" />
+            <Skeleton className="h-[94px] rounded-pill" />
+            <Skeleton index={1} className="h-[240px] rounded-pill" />
           </div>
         ) : (
           <>
@@ -424,31 +424,29 @@ export function AutomationEditor({ automationId }: { automationId: string }) {
                   <Button
                     variant="bare"
                     disabled={draft.steps.length >= MAX_STEPS}
-                    className="mt-5 justify-center text-[12.5px] font-semibold text-ink-faint hover:bg-transparent hover:text-ink"
+                    className="mt-5 justify-center text-body font-semibold text-ink-faint hover:bg-transparent hover:text-ink"
                     onClick={() => setAdding(true)}
                   >
                     + Add step
                   </Button>
                 )}
                 {incomplete && draft.steps.length > 0 && (
-                  <p className="mt-3 text-center text-[12px] text-ink-faint">{incomplete} to turn it on.</p>
+                  <p className="mt-3 text-center text-label text-ink-faint">{incomplete} to turn it on.</p>
                 )}
               </div>
               {draft.steps.length === 0 && (
                 <aside className="absolute left-[calc(50%+240px)] top-14 hidden w-[260px] lg:block">
-                  <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-faint">
-                    Or start from an example
-                  </div>
+                  <div className="mb-2 text-caption text-ink-faint">Or start from an example</div>
                   {AUTOMATION_EXAMPLES.map((e) => (
                     <button
                       key={e.id}
                       type="button"
-                      className="mb-1.5 flex w-full items-center gap-2 rounded-[9px] border border-line bg-surface px-2.5 py-2 text-left text-[12.5px] font-semibold tracking-[-0.01em] transition-colors hover:border-ink-faint"
+                      className="mb-1.5 flex w-full items-center gap-2 rounded-[9px] border border-line bg-surface px-2.5 py-2 text-left text-body font-semibold tracking-[-0.01em] transition-colors hover:border-ink-faint"
                       onClick={() => applyExample(e)}
                     >
                       <StepChain steps={e.steps} size={18} joined={false} />
                       <span className="min-w-0 truncate">{e.name}</span>
-                      <small className="ml-auto font-mono text-[9.5px] font-normal text-ink-faint">
+                      <small className="ml-auto text-micro font-normal text-ink-faint">
                         {e.schedule.kind === 'daily'
                           ? 'daily'
                           : e.schedule.kind === 'weekdays'
@@ -473,7 +471,7 @@ export function AutomationEditor({ automationId }: { automationId: string }) {
                 ) : (
                   <nav
                     aria-label="Runs"
-                    className="absolute right-3 top-3 z-[38] flex w-12 flex-col items-center gap-1.5 rounded-[14px] border border-line bg-surface p-1.5 shadow-card max-lg:hidden"
+                    className="absolute right-3 top-3 z-[38] flex w-12 flex-col items-center gap-1.5 rounded-panel border border-line bg-surface p-1.5 shadow-card max-lg:hidden"
                   >
                     <Tooltip label="Expand panel" side="left">
                       <Button
@@ -519,8 +517,8 @@ export function AutomationEditor({ automationId }: { automationId: string }) {
 /* ------------------------------------------------------------------ */
 /* Nodes                                                               */
 
-const nodeCls = 'relative rounded-[10px] border border-line bg-surface px-3.5 py-3 shadow-card'
-const kCls = 'font-mono text-[10px] uppercase tracking-[0.12em] text-ink-faint'
+const nodeCls = 'relative rounded-pill border border-line bg-surface px-3.5 py-3 shadow-card'
+const kCls = 'text-caption text-ink-faint'
 
 /** A port: the small circle where an edge meets a node. */
 function Port({ side, dashed }: { side: 'in' | 'out'; dashed?: boolean }) {
@@ -566,9 +564,9 @@ function WhenNode({ schedule, onChange }: { schedule: Schedule; onChange: (s: Sc
       <div className="flex items-center gap-[9px]">
         <ClockTile size={24} />
         <span className={kCls}>When</span>
-        <span className="ml-auto text-[10.5px] text-ink-faint">{schedule.tz.replace(/_/g, ' ')}</span>
+        <span className="ml-auto text-micro text-ink-faint">{schedule.tz.replace(/_/g, ' ')}</span>
       </div>
-      <div className="mt-2.5 flex items-center gap-2 text-[14px]">
+      <div className="mt-2.5 flex items-center gap-2 text-copy">
         <span className="text-ink-soft">Every</span>
         <Sel
           aria-label="Which days"
@@ -622,14 +620,14 @@ function CanvasPicker({
 }) {
   const current = canvases.find((c) => c.id === value)
   return (
-    <div className="mt-2.5 flex items-center gap-2 text-[12.5px] text-ink-soft">
+    <div className="mt-2.5 flex items-center gap-2 text-body text-ink-soft">
       <span>{word}</span>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
             type="button"
             className={cn(
-              'flex h-8 min-w-0 flex-1 items-center gap-2 rounded-lg border border-line bg-surface px-2.5 text-left text-[13.5px] font-semibold tracking-[-0.01em] text-ink transition-colors hover:border-ink-faint focus-visible:outline-2 focus-visible:outline-brand',
+              'flex h-8 min-w-0 flex-1 items-center gap-2 rounded-lg border border-line bg-surface px-2.5 text-left text-copy font-semibold tracking-[-0.01em] text-ink transition-colors hover:border-ink-faint focus-visible:outline-2 focus-visible:outline-brand',
               !current && 'font-medium text-ink-faint',
             )}
           >
@@ -640,7 +638,7 @@ function CanvasPicker({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="max-h-[320px] w-[300px] overflow-y-auto">
           {canvases.length === 0 && (
-            <DropdownMenuLabel className="text-[12px] font-normal text-ink-faint">No canvases yet</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-label font-normal text-ink-faint">No canvases yet</DropdownMenuLabel>
           )}
           {canvases.map((c) => (
             <DropdownMenuItem
@@ -697,12 +695,12 @@ function PullNode({
         <MetaTile size={24} />
         <div className="min-w-0">
           <div className={kCls}>Pull · Meta Ads</div>
-          <div className="text-[13.5px] font-semibold tracking-[-0.012em]">Ad creatives</div>
+          <div className="text-copy font-semibold tracking-[-0.012em]">Ad creatives</div>
         </div>
         {meta && (
           <span
             className={cn(
-              'ml-auto inline-flex items-center gap-1.5 font-mono text-[10px] tracking-[0.06em]',
+              'ml-auto inline-flex items-center gap-1.5 text-caption',
               meta.connected ? 'text-ink-soft' : 'text-ink-faint',
             )}
           >
@@ -713,10 +711,10 @@ function PullNode({
         <RemoveStep onRemove={onRemove} />
       </div>
       {!meta ? (
-        <div className="mt-2.5 text-[12.5px] text-ink-faint">…</div>
+        <div className="mt-2.5 text-body text-ink-faint">…</div>
       ) : !meta.connected ? (
         <div className="mt-2.5 flex items-center gap-3">
-          <span className="text-[13px] text-ink-soft">Not connected yet</span>
+          <span className="text-body text-ink-soft">Not connected yet</span>
           <Button variant="solid" size="sm" className="ml-auto h-8" onClick={() => navigate('/integrations')}>
             Connect Meta
           </Button>
@@ -756,6 +754,84 @@ function PullNode({
   )
 }
 
+/** A pull owned by a registered integration (see src/integrations): one
+ *  source field, the integration's own tile and connection state. */
+function ExtensionPullNode({
+  step,
+  canvases,
+  integrations,
+  onChange,
+  onRemove,
+}: {
+  step: Extract<PullStep, { provider: string }>
+  canvases: CanvasMeta[]
+  integrations: IntegrationsStatus | null
+  onChange: (patch: Partial<{ url: string; canvasId: string }>) => void
+  onRemove: () => void
+}) {
+  const integration = clientIntegrations.find((i) => i.id === step.provider)
+  const pull = integration?.automationPull
+  if (!integration || !pull) {
+    return (
+      <div className={nodeCls}>
+        <Port side="in" />
+        <Port side="out" />
+        <div className="text-body text-ink-faint">No integration handles a “{step.provider}” pull.</div>
+        <RemoveStep onRemove={onRemove} />
+      </div>
+    )
+  }
+  const connected = integrations ? integration.isConnected(integrations) : false
+  const source = 'url' in step ? step.url : ''
+  return (
+    <div className={nodeCls}>
+      <Port side="in" />
+      <Port side="out" />
+      <div className="flex items-center gap-[9px]">
+        {integration.Tile && <integration.Tile size={24} />}
+        <div className="min-w-0">
+          <div className={kCls}>Pull · {integration.name}</div>
+          <div className="text-copy font-semibold tracking-[-0.012em]">{pull.subtitle}</div>
+        </div>
+        {integrations && (
+          <span
+            className={cn(
+              'ml-auto inline-flex items-center gap-1.5 text-caption',
+              connected ? 'text-ink-soft' : 'text-ink-faint',
+            )}
+          >
+            <span className={cn('size-[6px] rounded-full', connected ? 'bg-success-ink' : 'bg-line')} />
+            {connected ? 'connected' : 'not connected'}
+          </span>
+        )}
+        <RemoveStep onRemove={onRemove} />
+      </div>
+      {integrations && !connected ? (
+        <div className="mt-2.5 flex items-center gap-3">
+          <span className="text-body text-ink-soft">Not connected yet</span>
+          <Button variant="solid" size="sm" className="ml-auto h-8" onClick={() => navigate('/integrations')}>
+            Connect {integration.name}
+          </Button>
+        </div>
+      ) : (
+        <Input
+          aria-label={`${integration.name} link`}
+          className="mt-2.5 h-9 bg-paper text-body focus:ring-0"
+          placeholder={pull.placeholder}
+          value={source}
+          onChange={(e) => onChange({ [pull.field]: e.target.value } as { url: string })}
+        />
+      )}
+      <CanvasPicker
+        word="into"
+        value={step.canvasId}
+        canvases={canvases}
+        onChange={(canvasId) => onChange({ canvasId })}
+      />
+    </div>
+  )
+}
+
 function AgentNode({
   step,
   canvases,
@@ -784,14 +860,14 @@ function AgentNode({
             variant="bare"
             inputSize="auto"
             placeholder="Untitled task"
-            className="w-full text-[13.5px] font-semibold tracking-[-0.012em] md:text-[13.5px]"
+            className="w-full text-copy font-semibold tracking-[-0.012em] md:text-copy"
             onChange={(e) => onChange({ title: e.target.value })}
           />
         </div>
         <RemoveStep onRemove={onRemove} />
       </div>
       <Textarea
-        className="mt-2.5 min-h-[74px] w-full rounded-lg px-[11px] py-2.5 text-[13.5px] leading-[1.5] md:text-[13.5px]"
+        className="mt-2.5 min-h-[74px] w-full rounded-lg px-[11px] py-2.5 text-copy leading-[1.5] md:text-copy"
         value={step.prompt}
         maxLength={MAX_PROMPT}
         placeholder="What should the agent do on this canvas?"
@@ -808,7 +884,7 @@ function AgentNode({
               role="radio"
               aria-checked={on}
               className={cn(
-                'gap-1 rounded-full px-2 py-1 text-[11.5px] text-ink-soft hover:border-ink-soft hover:bg-transparent',
+                'gap-1 rounded-full px-2 py-1 text-caption text-ink-soft hover:border-ink-soft hover:bg-transparent',
                 on && 'border-ink bg-ink text-paper hover:border-ink hover:bg-ink hover:text-paper',
               )}
               title={role.blurb}
@@ -820,7 +896,7 @@ function AgentNode({
           )
         })}
       </div>
-      <p className="mt-2 text-[11.5px] text-ink-faint">{roleName(roles[0])} picks it up right away</p>
+      <p className="mt-2 text-caption text-ink-faint">{roleName(roles[0])} picks it up right away</p>
       <CanvasPicker
         word="on"
         value={step.canvasId}
@@ -838,12 +914,12 @@ function StepPicker({ onPick, onCancel }: { onPick: (type: Step['type']) => void
     'flex flex-col items-start gap-2 rounded-[9px] border border-line bg-surface px-3 pb-[11px] pt-3 text-left shadow-card transition-colors hover:border-ink-faint focus-visible:outline-2 focus-visible:outline-brand'
   return (
     <div
-      className="relative rounded-[10px] border-[1.5px] border-dashed border-line bg-paper-deep/60 p-3.5"
+      className="relative rounded-pill border-[1.5px] border-dashed border-line bg-paper-deep/60 p-3.5"
       onKeyDown={(e) => e.key === 'Escape' && onCancel?.()}
     >
       <Port side="in" dashed />
       <div className="flex items-center">
-        <span className="flex-1 text-center text-[13.5px] font-semibold tracking-[-0.012em]">What should run?</span>
+        <span className="flex-1 text-center text-copy font-semibold tracking-[-0.012em]">What should run?</span>
         {onCancel && (
           <Button
             variant="bare"
@@ -859,17 +935,32 @@ function StepPicker({ onPick, onCancel }: { onPick: (type: Step['type']) => void
       <div className="mt-3 grid grid-cols-2 gap-2">
         <button type="button" className={tile} autoFocus={!!onCancel} onClick={() => onPick('pull')}>
           <MetaTile size={22} />
-          <b className="text-[13px] font-semibold tracking-[-0.012em]">Integrations</b>
-          <span className="text-[11.5px] leading-[1.45] text-ink-soft">Pull Meta ad creatives onto a canvas.</span>
+          <b className="text-body font-semibold tracking-[-0.012em]">Meta Ads</b>
+          <span className="text-caption leading-[1.45] text-ink-soft">Pull Meta ad creatives onto a canvas.</span>
         </button>
+        {clientIntegrations.map(
+          (integration) =>
+            integration.automationPull && (
+              <button
+                key={integration.id}
+                type="button"
+                className={tile}
+                onClick={() => onPick(`pull:${integration.id}`)}
+              >
+                {integration.Tile && <integration.Tile size={22} />}
+                <b className="text-body font-semibold tracking-[-0.012em]">{integration.name}</b>
+                <span className="text-caption leading-[1.45] text-ink-soft">{integration.automationPull.blurb}</span>
+              </button>
+            ),
+        )}
         <button type="button" className={tile} onClick={() => onPick('agent')}>
           <span className="flex">
             {AGENT_ROLES.slice(0, 4).map((r, i) => (
               <RoleMark key={r.id} role={r} size={22} className={cn(i > 0 && '-ml-1.5 ring-[1.5px] ring-surface')} />
             ))}
           </span>
-          <b className="text-[13px] font-semibold tracking-[-0.012em]">Agent task</b>
-          <span className="text-[11.5px] leading-[1.45] text-ink-soft">
+          <b className="text-body font-semibold tracking-[-0.012em]">Agent task</b>
+          <span className="text-caption leading-[1.45] text-ink-soft">
             Give Doop, UX Lead or another role a brief on a canvas.
           </span>
         </button>
@@ -947,7 +1038,7 @@ function RunsPanel({
                 <ListTitle className="text-ink-soft">
                   {automation.nextRunAt && !dirty ? 'Next run' : automation.enabled ? 'Next run' : 'Paused'}
                 </ListTitle>
-                <ListMeta className="ml-auto font-mono">
+                <ListMeta className="ml-auto">
                   {automation.nextRunAt && !dirty ? formatRunTime(automation.nextRunAt) : ''}
                 </ListMeta>
               </span>
@@ -979,9 +1070,7 @@ function RunsPanel({
                   <span className="flex items-center gap-2">
                     <RunDot status={r.status} />
                     <ListTitle>{formatRunTime(r.startedAt)}</ListTitle>
-                    <ListMeta className="ml-auto font-mono">
-                      {r.endedAt ? duration(r.endedAt - r.startedAt) : ''}
-                    </ListMeta>
+                    <ListMeta className="ml-auto">{r.endedAt ? duration(r.endedAt - r.startedAt) : ''}</ListMeta>
                   </span>
                   <ListSummary
                     className={cn('whitespace-normal', r.status === 'failed' && 'text-accent-ink')}

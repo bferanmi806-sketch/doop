@@ -117,7 +117,7 @@ export function AgentKeys() {
           <div className="min-w-0 flex-1">
             <Note tone="success">Copy it now — it is shown once and stored hashed.</Note>
             <CodeBlock className="mt-2" text={minted.secret} />
-            <p className="mb-1.5 mt-3 text-[11px] font-bold uppercase tracking-[0.14em] text-ink-faint">
+            <p className="mb-1.5 mt-3 text-caption font-bold uppercase tracking-[0.14em] text-ink-faint">
               MCP config for a headless client
             </p>
             <CodeBlock text={headlessConfig(minted.secret)} />
@@ -135,7 +135,7 @@ export function AgentKeys() {
             </Button>
           }
         >
-          <span className="font-mono text-[13px] text-ink-soft">{key.start}…</span>
+          <span className="font-mono text-body text-ink-soft">{key.start}…</span>
           <Note>
             created {timeAgo(key.createdAt)}
             {key.lastUsedAt ? ` · last used ${timeAgo(key.lastUsedAt)}` : ' · never used'}

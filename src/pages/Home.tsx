@@ -69,7 +69,7 @@ function workspaceOf(scope: Scope): string | undefined {
    border — the edge is the elevation ring) with the lift on hover. */
 const cardCls = cn(
   cardVariants({ tone: 'raised' }),
-  'relative z-[2] transform-gpu overflow-hidden rounded-[14px] p-0 text-left text-ink',
+  'relative z-[2] transform-gpu overflow-hidden rounded-panel p-0 text-left text-ink',
   'bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] backdrop-blur-[6px]',
 )
 
@@ -331,7 +331,7 @@ export function Home() {
           )}
           <Button
             variant="default"
-            className="h-10 gap-[7px] rounded-[8px] pl-2.5 pr-3 text-[12.5px] md:h-8"
+            className="h-10 gap-[7px] rounded-control pl-2.5 pr-3 text-body md:h-8"
             disabled={starting}
             onClick={() => setImporting(true)}
           >
@@ -339,7 +339,7 @@ export function Home() {
           </Button>
           <Button
             variant="primary"
-            className="h-10 gap-[7px] rounded-[8px] pl-2.5 pr-3 text-[12.5px] md:h-8"
+            className="h-10 gap-[7px] rounded-control pl-2.5 pr-3 text-body md:h-8"
             onClick={createCanvas}
           >
             <PlusIcon width={15} height={15} strokeWidth={1.75} />
@@ -402,7 +402,7 @@ export function Home() {
 
             {/* the list's own header: what is listed, and the controls that narrow it */}
             <div className="flex flex-wrap items-center gap-2 md:flex-nowrap">
-              <h2 className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-ink">
+              <h2 className="min-w-0 flex-1 truncate text-body font-medium text-ink">
                 {currentWorkspace && listTitle}
                 {currentWorkspace && (
                   <span className="ml-2 font-normal text-ink-faint">
@@ -420,7 +420,7 @@ export function Home() {
                   <button
                     type="button"
                     aria-label={`Sort: ${SORT_LABELS[sort]}`}
-                    className="flex h-[30px] flex-none items-center gap-[6px] rounded-[8px] bg-surface px-[10px] text-[12.5px] text-ink-soft shadow-ring transition-shadow hover:shadow-ring-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                    className="flex h-[30px] flex-none items-center gap-[6px] rounded-control bg-surface px-[10px] text-body text-ink-soft shadow-ring transition-shadow hover:shadow-ring-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
                   >
                     {SORT_LABELS[sort]}
                     <ChevronDownIcon width={12} height={12} className="text-ink-faint" />
@@ -452,7 +452,7 @@ export function Home() {
 
             {empty ? (
               <Card className="mt-5 max-w-[560px] rounded-[18px] px-5 pb-6 pt-5 sm:px-7 sm:pb-7 sm:pt-[26px]">
-                <h3 className="font-display text-[20px] font-extrabold tracking-[-0.02em]">Start your first canvas</h3>
+                <h3 className="font-display text-heading font-extrabold tracking-[-0.02em]">Start your first canvas</h3>
                 <p className="mb-[18px] mt-2.5 text-sm leading-[1.6] text-ink-soft">
                   A canvas is a shared space of live HTML frames — you design in the browser, your AI agents design
                   through MCP, and everyone watches everything happen in real time.
@@ -462,7 +462,7 @@ export function Home() {
                 </Button>
               </Card>
             ) : canvases !== null && visible.length === 0 ? (
-              <p className="mt-7 text-[13.5px] text-ink-soft">Nothing here yet — try another scope.</p>
+              <p className="mt-7 text-copy text-ink-soft">Nothing here yet — try another scope.</p>
             ) : view === 'grid' ? (
               <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-3.5 xs:grid-cols-[repeat(auto-fill,minmax(230px,1fr))] md:gap-[18px]">
                 {canvases === null &&
@@ -481,8 +481,8 @@ export function Home() {
                       </div>
                       <div className="flex items-center gap-2.5 px-3 pb-3 pt-2.5">
                         <div className="min-w-0 flex-1">
-                          <div className="truncate text-[12.5px] font-medium tracking-[-0.01em]">{c.name}</div>
-                          <div className="mt-[3px] flex items-center gap-1.5 text-[11.5px] text-ink-faint">
+                          <div className="truncate text-body font-medium tracking-[-0.01em]">{c.name}</div>
+                          <div className="mt-[3px] flex items-center gap-1.5 text-caption text-ink-faint">
                             <Meta
                               canvas={c}
                               onClaim={reload}
@@ -505,7 +505,7 @@ export function Home() {
                 ))}
                 {canvases !== null && (
                   <button
-                    className="grid min-h-16 place-items-center content-center gap-2 rounded-[14px] border border-dashed border-line text-[12.5px] text-ink-faint transition-colors hover:border-ink-faint hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand xs:min-h-full"
+                    className="grid min-h-16 place-items-center content-center gap-2 rounded-panel border border-dashed border-line text-body text-ink-faint transition-colors hover:border-ink-faint hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand xs:min-h-full"
                     aria-label="Create a new canvas"
                     onClick={createCanvas}
                   >
@@ -517,7 +517,7 @@ export function Home() {
                 )}
               </div>
             ) : (
-              <div className="mt-4 overflow-hidden rounded-[14px] border border-line bg-surface shadow-card">
+              <div className="mt-4 overflow-hidden rounded-panel border border-line bg-surface shadow-card">
                 {visible.map((c) => (
                   <div
                     key={c.id}
@@ -527,10 +527,10 @@ export function Home() {
                       className="flex min-w-0 flex-1 items-center gap-2.5 border-0 bg-transparent px-3 py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand md:gap-[13px] md:px-3.5 md:py-[9px]"
                       onClick={() => open(c.id, c.name)}
                     >
-                      <span className="grid h-9 w-[58px] flex-none place-items-center overflow-hidden rounded-[7px] border border-line-soft bg-paper-deep">
+                      <span className="grid h-9 w-[58px] flex-none place-items-center overflow-hidden rounded-row border border-line-soft bg-paper-deep">
                         <Preview canvas={c} blankSize="text-[9px]" />
                       </span>
-                      <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium">{c.name}</span>
+                      <span className="min-w-0 flex-1 truncate text-body font-medium">{c.name}</span>
                       <span className="hidden w-[82px] flex-none text-xs text-ink-faint sm:block">
                         {c.frameCount} frame{c.frameCount === 1 ? '' : 's'}
                       </span>
@@ -652,7 +652,7 @@ function remove(id: string, done: () => void) {
     .finally(done)
 }
 
-function Preview({ canvas, blankSize = 'text-[12px]' }: { canvas: CanvasMeta; blankSize?: string }) {
+function Preview({ canvas, blankSize = 'text-label' }: { canvas: CanvasMeta; blankSize?: string }) {
   /* which frame failed, not whether — a new previewFrameId must retry
      rather than inherit the old frame's failure */
   const [failedId, setFailedId] = useState<string | null>(null)
@@ -681,7 +681,7 @@ function AgentStack({ canvas }: { canvas: CanvasMeta }) {
       {agents.map((a) => (
         <i
           key={a.name}
-          className="grid size-5 place-items-center rounded-[7px] corner-squircle bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] shadow-elevation-1 backdrop-blur-[6px]"
+          className="grid size-5 place-items-center rounded-row corner-squircle bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] shadow-elevation-1 backdrop-blur-[6px]"
           style={{ color: colorFor(a.name) }}
           title={a.name}
         >
@@ -787,13 +787,13 @@ function CanvasActions({
               ? 'size-8 flex-none rounded-full text-ink-faint hover:bg-paper-deep hover:text-ink focus-visible:ring-2 focus-visible:ring-brand'
               : /* the frosted chip: surface at 72% over the preview, blurred, edged by the
                    elevation ring rather than a border; revealed by the tile's hover */
-                'absolute right-2 top-2 size-9 rounded-[12px] corner-squircle bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] text-ink shadow-elevation-1 backdrop-blur-[6px] hover:shadow-elevation-1-hover focus-visible:shadow-elevation-1-focus md:size-[30px] md:rounded-[10px] md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100 md:data-[state=open]:opacity-100',
+                'absolute right-2 top-2 size-9 rounded-card corner-squircle bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] text-ink shadow-elevation-1 backdrop-blur-[6px] hover:shadow-elevation-1-hover focus-visible:shadow-elevation-1-focus md:size-[30px] md:rounded-pill md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100 md:data-[state=open]:opacity-100',
           )}
         >
           <MoreHorizontalIcon className="size-4" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-[190px] rounded-[14px] corner-squircle border-0 shadow-elevation-2">
+      <DropdownMenuContent className="w-[190px] rounded-panel corner-squircle border-0 shadow-elevation-2">
         <DropdownMenuItem onSelect={onShare}>
           <ShareIcon className="size-4" /> Share
         </DropdownMenuItem>

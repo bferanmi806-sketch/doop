@@ -153,11 +153,11 @@ export function AccountSettings() {
             )
           }
         >
-          <span className="min-w-0 font-mono text-[13px] [overflow-wrap:anywhere]">{user?.email}</span>
+          <span className="min-w-0 font-mono text-body [overflow-wrap:anywhere]">{user?.email}</span>
           {user?.emailVerified ? (
-            <Badge className="border-success/35 bg-success/10 text-[10.5px] text-success-ink">verified</Badge>
+            <Badge className="border-success/35 bg-success/10 text-micro text-success-ink">verified</Badge>
           ) : (
-            <Badge className="text-[10.5px]">unverified</Badge>
+            <Badge className="text-micro">unverified</Badge>
           )}
           {verifyNote && <Note tone="success">{verifyNote}</Note>}
         </CardRow>
@@ -172,7 +172,7 @@ export function AccountSettings() {
           </CardDescription>
         </CardHeader>
         <CardRow label="Comment emails">
-          <label className="relative flex cursor-pointer items-center gap-2.5 text-[13px] text-ink">
+          <label className="relative flex cursor-pointer items-center gap-2.5 text-body text-ink">
             <Checkbox
               checked={notify?.commentEmails ?? true}
               disabled={!notify || !notify.emailConfigured || savingNotify}

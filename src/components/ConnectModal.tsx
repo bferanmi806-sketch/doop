@@ -439,8 +439,8 @@ function AgentSteps({
                 {i + 1}
               </span>
               <div>
-                <h4 className="text-[13.5px] font-semibold text-ink">{step.title}</h4>
-                <p className="mt-0.5 text-[12.5px] leading-[1.5] text-ink-soft [&_code]:rounded-[4px] [&_code]:bg-paper-deep [&_code]:px-1 [&_code]:font-mono [&_code]:text-[11.5px] [&_code]:text-ink">
+                <h4 className="text-copy font-semibold text-ink">{step.title}</h4>
+                <p className="mt-0.5 text-body leading-[1.5] text-ink-soft [&_code]:rounded-[4px] [&_code]:bg-paper-deep [&_code]:px-1 [&_code]:font-mono [&_code]:text-caption [&_code]:text-ink">
                   {step.body}
                 </p>
                 {step.code && <CodeBlock text={step.code} className="mt-2.5" />}
@@ -522,7 +522,7 @@ function ChoiceCard({
       aria-pressed={selected}
       onClick={onClick}
       className={cn(
-        'relative flex items-center gap-3 rounded-[12px] border bg-surface py-3.5 pl-3.5 pr-9 text-left text-ink transition-colors',
+        'relative flex items-center gap-3 rounded-card border bg-surface py-3.5 pl-3.5 pr-9 text-left text-ink transition-colors',
         selected ? 'border-brand ring-3 ring-brand/15' : 'border-line hover:border-ink-faint',
       )}
     >
@@ -530,7 +530,7 @@ function ChoiceCard({
         {icon}
       </span>
       <span className="block">
-        <span className="block text-[13.5px] font-semibold">{title}</span>
+        <span className="block text-copy font-semibold">{title}</span>
         <span className="mt-0.5 block text-xs leading-[1.5] text-ink-soft">{blurb}</span>
       </span>
       <span
@@ -554,11 +554,11 @@ export function AgentArrival({ name }: { name?: string }) {
     [presences],
   )
   return arrived ? (
-    <span className="mr-auto inline-flex items-center gap-[7px] text-[12.5px] text-success-ink">
+    <span className="mr-auto inline-flex items-center gap-[7px] text-body text-success-ink">
       ✓ {arrived.name} is here — it worked
     </span>
   ) : (
-    <span className="mr-auto inline-flex items-center gap-[7px] text-[12.5px] text-ink-faint">
+    <span className="mr-auto inline-flex items-center gap-[7px] text-body text-ink-faint">
       <Dot className="animate-[arrival-pulse_1.6s_ease-in-out_infinite] bg-brand" /> listening for{' '}
       {name ?? 'your agent'}…
     </span>

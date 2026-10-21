@@ -87,7 +87,7 @@ export function Admin() {
           <h1 className="mt-16 font-serif text-[clamp(38px,4.8vw,60px)] font-normal leading-none tracking-[-0.02em]">
             Not found
           </h1>
-          <p className="mt-3.5 max-w-[44em] text-[15px] leading-[1.6] text-ink-soft">
+          <p className="mt-3.5 max-w-[44em] text-lead leading-[1.6] text-ink-soft">
             This page does not exist for this account.
           </p>
           <Button variant="ghost" className="mt-5" onClick={() => navigate('/')}>
@@ -113,13 +113,13 @@ export function Admin() {
   return (
     <DashLayout>
       <DashSidebar>
-        <Wordmark size="sm" className="px-2 pb-5 text-[17px]">
+        <Wordmark size="sm" className="px-2 pb-5 text-heading">
           Doop <Badge tone="admin">admin</Badge>
         </Wordmark>
 
         <Button
           variant="ghost"
-          className="w-full justify-start gap-[9px] rounded-[9px] px-2.5 py-2 text-[13px] text-ink-soft hover:bg-paper hover:text-ink"
+          className="w-full justify-start gap-[9px] rounded-[9px] px-2.5 py-2 text-body text-ink-soft hover:bg-paper hover:text-ink"
           onClick={() => navigate('/')}
         >
           <IconBack /> Back to my canvases
@@ -151,11 +151,11 @@ export function Admin() {
 
       <DashMain>
         <DashHeader className="max-md:min-h-[104px]">
-          <nav className="flex items-center gap-2 text-[13px] text-ink-faint" aria-label="Breadcrumb">
+          <nav className="flex items-center gap-2 text-body text-ink-faint" aria-label="Breadcrumb">
             <Button
               variant="link"
               size="sm"
-              className="px-0 py-0 text-[13px] font-normal text-ink-faint hover:text-ink"
+              className="px-0 py-0 text-body font-normal text-ink-faint hover:text-ink"
               onClick={() => navigate('/')}
             >
               Home
@@ -163,7 +163,7 @@ export function Admin() {
             <IconChevron />
             <b className="font-semibold text-ink">Admin</b>
           </nav>
-          <label className="order-2 flex h-10 max-w-none flex-1 basis-full items-center gap-[9px] rounded-[10px] border border-line bg-surface px-[11px] text-ink-faint focus-within:border-ink-faint md:order-none md:h-[34px] md:max-w-[400px] md:basis-auto">
+          <label className="order-2 flex h-10 max-w-none flex-1 basis-full items-center gap-[9px] rounded-pill border border-line bg-surface px-[11px] text-ink-faint focus-within:border-ink-faint md:order-none md:h-[34px] md:max-w-[400px] md:basis-auto">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="7" />
               <path d="m20 20-3.2-3.2" />
@@ -171,7 +171,7 @@ export function Admin() {
             <Input
               variant="bare"
               inputSize="auto"
-              className="flex-1 md:text-[13px]"
+              className="flex-1 md:text-body"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder={tab === 'canvases' ? 'Search canvases or owners…' : 'Search accounts…'}
@@ -231,8 +231,8 @@ export function Admin() {
                       <CanvasPreview frameId={c.previewFrameId} />
                     </div>
                     <div className="flex flex-1 flex-col px-3 pt-2.5 pb-3">
-                      <div className="truncate font-display text-[13.5px] font-semibold">{c.name}</div>
-                      <div className="mt-[5px] flex min-h-0 flex-wrap content-start items-center gap-1.5 text-[11.5px] text-ink-faint xs:min-h-[30px]">
+                      <div className="truncate font-display text-copy font-semibold">{c.name}</div>
+                      <div className="mt-[5px] flex min-h-0 flex-wrap content-start items-center gap-1.5 text-caption text-ink-faint xs:min-h-[30px]">
                         <span>{c.owner ? c.owner.name : 'unclaimed'}</span>
                         <span className="opacity-60">·</span>
                         <span>
@@ -242,7 +242,7 @@ export function Admin() {
                         <span>{timeAgo(c.updatedAt)}</span>
                         {c.linkAccess === 'edit' && (
                           <Badge
-                            className="px-[5px] py-px text-[10px]"
+                            className="px-[5px] py-px text-micro"
                             title="Anyone with the link can edit this canvas"
                           >
                             link on
@@ -271,20 +271,20 @@ export function Admin() {
               </div>
             </>
           ) : (
-            <div className="mt-4 overflow-hidden rounded-[14px] border border-line bg-surface shadow-card">
-              {users === null && <p className="mt-7 text-[13.5px] text-ink-soft">…</p>}
+            <div className="mt-4 overflow-hidden rounded-panel border border-line bg-surface shadow-card">
+              {users === null && <p className="mt-7 text-copy text-ink-soft">…</p>}
               {shownUsers.map((u) => (
                 <div
                   key={u.id}
                   className="flex flex-col items-stretch justify-between gap-2.5 border-b border-line-soft p-3.5 last:border-b-0 md:flex-row md:items-center md:gap-4 md:px-[18px] md:py-[13px]"
                 >
                   <div>
-                    <div className="flex flex-wrap items-center gap-2 font-display text-[14.5px] font-semibold">
+                    <div className="flex flex-wrap items-center gap-2 font-display text-copy font-semibold">
                       {u.name}
                       {u.role === 'admin' && <Badge tone="admin">admin</Badge>}
                       {u.banned && <Badge tone="banned">banned</Badge>}
                     </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[12.5px] text-ink-faint">
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-body text-ink-faint">
                       <span>{u.email}</span>
                       <span>·</span>
                       <span>
@@ -323,8 +323,8 @@ function CanvasPreview({ frameId }: { frameId?: string }) {
   /* which frame failed, not whether — a new previewFrameId must retry
      rather than inherit the old frame's failure */
   const [failedId, setFailedId] = useState<string | null>(null)
-  if (!frameId) return <span className="text-[12px] text-ink-faint">empty canvas</span>
-  if (failedId === frameId) return <span className="text-[12px] text-ink-faint">preview unavailable</span>
+  if (!frameId) return <span className="text-label text-ink-faint">empty canvas</span>
+  if (failedId === frameId) return <span className="text-label text-ink-faint">preview unavailable</span>
   return (
     <img
       className="h-full w-full object-cover object-top"

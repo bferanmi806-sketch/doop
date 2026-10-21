@@ -146,10 +146,7 @@ function ModalEyebrow({ className, ...props }: React.ComponentProps<'span'>) {
   return (
     <span
       data-slot="modal-eyebrow"
-      className={cn(
-        'font-mono text-[10px] font-[650] uppercase leading-none tracking-[0.14em] text-ink-soft',
-        className,
-      )}
+      className={cn('text-micro font-medium uppercase leading-none tracking-[0.08em] text-ink-faint', className)}
       {...props}
     />
   )
@@ -159,7 +156,7 @@ function ModalTitle({ className, ...props }: React.ComponentProps<typeof DialogP
   return (
     <DialogPrimitive.Title
       data-slot="modal-title"
-      className={cn('pr-8 text-[15px] font-medium leading-5', className)}
+      className={cn('pr-8 text-lead font-medium leading-5 text-ink', className)}
       {...props}
     />
   )
@@ -169,7 +166,7 @@ function ModalLede({ className, ...props }: React.ComponentProps<typeof DialogPr
   return (
     <DialogPrimitive.Description
       data-slot="modal-lede"
-      className={cn('mt-1 text-[14px] leading-[22px] text-ink-soft', className)}
+      className={cn('mt-1 text-copy text-ink-soft', className)}
       {...props}
     />
   )

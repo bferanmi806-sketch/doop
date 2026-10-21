@@ -99,12 +99,12 @@ function DropdownMenuLabel({ className, ...props }: React.ComponentProps<typeof 
   return <DropdownMenuPrimitive.Label data-slot="dropdown-menu-label" className={cn(className)} {...props} />
 }
 
-/** Uppercase caption over a group of rows further down the menu. */
+/** Caption over a group of rows further down the menu. */
 function DropdownMenuCaption({ className, ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.Label>) {
   return (
     <DropdownMenuPrimitive.Label
       data-slot="dropdown-menu-caption"
-      className={cn('px-2.5 pb-1 pt-[7px] text-[10px] font-bold uppercase tracking-[0.12em] text-ink-faint', className)}
+      className={cn('px-2.5 pb-1 pt-[7px] text-caption text-ink-faint', className)}
       {...props}
     />
   )

@@ -128,10 +128,10 @@ export function Workspace({ workspaceId }: { workspaceId: string }) {
   return (
     <DashLayout>
       <DashSidebar>
-        <Wordmark size="sm" className="px-2 pb-5 text-[17px]" />
+        <Wordmark size="sm" className="px-2 pb-5 text-heading" />
         <Button
           variant="ghost"
-          className="w-full justify-start gap-[9px] rounded-[9px] px-[10px] py-2 text-[13px] text-ink-soft hover:bg-paper hover:text-ink"
+          className="w-full justify-start gap-[9px] rounded-[9px] px-[10px] py-2 text-body text-ink-soft hover:bg-paper hover:text-ink"
           onClick={() => navigate('/')}
         >
           <IconBack /> Back to canvases
@@ -154,11 +154,11 @@ export function Workspace({ workspaceId }: { workspaceId: string }) {
 
       <DashMain>
         <DashHeader>
-          <nav className="flex items-center gap-2 text-[13px] text-ink-faint" aria-label="Breadcrumb">
+          <nav className="flex items-center gap-2 text-body text-ink-faint" aria-label="Breadcrumb">
             <Button
               variant="link"
               size="sm"
-              className="px-0 py-0 text-[13px] font-normal text-ink-faint hover:text-ink"
+              className="px-0 py-0 text-body font-normal text-ink-faint hover:text-ink"
               onClick={() => navigate('/')}
             >
               Home
@@ -213,7 +213,7 @@ export function Workspace({ workspaceId }: { workspaceId: string }) {
           )}
 
           {!ws ? (
-            <Skeleton className="mt-5 min-h-[260px] max-w-[1000px] rounded-[12px]" />
+            <Skeleton className="mt-5 min-h-[260px] max-w-[1000px] rounded-card" />
           ) : pane === 'members' ? (
             <MembersPane ws={ws} meId={meId} admin={admin} onChange={reload} onError={handle} onToast={showToast} />
           ) : pane === 'billing' ? (
@@ -325,7 +325,7 @@ function MembersPane({
         {admin && (
           <div className="mt-4 flex flex-col items-stretch gap-2 sm:flex-row">
             <Input
-              className="flex-1 rounded-[10px] bg-paper focus:ring-0"
+              className="flex-1 rounded-pill bg-paper focus:ring-0"
               placeholder="Invite by email"
               type="email"
               value={email}
@@ -396,11 +396,11 @@ function MembersPane({
             >
               <Avatar name={m.name} className="size-8 flex-none border-0 text-xs" />
               <span className="flex min-w-0 flex-col leading-[1.3]">
-                <b className="truncate text-[13px] font-semibold">
+                <b className="truncate text-body font-semibold">
                   {m.name}
                   {self ? ' (you)' : ''}
                 </b>
-                <span className="truncate text-[12px] text-ink-faint">
+                <span className="truncate text-label text-ink-faint">
                   {m.email} · joined {timeAgo(m.addedAt)}
                 </span>
               </span>
@@ -409,11 +409,11 @@ function MembersPane({
         })}
         {ws.invites.length > 0 && (
           <CardBody className="border-t border-line-soft bg-paper/60">
-            <span className="font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-ink-faint">
+            <span className="font-mono text-micro font-medium uppercase tracking-[0.12em] text-ink-faint">
               Waiting to sign up
             </span>
             {ws.invites.map((inv) => (
-              <div key={inv.id} className="mt-2 flex items-center gap-3 text-[13px]">
+              <div key={inv.id} className="mt-2 flex items-center gap-3 text-body">
                 <span className="min-w-0 flex-1 truncate">
                   {inv.email}{' '}
                   <span className="text-ink-faint">
@@ -505,7 +505,7 @@ function BillingPane({
         </CardDescription>
       </CardHeader>
       <CardRow label="Plan">
-        <b className="text-[13.5px]">{paid ? 'Team' : ws.billing.enabled ? 'Personal' : 'Self-hosted'}</b>
+        <b className="text-copy">{paid ? 'Team' : ws.billing.enabled ? 'Personal' : 'Self-hosted'}</b>
         {ws.billing.enabled && (
           <Badge
             tone={
@@ -520,17 +520,17 @@ function BillingPane({
           </Badge>
         )}
         {ws.cancelAtPeriodEnd && ws.currentPeriodEnd && (
-          <span className="text-[12px] text-ink-faint">ends {new Date(ws.currentPeriodEnd).toLocaleDateString()}</span>
+          <span className="text-label text-ink-faint">ends {new Date(ws.currentPeriodEnd).toLocaleDateString()}</span>
         )}
       </CardRow>
       {paid && (
         <>
           <CardRow label="Seats">
-            <span className="text-[13.5px]">
+            <span className="text-copy">
               {ws.seats} × {formatUsd(perSeat)} = <b>{formatUsd(ws.seats * perSeat)}</b> per {ws.interval ?? 'month'}
             </span>
             {ws.seats !== ws.memberCount && (
-              <span className="text-[12px] text-ink-faint">
+              <span className="text-label text-ink-faint">
                 ({ws.memberCount} {ws.memberCount === 1 ? 'person' : 'people'} now — Stripe catches up on the next
                 invoice)
               </span>
@@ -538,7 +538,7 @@ function BillingPane({
           </CardRow>
           {ws.currentPeriodEnd && (
             <CardRow label={ws.cancelAtPeriodEnd ? 'Ends' : 'Renews'}>
-              <span className="text-[13.5px]">{new Date(ws.currentPeriodEnd).toLocaleDateString()}</span>
+              <span className="text-copy">{new Date(ws.currentPeriodEnd).toLocaleDateString()}</span>
             </CardRow>
           )}
         </>
@@ -562,12 +562,10 @@ function BillingPane({
                   Refresh
                 </Button>
               )}
-              <span className="text-[12px] text-ink-faint">Cards, invoices, cancelling — all on Stripe’s portal.</span>
+              <span className="text-label text-ink-faint">Cards, invoices, cancelling — all on Stripe’s portal.</span>
             </>
           ) : (
-            <span className="text-[13px] text-ink-soft">
-              The owner holds the billing; only they can change the plan.
-            </span>
+            <span className="text-body text-ink-soft">The owner holds the billing; only they can change the plan.</span>
           )}
         </CardRow>
       )}
@@ -639,7 +637,7 @@ function GeneralPane({
           }
         >
           <Input
-            className="max-w-[360px] rounded-[10px] bg-paper focus:ring-0"
+            className="max-w-[360px] rounded-pill bg-paper focus:ring-0"
             value={name}
             maxLength={80}
             disabled={!admin || busy}
@@ -649,7 +647,7 @@ function GeneralPane({
           />
         </CardRow>
         <CardRow label="Created">
-          <span className="text-[13px] text-ink-soft">{timeAgo(ws.createdAt)}</span>
+          <span className="text-body text-ink-soft">{timeAgo(ws.createdAt)}</span>
         </CardRow>
       </Card>
       {isOwner && (

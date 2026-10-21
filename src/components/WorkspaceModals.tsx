@@ -61,7 +61,7 @@ export function CreateWorkspaceModal({
           canvases in afterwards.
         </ModalLede>
         <Input
-          className="mt-5 rounded-[10px] bg-paper focus:ring-0"
+          className="mt-5 rounded-pill bg-paper focus:ring-0"
           autoFocus
           placeholder="Acme Design"
           value={name}
@@ -71,7 +71,7 @@ export function CreateWorkspaceModal({
           onKeyDown={(event) => event.key === 'Enter' && create()}
           aria-label="Workspace name"
         />
-        {error && <p className="mt-2 text-[12px] text-accent-ink">{error}</p>}
+        {error && <p className="mt-2 text-label text-accent-ink">{error}</p>}
         <ModalActions>
           <Button onClick={onClose} disabled={busy}>
             Cancel
@@ -168,7 +168,7 @@ export function UpgradeModal({
                   Yearly <span className="ml-1 text-accent-ink">−20%</span>
                 </SegmentedItem>
               </Segmented>
-              <span className="text-[12px] text-ink-faint">
+              <span className="text-label text-ink-faint">
                 {chosen === 'year'
                   ? `${formatUsd(seatPerMonth('year'))} a seat a month, billed ${formatUsd(TEAM_SEAT_PRICE.year)} a year`
                   : `${formatUsd(TEAM_SEAT_PRICE.month)} a seat, billed monthly`}
@@ -185,11 +185,11 @@ export function UpgradeModal({
                       current={plan.id === 'free' && !workspace?.active}
                     />
                   ))
-                : [0, 1, 2].map((i) => <Skeleton key={i} index={i} className="min-h-[220px] rounded-[12px]" />)}
+                : [0, 1, 2].map((i) => <Skeleton key={i} index={i} className="min-h-[220px] rounded-card" />)}
             </div>
 
-            <div className="mt-5 flex flex-col gap-3 rounded-[12px] border border-line bg-paper px-4 py-3.5 sm:flex-row sm:items-center">
-              <div className="min-w-0 flex-1 text-[13px] leading-[1.5] text-ink-soft">
+            <div className="mt-5 flex flex-col gap-3 rounded-card border border-line bg-paper px-4 py-3.5 sm:flex-row sm:items-center">
+              <div className="min-w-0 flex-1 text-body leading-[1.5] text-ink-soft">
                 {workspace ? (
                   <>
                     <b className="text-ink">
@@ -201,12 +201,12 @@ export function UpgradeModal({
                 ) : (
                   'Counting seats…'
                 )}
-                <span className="mt-0.5 block text-[11.5px] text-ink-faint">
+                <span className="mt-0.5 block text-caption text-ink-faint">
                   You’ll set up payment on Stripe’s secure checkout. Cancel any time from the billing portal.
                 </span>
               </div>
               {workspace && !canBuy ? (
-                <span className="text-[12.5px] text-ink-soft">
+                <span className="text-body text-ink-soft">
                   Ask <b className="text-ink">{owner?.name ?? 'the workspace owner'}</b> to choose a plan — the owner
                   holds the billing.
                 </span>
@@ -222,9 +222,9 @@ export function UpgradeModal({
                 </Button>
               )}
             </div>
-            {error && <p className="mt-2 text-[12px] text-accent-ink">{error}</p>}
+            {error && <p className="mt-2 text-label text-accent-ink">{error}</p>}
             {session?.user.email && (
-              <p className="mt-3 text-[11.5px] text-ink-faint">
+              <p className="mt-3 text-caption text-ink-faint">
                 Receipts go to {session.user.email}. Need invoicing, SSO or a bigger team?{' '}
                 <a className="font-semibold text-ink underline underline-offset-2" href={ENTERPRISE_CONTACT}>
                   Talk to us
@@ -245,38 +245,38 @@ function PlanCard({ plan, interval, current }: { plan: Plan; interval: BillingIn
   return (
     <div
       className={cn(
-        'flex flex-col rounded-[12px] border px-4 py-4',
+        'flex flex-col rounded-card border px-4 py-4',
         team ? 'border-brand bg-surface shadow-pop' : 'border-line bg-surface',
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="font-display text-[15px] font-extrabold tracking-[-0.01em]">{plan.name}</span>
+        <span className="text-lead font-medium tracking-[-0.01em]">{plan.name}</span>
         {team && (
-          <span className="rounded-md bg-brand px-[7px] py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-white">
+          <span className="rounded-md bg-brand px-[7px] py-0.5 text-micro font-medium uppercase tracking-[0.08em] text-white">
             Popular
           </span>
         )}
-        {current && <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-faint">Current</span>}
+        {current && <span className="text-caption text-ink-faint">Current</span>}
       </div>
-      <p className="mt-1 text-[12.5px] leading-[1.45] text-ink-soft">{plan.tagline}</p>
-      <div className="mt-3 font-display text-[26px] font-extrabold tracking-[-0.03em] text-ink">
+      <p className="mt-1 text-body leading-[1.45] text-ink-soft">{plan.tagline}</p>
+      <div className="mt-3 text-title font-medium tracking-[-0.02em] text-ink">
         {price === null ? (
           plan.id === 'free' ? (
             '$0'
           ) : (
-            <span className="text-[20px]">Let’s talk</span>
+            <span className="text-heading">Let’s talk</span>
           )
         ) : (
           <>
             {formatUsd(interval === 'year' ? seatPerMonth('year') : price)}
-            <span className="ml-1 font-sans text-[12px] font-medium text-ink-faint">/ seat / month</span>
+            <span className="ml-1 font-sans text-label font-medium text-ink-faint">/ seat / month</span>
           </>
         )}
       </div>
       {price !== null && interval === 'year' && (
-        <span className="text-[11.5px] text-ink-faint">billed {formatUsd(price)} a seat yearly</span>
+        <span className="text-caption text-ink-faint">billed {formatUsd(price)} a seat yearly</span>
       )}
-      <ul className="mt-3.5 flex flex-col gap-[7px] text-[12.5px] leading-[1.4] text-ink-soft">
+      <ul className="mt-3.5 flex flex-col gap-[7px] text-body leading-[1.4] text-ink-soft">
         {plan.features.map((f) => (
           <li key={f} className="flex gap-2">
             <CheckIcon className="mt-[2px] size-3.5 flex-none text-accent-ink" />
@@ -286,7 +286,7 @@ function PlanCard({ plan, interval, current }: { plan: Plan; interval: BillingIn
       </ul>
       {plan.id === 'enterprise' && (
         <a
-          className="mt-auto pt-4 text-[12.5px] font-semibold text-ink underline underline-offset-2"
+          className="mt-auto pt-4 text-body font-semibold text-ink underline underline-offset-2"
           href={ENTERPRISE_CONTACT}
         >
           Contact us →
@@ -358,11 +358,11 @@ export function MoveCanvasModal({
           ))}
         </Sel>
         {targetWs && !targetWs.active && (
-          <p className="mt-2 text-[12px] text-ink-faint">
+          <p className="mt-2 text-label text-ink-faint">
             {targetWs.name} has no plan yet — you’ll be asked to choose one.
           </p>
         )}
-        {error && <p className="mt-2 text-[12px] text-accent-ink">{error}</p>}
+        {error && <p className="mt-2 text-label text-accent-ink">{error}</p>}
         <ModalActions>
           <Button onClick={onClose} disabled={busy}>
             Cancel

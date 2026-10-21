@@ -35,10 +35,7 @@ function DashSectionLabel({ className, ...props }: React.ComponentProps<'div'>) 
   return (
     <div
       data-slot="dash-section-label"
-      className={cn(
-        'px-2.5 pb-2 pt-[22px] text-[10px] font-bold uppercase tracking-[0.15em] text-ink-faint',
-        className,
-      )}
+      className={cn('px-2.5 pb-2 pt-[22px] text-micro font-bold uppercase tracking-[0.15em] text-ink-faint', className)}
       {...props}
     />
   )
@@ -63,7 +60,7 @@ function DashNavItem({
       data-active={active || undefined}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'flex w-full items-center gap-[9px] rounded-[9px] border-0 bg-transparent px-2.5 py-2 text-left text-[13px] font-medium text-ink-soft transition-colors hover:bg-paper hover:text-ink data-[active]:bg-paper-deep data-[active]:font-semibold data-[active]:text-ink',
+        'flex w-full items-center gap-[9px] rounded-[9px] border-0 bg-transparent px-2.5 py-2 text-left text-body font-medium text-ink-soft transition-colors hover:bg-paper hover:text-ink data-[active]:bg-paper-deep data-[active]:font-semibold data-[active]:text-ink',
         className,
       )}
       {...props}
@@ -71,7 +68,7 @@ function DashNavItem({
       {icon}
       <span className="min-w-0 truncate">{children}</span>
       {count !== undefined && count !== null ? (
-        <span className="ml-auto font-mono text-[11px] text-ink-faint">{count}</span>
+        <span className="ml-auto font-mono text-caption text-ink-faint">{count}</span>
       ) : null}
     </button>
   )
@@ -123,10 +120,7 @@ function DashTitle({ className, ...props }: React.ComponentProps<'h1'>) {
   return (
     <h1
       data-slot="dash-title"
-      className={cn(
-        'font-serif text-[34px] font-normal leading-[1.05] tracking-[-0.015em] md:text-[38px] md:leading-none',
-        className,
-      )}
+      className={cn('font-sans text-title font-medium tracking-[-0.01em]', className)}
       {...props}
     />
   )
@@ -136,7 +130,7 @@ function DashSubtitle({ className, ...props }: React.ComponentProps<'p'>) {
   return (
     <p
       data-slot="dash-subtitle"
-      className={cn('mt-[7px] text-[13px] leading-[1.45] text-ink-soft md:leading-normal', className)}
+      className={cn('mt-[7px] text-body leading-[1.45] text-ink-soft md:leading-normal', className)}
       {...props}
     />
   )

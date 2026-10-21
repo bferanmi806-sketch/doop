@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
    model names, so the tones below are the vocabulary — nothing should invent
    its own pill colour. */
 const badgeVariants = cva(
-  'inline-flex items-center gap-1.5 whitespace-nowrap rounded-[4px] border px-[5px] py-px font-mono text-[10.5px] leading-[1.4]',
+  'inline-flex items-center gap-1.5 whitespace-nowrap rounded-[4px] border px-[5px] py-px text-micro font-medium leading-[1.4]',
   {
     variants: {
       tone: {

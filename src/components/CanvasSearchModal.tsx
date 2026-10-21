@@ -69,12 +69,12 @@ export function CanvasSearchModal({
           aria-label="Search canvases"
           variant="bare"
           inputSize="auto"
-          className="flex-1 text-[14px] md:text-[14px]"
+          className="flex-1 text-copy md:text-copy"
         />
       </label>
       <div className="max-h-[60vh] overflow-y-auto p-2" role="listbox" aria-label="Results">
         {results.length === 0 ? (
-          <p className="px-3 py-6 text-center text-[12.5px] text-ink-faint">No canvas matches “{query.trim()}”.</p>
+          <p className="px-3 py-6 text-center text-body text-ink-faint">No canvas matches “{query.trim()}”.</p>
         ) : (
           results.map((c, i) => (
             <button
@@ -85,11 +85,11 @@ export function CanvasSearchModal({
               onMouseEnter={() => setCursor(i)}
               onClick={() => onOpen(c)}
               className={cn(
-                'flex w-full items-center gap-3 rounded-[10px] px-2.5 py-2 text-left transition-colors focus-visible:outline-none',
+                'flex w-full items-center gap-3 rounded-pill px-2.5 py-2 text-left transition-colors focus-visible:outline-none',
                 i === active ? 'bg-paper-deep' : 'hover:bg-paper',
               )}
             >
-              <span className="grid h-10 w-16 flex-none place-items-center overflow-hidden rounded-[7px] bg-paper-deep shadow-[0_0_0_1px_rgba(0,0,0,0.06)]">
+              <span className="grid h-10 w-16 flex-none place-items-center overflow-hidden rounded-row bg-paper-deep shadow-[0_0_0_1px_rgba(0,0,0,0.06)]">
                 {c.previewFrameId ? (
                   <img
                     src={`/i/${c.previewFrameId}.jpg?preview`}
@@ -102,8 +102,8 @@ export function CanvasSearchModal({
                 )}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-medium text-ink">{c.name}</span>
-                <span className="mt-px block text-[11.5px] text-ink-faint">
+                <span className="block truncate text-body font-medium text-ink">{c.name}</span>
+                <span className="mt-px block text-caption text-ink-faint">
                   {c.frameCount} frame{c.frameCount === 1 ? '' : 's'} · edited {timeAgo(c.updatedAt)}
                   {c.shared ? ' · shared with you' : ''}
                 </span>

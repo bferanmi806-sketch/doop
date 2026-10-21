@@ -40,11 +40,11 @@ export function SourcePicker({ sources, onPick }: { sources: ImportSource[]; onP
             )}
             onClick={() => !source.soon && onPick(source.id)}
           >
-            <span className="flex size-10 items-center justify-center overflow-hidden rounded-[10px] border border-line bg-surface">
+            <span className="flex size-10 items-center justify-center overflow-hidden rounded-pill border border-line bg-surface">
               {source.icon}
             </span>
-            <b className="mt-4 text-[15px] font-semibold tracking-[-0.012em]">{source.title}</b>
-            <span className="mt-1 text-[12.5px] leading-[1.45] text-ink-soft">{source.blurb}</span>
+            <b className="mt-4 text-lead font-semibold tracking-[-0.012em]">{source.title}</b>
+            <span className="mt-1 text-body leading-[1.45] text-ink-soft">{source.blurb}</span>
             {source.soon ? (
               <span className="absolute right-4 top-4 font-mono text-[9px] uppercase tracking-[0.1em] text-ink-faint">
                 Soon
@@ -86,7 +86,7 @@ export function ImportStepFooter({
 }) {
   return (
     <div className="mt-6 flex items-center gap-2.5 border-t border-line-soft pt-[18px]">
-      <span className="mr-auto min-w-0 text-[12px] leading-[1.4] text-ink-faint">{note}</span>
+      <span className="mr-auto min-w-0 text-label leading-[1.4] text-ink-faint">{note}</span>
       <Button variant="ghost" className="flex-none gap-2" disabled={backDisabled} onClick={onBack}>
         <ArrowLeftIcon className="size-3.5" />
         Back
