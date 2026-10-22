@@ -79,17 +79,15 @@ describe.skipIf(!findBrowserPath())('element resize handles', () => {
     )
   }
   /* every case starts from the seeded document, with the frame selected */
-  async function reset() {
+  async function reset(html = HTML) {
     await page.evaluate(() => window.elementPanelHarness.deselect())
     await page.waitForFunction(() => !document.querySelector('[data-resize-handles]'))
-    saved = { ...saved, html: HTML, updatedAt: saved.updatedAt + 1 }
+    const updatedAt = saved.updatedAt + 1
+    saved = { ...saved, html: html.replace('<body>', `<body data-test-reset="${updatedAt}">`), updatedAt }
     await page.evaluate((frame) => window.elementPanelHarness.seed(frame), saved)
     await page.evaluate(() => window.elementPanelHarness.selectFrame())
     const frame = (await frameDoc())!
-    await frame.waitForFunction(() => {
-      const box = document.querySelector('#box')
-      return !!box && !box.getAttribute('style')
-    })
+    await frame.waitForFunction((version) => document.body.dataset.testReset === String(version), {}, updatedAt)
   }
   function frameDoc() {
     return page.$('iframe').then((h) => h!.contentFrame())
@@ -165,6 +163,80 @@ describe.skipIf(!findBrowserPath())('element resize handles', () => {
     await frame.waitForFunction(() => getComputedStyle(document.querySelector('#box')!).width === '200px')
     expect(await computed('#box', 'height')).toBe('100px')
     expect(saved.html).not.toContain('width: 250px')
+  }, 20_000)
+
+  const fillHtml = (direction = 'row', writingMode = 'horizontal-tb') =>
+    HTML.replace(
+      '<div id="box"></div>',
+      `<div style="display: flex; flex-direction: ${direction}; writing-mode: ${writingMode}; width: 300px; height: 200px">
+      <div id="box" class="fill"></div>
+    </div><style>.fill { flex: 1 1 0px; min-width: 0; min-height: 0 }</style>`,
+    )
+
+  it.each([
+    ['row', 'horizontal-tb', 'width', 'e'],
+    ['column', 'horizontal-tb', 'height', 's'],
+    ['row-reverse', 'vertical-rl', 'height', 's'],
+    ['column-reverse', 'vertical-rl', 'width', 'e'],
+  ] as const)(
+    'resizes Fill children in %s / %s and restores Fill on undo',
+    async (direction, writing, axis, edge) => {
+      await reset(fillHtml(direction, writing))
+      await select('#box')
+      const initial = parseFloat(await computed('#box', axis))
+      const before = saves
+      await drag(edge, axis === 'width' ? 40 : 0, axis === 'height' ? 40 : 0)
+      await expect.poll(() => computed('#box', axis)).toBe(`${initial + 40}px`)
+      await expect.poll(() => saves).toBe(before + 1)
+      expect(saved.html).toContain('flex: 0 0 auto')
+      await page.evaluate(() => window.elementPanelHarness.undo())
+      await expect.poll(() => computed('#box', axis)).toBe(`${initial}px`)
+      const frame = (await frameDoc())!
+      expect(await frame.$eval('#box', (el) => getComputedStyle(el).flexGrow)).toBe('1')
+    },
+    20_000,
+  )
+
+  it('preserves Fill when only resizing the cross axis', async () => {
+    await reset(fillHtml())
+    await select('#box')
+    await drag('s', 0, 30)
+    await expect.poll(() => computed('#box', 'height')).toBe('130px')
+    await expect.poll(() => saved.html).toContain('style="height: 130px;"')
+    expect(await computed('#box', 'width')).toBe('300px')
+  }, 20_000)
+
+  it('restores Fill after releasing Shift during a cross-axis drag', async () => {
+    await reset(fillHtml())
+    await select('#box')
+    const from = await handle('s')
+    await page.mouse.move(from.x, from.y)
+    await page.mouse.down()
+    await page.keyboard.down('Shift')
+    await page.mouse.move(from.x, from.y + 20, { steps: 3 })
+    await expect.poll(() => computed('#box', 'width')).toBe('360px')
+    await page.keyboard.up('Shift')
+    await page.mouse.move(from.x, from.y + 30, { steps: 3 })
+    await page.mouse.up()
+    await expect.poll(() => saved.html).toContain('style="height: 130px;"')
+    expect(await computed('#box', 'width')).toBe('300px')
+  }, 20_000)
+
+  it('restores Fill on Escape without saving', async () => {
+    await reset(fillHtml())
+    await select('#box')
+    const before = saves
+    const from = await handle('e')
+    await page.mouse.move(from.x, from.y)
+    await page.mouse.down()
+    await page.mouse.move(from.x + 40, from.y, { steps: 3 })
+    await expect.poll(() => computed('#box', 'width')).toBe('340px')
+    await page.keyboard.press('Escape')
+    await page.mouse.up()
+    await expect.poll(() => computed('#box', 'width')).toBe('300px')
+    const frame = (await frameDoc())!
+    expect(await frame.$eval('#box', (el) => el.getAttribute('style'))).toBeNull()
+    expect(saves).toBe(before)
   }, 20_000)
 
   it('moves one axis from an edge and leaves the other alone', async () => {

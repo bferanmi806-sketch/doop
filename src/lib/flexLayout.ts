@@ -29,3 +29,10 @@ export function flexAlignmentAt(info: FlexInfo, x: number, y: number) {
     align: values[axes.crossForward ? cross : 2 - cross]!,
   }
 }
+
+/** The physical dimension controlled by a flex item's grow/shrink/basis. */
+export function flexSizeAxis(info: Pick<ElementInfo, 'position' | 'parent'>): 'width' | 'height' | null {
+  if (info.position === 'absolute' || info.position === 'fixed' || !info.parent?.display.includes('flex')) return null
+  const verticalWriting = /^(vertical|sideways)-/.test(info.parent.writingMode)
+  return info.parent.flexDirection.startsWith('column') !== verticalWriting ? 'height' : 'width'
+}
