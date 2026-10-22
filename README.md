@@ -133,6 +133,14 @@ render; the desktop app opens its native save panel.
   <img src=".github/assets/integrations.png" alt="The Integrations page with cards for Figma, Canva, Linear, Slack and Meta Ads" width="100%">
 </p>
 
+To reference a specific element in feedback, select it and choose **Copy link**
+in its floating toolbar, or right-click its Layers row and choose **Copy link to
+element**. Opening the link selects the element and opens its properties on the
+correct page. The URL includes the canvas ID, frame ID and URL-encoded CSS
+`selector`, so an AI agent can locate it in the frame HTML. Canvas access rules
+still apply. Selectors that use element IDs survive layout changes; selectors
+based on sibling positions can change when the HTML is restructured.
+
 ## iPhone and iPad app
 
 The SwiftUI iOS app lives in [`ios/`](ios/README.md). Open `ios/Doop.xcodeproj`
