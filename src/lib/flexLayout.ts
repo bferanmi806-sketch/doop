@@ -31,8 +31,11 @@ export function flexAlignmentAt(info: FlexInfo, x: number, y: number) {
 }
 
 /** The physical dimension controlled by a flex item's grow/shrink/basis. */
-export function flexSizeAxis(info: Pick<ElementInfo, 'position' | 'parent'>): 'width' | 'height' | null {
-  if (info.position === 'absolute' || info.position === 'fixed' || !info.parent?.display.includes('flex')) return null
-  const verticalWriting = /^(vertical|sideways)-/.test(info.parent.writingMode)
-  return info.parent.flexDirection.startsWith('column') !== verticalWriting ? 'height' : 'width'
+export function flexSizeAxis(
+  info: Pick<ElementInfo, 'position' | 'parent' | 'layoutParent'>,
+): 'width' | 'height' | null {
+  const parent = info.layoutParent ?? info.parent
+  if (info.position === 'absolute' || info.position === 'fixed' || !parent?.display.includes('flex')) return null
+  const verticalWriting = /^(vertical|sideways)-/.test(parent.writingMode)
+  return parent.flexDirection.startsWith('column') !== verticalWriting ? 'height' : 'width'
 }

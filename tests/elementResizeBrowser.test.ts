@@ -54,6 +54,7 @@ describe.skipIf(!findBrowserPath())('element resize handles', () => {
     return box
   }
   async function drag(name: string, dx: number, dy: number, { shift = false } = {}) {
+    const before = saves
     const from = await handle(name)
     await page.mouse.move(from.x, from.y)
     await page.mouse.down()
@@ -62,6 +63,8 @@ describe.skipIf(!findBrowserPath())('element resize handles', () => {
     await page.mouse.move(from.x + dx, from.y + dy, { steps: 4 })
     await page.mouse.up()
     if (shift) await page.keyboard.up('Shift')
+    // Let the commit reach persistence before the next fixture can replace it.
+    await expect.poll(() => saves).toBe(before + 1)
   }
   async function select(selector: string) {
     await page.evaluate((s) => window.elementPanelHarness.select(s), selector)
@@ -196,6 +199,52 @@ describe.skipIf(!findBrowserPath())('element resize handles', () => {
     },
     20_000,
   )
+
+  it.each(['row', 'column'])(
+    'resizes wrapped Fill children in a %s layout',
+    async (direction) => {
+      await reset(
+        fillHtml(direction).replace(
+          '<div id="box" class="fill"></div>',
+          '<div style="display: contents"><div style="display: contents"><div id="box" class="fill"></div></div></div>',
+        ),
+      )
+      await select('#box')
+      const axis = direction === 'row' ? 'width' : 'height'
+      const initial = parseFloat(await computed('#box', axis))
+      await drag(axis === 'width' ? 'e' : 's', axis === 'width' ? 40 : 0, axis === 'height' ? 40 : 0)
+      await expect.poll(() => computed('#box', axis)).toBe(`${initial + 40}px`)
+      await expect.poll(() => saved.html).toContain('flex: 0 0 auto')
+    },
+    20_000,
+  )
+
+  it('restores inline flex priority when Shift is released', async () => {
+    await reset(
+      fillHtml().replace(
+        '<div id="box" class="fill"></div>',
+        '<div id="box" class="fill" style="flex: 1 1 0px !important"></div><style>#box { flex-grow: 0 !important }</style>',
+      ),
+    )
+    await select('#box')
+    const from = await handle('s')
+    await page.mouse.move(from.x, from.y)
+    await page.mouse.down()
+    await page.keyboard.down('Shift')
+    await page.mouse.move(from.x, from.y + 20, { steps: 3 })
+    await expect.poll(() => computed('#box', 'width')).toBe('360px')
+    await page.keyboard.up('Shift')
+    await page.mouse.move(from.x, from.y + 30, { steps: 3 })
+    await page.mouse.up()
+    await expect.poll(() => saved.html).toContain('height: 130px')
+    expect(await computed('#box', 'width')).toBe('300px')
+    const frame = (await frameDoc())!
+    expect(
+      await frame.$eval('#box', (el) =>
+        ['flex-grow', 'flex-shrink', 'flex-basis'].map((key) => (el as HTMLElement).style.getPropertyPriority(key)),
+      ),
+    ).toEqual(['important', 'important', 'important'])
+  }, 20_000)
 
   it('preserves Fill when only resizing the cross axis', async () => {
     await reset(fillHtml())
