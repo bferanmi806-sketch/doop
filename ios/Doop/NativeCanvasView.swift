@@ -148,7 +148,12 @@ struct NativeCanvasView: View {
         let scope = promptScope?.scope
         let assignment = agentAssignment
         Task {
-            do { try await model.queue(value, scope: scope, assignment: assignment); prompt = ""; sheet = .tasks }
+            do {
+                try await model.queue(value, scope: scope, assignment: assignment)
+                prompt = ""
+                agentAssignment = .automatic
+                sheet = .tasks
+            }
             catch { model.error = error.localizedDescription }
             sending = false
         }
