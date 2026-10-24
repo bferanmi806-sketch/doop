@@ -66,7 +66,6 @@ public struct CardScope: Codable, Equatable {
     }
 }
 
-/// The resident specialist roles supported by `shared/agents.ts`.
 public enum SpecialistAgent: String, CaseIterable, Identifiable, Hashable {
     case ux
     case copy
