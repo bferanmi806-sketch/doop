@@ -105,7 +105,7 @@ struct ServerAddressChecks {
 
         let scopedAutomatic = CardQueueRequest(
             title: "Make this frame clearer",
-            scope: CardScope(frameId: "frame-1"),
+            scope: CardScope(frameId: "frame-1")
         ).body
         checkNil(scopedAutomatic["agents"], "Auto keeps the default pipeline for scoped tasks")
         checkEqual((scopedAutomatic["scope"] as? [String: String])?["frameId"], "frame-1")
@@ -113,7 +113,7 @@ struct ServerAddressChecks {
         let scoped = CardQueueRequest(
             title: "Rewrite this heading",
             scope: CardScope(frameId: "frame-1", selector: "main h1"),
-            assignment: .specialist(.copy),
+            assignment: .specialist(.copy)
         ).body
         checkEqual(scoped["agents"] as? [String], ["copy"])
         checkEqual((scoped["scope"] as? [String: String])?["frameId"], "frame-1")
