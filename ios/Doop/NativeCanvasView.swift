@@ -7,6 +7,7 @@ struct NativeCanvasView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var sheet: Panel?
     @State private var prompt = ""
+    @State private var agentAssignment = AgentAssignment.automatic
     @State private var sending = false
     /// The scope key the person dismissed with the chip's ×; a new selection brings the chip back.
     @State private var dismissedScope: String?
@@ -49,20 +50,26 @@ struct NativeCanvasView: View {
                             Button { model.selectedElement = nil } label: { Image(systemName: "xmark") }.accessibilityLabel("Clear element selection")
                         }.padding(.horizontal, 16).padding(.vertical, 12).modifier(FloatingGlass())
                     }
-                    HStack(spacing: 10) {
-                        if let scope = promptScope {
-                            PromptScopeChip(scope: scope) { dismissedScope = scope.key }
-                        } else {
-                            Image(systemName: "sparkles").foregroundStyle(.tint)
+                    VStack(spacing: 4) {
+                        HStack(spacing: 10) {
+                            if let scope = promptScope {
+                                PromptScopeChip(scope: scope) { dismissedScope = scope.key }
+                            }
+                            TextField(promptPlaceholder, text: $prompt, axis: .vertical).lineLimit(1...4)
+                                .textFieldStyle(.plain)
+                                .accessibilityIdentifier("canvas.prompt")
                         }
-                        TextField(promptPlaceholder, text: $prompt, axis: .vertical).lineLimit(1...4)
-                            .textFieldStyle(.plain)
-                            .accessibilityIdentifier("canvas.prompt")
-                        Button(action: sendPrompt) {
-                            if sending { ProgressView() } else { Image(systemName: "arrow.up.circle.fill").font(.title) }
-                        }.disabled(sending || prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !model.connected)
+                        HStack(spacing: 8) {
+                            Spacer(minLength: 0)
+                            AgentAssignmentMenu(selection: $agentAssignment)
+                            Button(action: sendPrompt) {
+                                if sending { ProgressView() } else { Image(systemName: "arrow.up.circle.fill").font(.title) }
+                            }
+                            .frame(minWidth: 44, minHeight: 44)
+                            .disabled(sending || prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !model.connected)
                             .accessibilityLabel("Send design task")
-                    }.padding(.horizontal, 16).padding(.vertical, 14).modifier(FloatingGlass())
+                        }
+                    }.padding(.horizontal, 16).padding(.vertical, 8).modifier(FloatingGlass())
                 }.frame(maxWidth: 620).padding(12)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
@@ -139,8 +146,9 @@ struct NativeCanvasView: View {
         guard !value.isEmpty else { return }
         sending = true
         let scope = promptScope?.scope
+        let assignment = agentAssignment
         Task {
-            do { try await model.queue(value, scope: scope); prompt = ""; sheet = .tasks }
+            do { try await model.queue(value, scope: scope, assignment: assignment); prompt = ""; sheet = .tasks }
             catch { model.error = error.localizedDescription }
             sending = false
         }
@@ -171,6 +179,37 @@ struct NativeCanvasView: View {
             exportURL = destination
             sheet = .export
         } catch { model.error = error.localizedDescription }
+    }
+}
+
+private struct AgentAssignmentMenu: View {
+    @Binding var selection: AgentAssignment
+
+    var body: some View {
+        Menu {
+            Picker("Assign to", selection: $selection) {
+                Label("Auto", systemImage: "sparkles").tag(AgentAssignment.automatic)
+                Section("Specialists") {
+                    ForEach(SpecialistAgent.allCases) { agent in
+                        Label(agent.name, systemImage: agent.symbol).tag(AgentAssignment.specialist(agent))
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: selection.symbol)
+                Text(selection.label).lineLimit(1)
+                Image(systemName: "chevron.up.chevron.down").font(.caption2)
+            }
+            .font(.subheadline.weight(.medium))
+            .padding(.horizontal, 10)
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .accessibilityLabel("Choose agent")
+        .accessibilityValue(selection.label)
+        .accessibilityHint("Choose Auto or a specialist for this task.")
+        .accessibilityIdentifier("canvas.agent-assignment")
     }
 }
 

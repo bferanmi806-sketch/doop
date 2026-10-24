@@ -66,6 +66,83 @@ public struct CardScope: Codable, Equatable {
     }
 }
 
+/// The resident specialist roles supported by `shared/agents.ts`.
+public enum SpecialistAgent: String, CaseIterable, Identifiable, Hashable {
+    case ux
+    case copy
+    case brand
+    case a11y
+    case polish
+
+    public var id: String { rawValue }
+
+    public var name: String {
+        switch self {
+        case .ux: return "UX Lead"
+        case .copy: return "Copywriter"
+        case .brand: return "Brand Compliance"
+        case .a11y: return "Accessibility"
+        case .polish: return "Visual Polish"
+        }
+    }
+
+    public var symbol: String {
+        switch self {
+        case .ux: return "square.grid.2x2"
+        case .copy: return "text.quote"
+        case .brand: return "paintpalette"
+        case .a11y: return "accessibility"
+        case .polish: return "sparkles"
+        }
+    }
+}
+
+/// Assignment is local to the composer. Auto omits `agents` so the server
+/// keeps its existing default pipeline; a specialist sends one role id.
+public enum AgentAssignment: Hashable {
+    case automatic
+    case specialist(SpecialistAgent)
+
+    public var label: String {
+        switch self {
+        case .automatic: return "Auto"
+        case .specialist(let agent): return agent.name
+        }
+    }
+
+    public var symbol: String {
+        switch self {
+        case .automatic: return "sparkles"
+        case .specialist(let agent): return agent.symbol
+        }
+    }
+
+    public var agentIDs: [String]? {
+        guard case .specialist(let agent) = self else { return nil }
+        return [agent.id]
+    }
+}
+
+/// The exact request body accepted by `POST /api/canvases/:id/cards`.
+public struct CardQueueRequest {
+    public var title: String
+    public var scope: CardScope?
+    public var assignment: AgentAssignment
+
+    public init(title: String, scope: CardScope?, assignment: AgentAssignment = .automatic) {
+        self.title = title
+        self.scope = scope
+        self.assignment = assignment
+    }
+
+    public var body: [String: Any] {
+        var body: [String: Any] = ["title": title]
+        if let scope { body["scope"] = scope.body }
+        if let agentIDs = assignment.agentIDs { body["agents"] = agentIDs }
+        return body
+    }
+}
+
 public struct CanvasTask: Codable, Identifiable, Hashable {
     public var id: String
     public var agentName: String

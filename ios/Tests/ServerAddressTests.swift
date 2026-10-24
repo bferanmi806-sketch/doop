@@ -12,6 +12,7 @@ struct ServerAddressChecks {
         try checks.testExportDestinations()
         try checks.testServerResponseContracts()
         checks.testCardScopeBody()
+        checks.testCardAgentAssignmentBody()
         try checks.testAgentActivityStates()
         FrameSnappingChecks.run()
         try PendingFrameMoveChecks.run()
@@ -95,6 +96,30 @@ struct ServerAddressChecks {
         let element = CardScope(frameId: "f1", selector: "body > main > h1:nth-of-type(1)").body
         checkEqual(element["selector"] as? String, "body > main > h1:nth-of-type(1)")
         checkTrue(JSONSerialization.isValidJSONObject(["title": "Make it bolder", "scope": element]))
+    }
+
+    func testCardAgentAssignmentBody() {
+        let automatic = CardQueueRequest(title: "Make it clearer", scope: nil).body
+        checkEqual(automatic["title"] as? String, "Make it clearer")
+        checkNil(automatic["agents"], "Auto leaves the server's default pipeline unchanged")
+
+        let scopedAutomatic = CardQueueRequest(
+            title: "Make this frame clearer",
+            scope: CardScope(frameId: "frame-1"),
+        ).body
+        checkNil(scopedAutomatic["agents"], "Auto keeps the default pipeline for scoped tasks")
+        checkEqual((scopedAutomatic["scope"] as? [String: String])?["frameId"], "frame-1")
+
+        let scoped = CardQueueRequest(
+            title: "Rewrite this heading",
+            scope: CardScope(frameId: "frame-1", selector: "main h1"),
+            assignment: .specialist(.copy),
+        ).body
+        checkEqual(scoped["agents"] as? [String], ["copy"])
+        checkEqual((scoped["scope"] as? [String: String])?["frameId"], "frame-1")
+        checkEqual((scoped["scope"] as? [String: String])?["selector"], "main h1")
+        checkTrue(JSONSerialization.isValidJSONObject(scoped))
+        checkEqual(SpecialistAgent.allCases.map(\.id), ["ux", "copy", "brand", "a11y", "polish"])
     }
 
     func testAgentActivityStates() throws {
